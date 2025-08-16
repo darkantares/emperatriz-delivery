@@ -1,0 +1,152 @@
+import React, { useRef, useEffect } from 'react';
+import { StyleSheet, Animated, TouchableOpacity, Dimensions, View as RNView } from 'react-native';
+import { Text, View } from '@/components/Themed';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useRef as useRefState, useState } from 'react';
+import { useAppContext } from '@/context/AppContext';
+import { AddressList } from '@/components/delivery-items/AddressList';
+import { AddressItem, SwipeableRef } from '@/components/delivery-items/AddressListItem';
+import { router } from 'expo-router';
+import { AntDesign } from '@expo/vector-icons';
+import { CustomColors } from '@/constants/CustomColors';
+
+const { height } = Dimensions.get('window');
+
+export default function AddressesModal() {
+    const { selectedAddresses } = useAppContext();
+    const addressSwipeableRefs = useRefState<Map<string, SwipeableRef>>(new Map());
+    const [addresses, setAddresses] = useState<AddressItem[]>(
+        selectedAddresses
+            ? selectedAddresses.addresses.map(addr => ({
+                ...addr,
+                elementId: selectedAddresses.elementId,
+                elementTitle: selectedAddresses.elementTitle,
+                street: addr.street || '',
+                city: addr.city || '',
+                zipCode: addr.zipCode || '',
+                reference: addr.reference || '',
+            }))
+            : []
+    );
+
+    // Animación para deslizar desde abajo
+    const slideAnim = useRef(new Animated.Value(height)).current;
+
+    useEffect(() => {
+        Animated.timing(slideAnim, {
+            toValue: 0,
+            duration: 300,
+            useNativeDriver: true,
+        }).start();
+    }, []);
+
+    const closeModal = () => {
+        Animated.timing(slideAnim, {
+            toValue: height,
+            duration: 300,
+            useNativeDriver: true,
+        }).start(() => {
+            router.back();
+        });
+    };
+
+    const handleEditAddress = (id: string) => {
+        console.log('Editar dirección:', id);
+    };
+
+    const handleDeleteAddress = (id: string) => {
+        setAddresses(addresses.filter(address => address.id !== id));
+    };    const handleStatusUpdate = (id: string, newStatus: string) => {
+        setAddresses(addresses.map(address => 
+            address.id === id 
+                ? { ...address, status: newStatus } 
+                : address
+        ));
+    };
+
+    return (
+        <RNView style={styles.overlay}>
+            <Animated.View
+                style={[
+                    styles.modalContainer,
+                    { transform: [{ translateY: slideAnim }] }
+                ]}
+            >
+                <GestureHandlerRootView style={styles.gestureRoot}>
+                    <View style={styles.header}>            
+                        <TouchableOpacity onPress={closeModal} style={styles.closeButton}>
+                            <AntDesign name="close" size={24} color={CustomColors.primary} />
+                        </TouchableOpacity>
+                        <Text style={styles.title}>
+                            {selectedAddresses
+                                ? `Direcciones de ${selectedAddresses.elementTitle}`
+                                : 'No hay direcciones seleccionadas'}
+                        </Text>
+                    </View>                    
+                    <AddressList
+                        addresses={addresses}
+                        onEditAddress={handleEditAddress}
+                        onDeleteAddress={handleDeleteAddress}
+                        onStatusUpdate={handleStatusUpdate}
+                        addressSwipeableRefs={addressSwipeableRefs}
+                    />
+                </GestureHandlerRootView>
+            </Animated.View>
+        </RNView>
+    );
+}
+
+const styles = StyleSheet.create({
+    overlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.7)',
+    },
+    modalContainer: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: '90%',
+        backgroundColor: CustomColors.backgroundDarkest,
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        paddingTop: 15,
+        shadowColor: 'rgba(0,0,0,0.5)',
+        shadowOffset: { width: 0, height: -3 },
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
+        elevation: 8,
+    },
+    gestureRoot: {
+        flex: 1,
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 15,
+        paddingBottom: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: CustomColors.divider,
+        position: 'relative',
+        backgroundColor: CustomColors.backgroundDark,
+        marginBottom: 5,
+    },
+    closeButton: {
+        position: 'absolute',
+        left: 15,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: CustomColors.backgroundDarkest,
+    },
+    title: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        color: CustomColors.secondary,
+        padding: 10,
+    },
+});

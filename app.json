@@ -1,0 +1,48 @@
+{
+  "expo": {
+    "name": "emperatriz-delivery",
+    "slug": "emperatriz-delivery",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "emperatrizdelivery",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "extra": {
+      "apiUrl": {
+        "development": "http://192.168.100.135:3000",
+        "production": "https://api.emperatrizdelivery.com"
+      },
+      "socketUrl": {
+        "development": "http://192.168.100.135:3000",
+        "production": "https://api.emperatrizdelivery.com"
+      }
+    },
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1A1125"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#1A1125"
+      },
+      "edgeToEdgeEnabled": true
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
