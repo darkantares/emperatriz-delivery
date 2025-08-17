@@ -95,7 +95,7 @@ export default function TabOneScreen() {
   const mapDeliveries = (deliveries: IDelivery[]): DeliveryItemAdapter[] => {
     return deliveries.map((delivery: IDelivery) => ({
       id: delivery.id.toString(),
-      title: `Entrega #${delivery.id}`,
+      title: `${delivery.provinciaOrigen.nombre},${delivery.sectorOrigen.nombre}, ${delivery.municipioOrigen.nombre}`,
       description: `Cliente: ${delivery.contactPerson} - Tel: ${delivery.contactPhone}`,
       destinies: delivery.destinies || []
     }));

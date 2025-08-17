@@ -1,11 +1,25 @@
 import { io, Socket } from 'socket.io-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getBaseUrl } from './api';
+// Importar el servicio de notificaciones
+import { queueNotification, NotificationType } from './notificationService';
 
-// URL del servidor Socket.IO
 const SOCKET_URL = getBaseUrl();
 
-// Tipos de eventos disponibles
+let pendingNotification = false;
+
+function queueNotificationSound() {
+  pendingNotification = true;
+}
+
+export function checkPendingNotifications(): boolean {
+  if (pendingNotification) {
+    pendingNotification = false;
+    return true;
+  }
+  return false;
+}
+
 export enum SocketEventType {
   CONNECT = 'connect',
   DISCONNECT = 'disconnect',
@@ -15,7 +29,6 @@ export enum SocketEventType {
   DELIVERY_STATUS_CHANGED = 'delivery-status-changed',
 }
 
-// Clase para manejar la conexión Socket.IO
 class SocketService {
   private socket: Socket | null = null;
   private listeners: Map<string, Set<Function>> = new Map();
@@ -31,40 +44,32 @@ class SocketService {
     autoConnect: false,
   };
 
-  constructor() {
-    // La conexión se iniciará explícitamente cuando sea necesario
-  }
+  constructor() { }
 
-  // Getter para saber si el socket está conectado
   get connected(): boolean {
     return this._connected;
   }
 
-  // Conectar el socket
   async connect() {
     try {
       console.log("Iniciando conexión Socket.IO...");
-      
-      // Obtener el token de autenticación
+
       const token = await AsyncStorage.getItem('auth_token');
       if (!token) {
         console.error("No se pudo iniciar Socket.IO: token no disponible");
         return false;
       }
 
-      // Si ya hay un socket, desconectarlo
       if (this.socket) {
         this.socket.disconnect();
       }
 
-      // Crear nueva instancia de socket
       this.socket = io(SOCKET_URL, {
         ...this.options,
         auth: { token },
         transports: ['websocket'],
       });
 
-      // Configurar eventos básicos
       this.socket.on(SocketEventType.CONNECT, () => {
         console.log('Socket.IO conectado');
         this._connected = true;
@@ -83,10 +88,19 @@ class SocketService {
         this.notifyConnectionListeners();
       });
 
-      // Configurar listeners para eventos específicos de la aplicación
+      this.socket.onAny((event) => {
+        if (
+          event === SocketEventType.DRIVER_ASSIGNED &&
+          event === SocketEventType.DELIVERY_UPDATED &&
+          event === SocketEventType.DELIVERY_STATUS_CHANGED
+        ) {
+          console.log('Evento recibido:', event);
+          queueNotificationSound();
+        }
+      });
+
       this.setupEventListeners();
 
-      // Iniciar conexión
       this.socket.connect();
       return true;
     } catch (error) {
@@ -97,30 +111,55 @@ class SocketService {
     }
   }
 
-  // Configurar listeners para eventos específicos de la aplicación
+
   private setupEventListeners() {
     if (!this.socket) return;
 
-    // Evento cuando se asigna un conductor a una entrega
+
     this.socket.on(SocketEventType.DRIVER_ASSIGNED, (data) => {
       console.log('Evento recibido - Conductor asignado:', data);
+
+      // Encolar una notificación
+      queueNotification(
+        NotificationType.SUCCESS,
+        'Nueva entrega asignada',
+        `Se te ha asignado la entrega #${data.deliveryId}`,
+        true // Reproducir sonido
+      );
+
       this.notifyListeners(SocketEventType.DRIVER_ASSIGNED, data);
     });
 
-    // Evento cuando se actualiza una entrega
+
     this.socket.on(SocketEventType.DELIVERY_UPDATED, (data) => {
       console.log('Evento recibido - Entrega actualizada:', data);
+
+      queueNotification(
+        NotificationType.INFO,
+        'Entrega actualizada',
+        `La entrega #${data.deliveryId} ha sido actualizada`,
+        true
+      );
+
       this.notifyListeners(SocketEventType.DELIVERY_UPDATED, data);
     });
 
-    // Evento cuando cambia el estado de una entrega
+
     this.socket.on(SocketEventType.DELIVERY_STATUS_CHANGED, (data) => {
       console.log('Evento recibido - Estado de entrega cambiado:', data);
+
+      queueNotification(
+        NotificationType.INFO,
+        'Estado de entrega cambiado',
+        `La entrega #${data.deliveryId} ahora está ${data.destiny.deliveryStatus}`,
+        true
+      );
+
       this.notifyListeners(SocketEventType.DELIVERY_STATUS_CHANGED, data);
     });
   }
 
-  // Desconectar el socket
+
   disconnect() {
     if (this.socket) {
       console.log("Desconectando Socket.IO...");
@@ -130,7 +169,7 @@ class SocketService {
     }
   }
 
-  // Registrar un listener para un evento específico
+
   on(event: string, callback: Function) {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, new Set());
@@ -138,7 +177,6 @@ class SocketService {
     this.listeners.get(event)?.add(callback);
   }
 
-  // Eliminar un listener para un evento específico
   off(event: string, callback: Function) {
     const eventListeners = this.listeners.get(event);
     if (eventListeners) {
@@ -146,19 +184,16 @@ class SocketService {
     }
   }
 
-  // Registrar un listener para cambios en el estado de conexión
   onConnectionChange(callback: (connected: boolean) => void) {
     this.connectionListeners.add(callback);
-    // Notificar inmediatamente el estado actual
+
     callback(this._connected);
   }
 
-  // Eliminar un listener de cambios en el estado de conexión
   offConnectionChange(callback: (connected: boolean) => void) {
     this.connectionListeners.delete(callback);
   }
 
-  // Notificar a los listeners de un evento específico
   private notifyListeners(event: string, data?: any) {
     const eventListeners = this.listeners.get(event);
     if (eventListeners) {
@@ -172,7 +207,6 @@ class SocketService {
     }
   }
 
-  // Notificar a los listeners de cambios en la conexión
   private notifyConnectionListeners() {
     this.connectionListeners.forEach(callback => {
       try {
@@ -183,7 +217,6 @@ class SocketService {
     });
   }
 
-  // Enviar un evento al servidor
   emit(event: string, data?: any) {
     if (this.socket?.connected) {
       console.log(`Emitiendo evento ${event}:`, data);
@@ -194,11 +227,9 @@ class SocketService {
     return false;
   }
 
-  // Verificar si el socket está conectado
   isConnected(): boolean {
     return this._connected;
   }
 }
 
-// Exportar una instancia única del servicio
 export const socketService = new SocketService();

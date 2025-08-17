@@ -74,15 +74,26 @@ export default function AddressesModal() {
             >
                 <GestureHandlerRootView style={styles.gestureRoot}>
                     <View style={styles.header}>            
-                        <TouchableOpacity onPress={closeModal} style={styles.closeButton}>
-                            <AntDesign name="close" size={24} color={CustomColors.primary} />
-                        </TouchableOpacity>
-                        <Text style={styles.title}>
-                            {selectedAddresses
-                                ? `Direcciones de ${selectedAddresses.elementTitle}`
-                                : 'No hay direcciones seleccionadas'}
+                      <View style={styles.headerSide} />
+                      <View style={styles.headerCenter}>
+                        <Text
+                          style={styles.title}
+                          numberOfLines={2}
+                          ellipsizeMode="tail"
+                        >
+                          {selectedAddresses
+                            ? `de ${selectedAddresses.elementTitle}`
+                            : 'No hay direcciones seleccionadas'}
                         </Text>
-                    </View>                    
+                      </View>
+            
+                      <View style={styles.headerSide}>
+                        <TouchableOpacity onPress={closeModal} style={styles.closeButton}>
+                          <AntDesign name="close" size={24} color={CustomColors.primary} />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+            
                     <AddressList
                         addresses={addresses}
                         onEditAddress={handleEditAddress}
@@ -123,30 +134,39 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: 15,
+        justifyContent: 'space-between',
+        paddingHorizontal: 10,
         paddingBottom: 15,
         borderBottomWidth: 1,
         borderBottomColor: CustomColors.divider,
-        position: 'relative',
-        backgroundColor: CustomColors.backgroundDark,
+        // Quita el fondo del header para que sea igual al modal
+        backgroundColor: 'transparent',
         marginBottom: 5,
     },
     closeButton: {
-        position: 'absolute',
-        left: 15,
         width: 40,
         height: 40,
         borderRadius: 20,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: CustomColors.backgroundDarkest,
+        // Fondo transparente para que no resalte el círculo
+        backgroundColor: 'transparent',
     },
     title: {
         fontSize: 18,
         fontWeight: 'bold',
         textAlign: 'center',
         color: CustomColors.secondary,
-        padding: 10,
+    },
+    headerSide: {
+        width: 48, // igual o mayor al ancho del botón
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    headerCenter: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 8,
     },
 });

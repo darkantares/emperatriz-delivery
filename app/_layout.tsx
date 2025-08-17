@@ -12,6 +12,8 @@ import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { useColorScheme } from '@/components/useColorScheme';
 import { CustomColors } from '@/constants/CustomColors';
 import LoadingScreen from '@/components/LoadingScreen';
+import { NotificationHandler } from '@/components/NotificationHandler';
+import Toast from 'react-native-toast-message';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -60,7 +62,7 @@ function ProtectedRouteGuard({ children }: { children: React.ReactNode }) {
     if (isLoading || !navigationState?.key) return;
 
     const isLoginScreen = segments[0] === 'login';
-    
+
     if (!isAuthenticated && !isLoginScreen) {
       // Si el usuario no está autenticado y no está en la pantalla de login, redirigir al login
       router.replace('/login');
@@ -85,23 +87,26 @@ function RootLayoutNav() {
       <AuthProvider>
         <AppProvider>
           <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <ProtectedRouteGuard>
-            <Stack screenOptions={{ 
-              headerStyle: { 
-                backgroundColor: CustomColors.backgroundDark
-              },
-              headerTintColor: CustomColors.textLight
-            }}>
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-              <Stack.Screen name="login" options={{ headerShown: false }} />
-              <Stack.Screen name="addresses" options={{ 
-                headerShown: false,
-                presentation: 'transparentModal',
-                animation: 'slide_from_bottom'
-              }} />
-            </Stack>
-          </ProtectedRouteGuard>
+            <ProtectedRouteGuard>
+              <Stack screenOptions={{ 
+                headerStyle: { 
+                  backgroundColor: CustomColors.backgroundDark
+                },
+                headerTintColor: CustomColors.textLight
+              }}>
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+                <Stack.Screen name="login" options={{ headerShown: false }} />
+                <Stack.Screen name="addresses" options={{ 
+                  headerShown: false,
+                  presentation: 'transparentModal',
+                  animation: 'slide_from_bottom'
+                }} />
+              </Stack>
+              
+              <NotificationHandler />
+              {/* <Toast /> */}
+            </ProtectedRouteGuard>
           </ThemeProvider>
         </AppProvider>
       </AuthProvider>
