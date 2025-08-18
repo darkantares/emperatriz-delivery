@@ -17,7 +17,9 @@ import { DeliveryAssigned } from '@/interfaces/socket/DeliveryAssigned';
 interface DeliveryItemAdapter {
   id: string;
   title: string;
-  description: string;
+  // description: string;
+  client: string;
+  phone: string;
   destinies: IDeliveryDestinyEntity[];
 }
 
@@ -95,8 +97,9 @@ export default function TabOneScreen() {
   const mapDeliveries = (deliveries: IDelivery[]): DeliveryItemAdapter[] => {
     return deliveries.map((delivery: IDelivery) => ({
       id: delivery.id.toString(),
-      title: `${delivery.provinciaOrigen.nombre},${delivery.sectorOrigen.nombre}, ${delivery.municipioOrigen.nombre}`,
-      description: `Cliente: ${delivery.contactPerson} - Tel: ${delivery.contactPhone}`,
+      title: `${delivery.provinciaOrigen.nombre},${delivery.sectorOrigen.nombre}, ${delivery.municipioOrigen.nombre}`,      
+      client: delivery.contactPerson,
+      phone: delivery.contactPhone,
       destinies: delivery.destinies || []
     }));
   };
@@ -107,7 +110,7 @@ export default function TabOneScreen() {
 
     try {
       const response = await deliveryService.getDeliveries();
-
+      
       if (response.success && response.data) {
         const adaptedDeliveries = mapDeliveries(response.data);
         setDeliveries(adaptedDeliveries);
@@ -173,6 +176,8 @@ export default function TabOneScreen() {
 
   const handlePressItem = (id: string) => {
     const selectedItem = deliveries.find(item => item.id === id);
+    console.log(selectedItem);
+
     if (selectedItem) {      // Adaptar los destinos al formato que espera el AppContext
       const adaptedDestinies = selectedItem.destinies.map(destiny => ({
         id: destiny.id.toString(),
@@ -181,8 +186,10 @@ export default function TabOneScreen() {
         city: `${destiny.provincia?.nombre || ''}, ${destiny.municipio?.nombre || ''}, ${destiny.sector?.nombre || ''}`,
         zipCode: '',
         reference: destiny.observations || '',
-        status: destiny.deliveryStatus
+        status: destiny.deliveryStatus,
+        cost: destiny.cost || 0,
       }));
+      console.log(adaptedDestinies);
 
       setSelectedAddresses({
         elementId: selectedItem.id,

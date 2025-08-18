@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import { CustomColors } from '@/constants/CustomColors';
 import { StatusUpdateModal } from '@/components/modals/StatusUpdateModal';
 import { getStatusColor } from '@/interfaces/delivery/deliveryStatus';
+import { FontAwesome } from '@expo/vector-icons';
 
 export interface Address {
     id: string;
@@ -14,6 +15,7 @@ export interface Address {
     zipCode?: string;
     reference?: string;
     status: string | undefined;
+    cost: number;
 }
 
 export interface AddressItem {
@@ -25,7 +27,8 @@ export interface AddressItem {
     city: string;
     zipCode: string;
     reference: string;
-    status: string | undefined;
+    status: string | undefined;   
+    cost: number; 
 }
 
 export type SwipeableRef = Swipeable | null;
@@ -38,7 +41,8 @@ interface AddressItemProps {
 }
 
 export const AddressListItem: React.FC<AddressItemProps> = ({
-    item,    closeAllSwipeables,
+    item,    
+    closeAllSwipeables,
     swipeableRef,
     onStatusUpdate,
 }) => {
@@ -72,20 +76,32 @@ export const AddressListItem: React.FC<AddressItemProps> = ({
                 onSwipeableOpen={() => closeAllSwipeables(item.id)}
             >
                 <View style={styles.addressContainer}>
-                    <Text style={styles.addressLabel}>{item.label}</Text>
-                    <Text style={styles.addressText}>{item.street}</Text>
-                    {item.status && (
-                        <View style={[styles.statusContainer, { backgroundColor: getStatusColor(item.status) + '20' }]}>
-                            <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.status) }]} />
-                            <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
-                                {item.status}
+                    <View style={styles.row}>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.addressLabel}>{item.label}</Text>
+                            <Text style={styles.addressText}>{item.street}</Text>
+                            {item.status && (
+                                <View style={[styles.statusContainer, { backgroundColor: getStatusColor(item.status)}]}>                                    
+                                    <Text style={[styles.statusText]}>
+                                        {item.status}
+                                    </Text>
+                                </View>
+                            )}
+                            {/* <Text style={styles.addressLabel}>{item.label}</Text> */}
+                            <Text style={styles.addressDetails}>
+                                {item.city}{item.zipCode ? `, ${item.zipCode}` : ''}
                             </Text>
+                            <Text style={styles.addressLabel}>Monto a cobrar: $RD {item.cost || 0}</Text>
+                            {item.reference ? <Text style={styles.addressReference}>Ref: {item.reference}</Text> : null}
                         </View>
-                    )}
-                    <Text style={styles.addressDetails}>
-                        {item.city}{item.zipCode ? `, ${item.zipCode}` : ''}
-                    </Text>
-                    {item.reference ? <Text style={styles.addressReference}>Ref: {item.reference}</Text> : null}
+                        {/* Indicador de swipe */}
+                      <FontAwesome
+                            name="angle-left"
+                            size={64} // 28 * 3 = 84 (300% más grande)
+                            color="#FFF" // Blanco puro
+                            style={styles.swipeIndicator}
+                        />
+                    </View>
                 </View>
             </Swipeable>
 
@@ -168,4 +184,12 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: 'bold',
     },
+    row: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+   swipeIndicator: {
+    marginLeft: 10,
+    opacity: 0.7,
+},
 });

@@ -42,7 +42,9 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
             const nextStatuses = getNextValidStatuses(currentStatus);
             setAvailableStatuses(nextStatuses);
         }
-    }, [isVisible, currentStatus]);    const handleConfirm = async () => {
+    }, [isVisible, currentStatus]);
+
+    const handleConfirm = async () => {
         if (selectedStatus) {
             setLoading(true);
             try {

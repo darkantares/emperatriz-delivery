@@ -7,7 +7,8 @@ import { CustomColors } from '@/constants/CustomColors';
 export interface Item {
   id: string;
   title: string;
-  description: string;
+  client: string;
+  phone: string;  
 }
 
 export type SwipeableRef = Swipeable | null;
@@ -78,8 +79,18 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({
             <Text style={styles.numberText}>{item.id}</Text>
           </View>
           <View style={styles.contentContainer}>
-            <Text style={styles.itemTitle}>{item.title}</Text>
-            <Text style={styles.itemDescription}>{item.description}</Text>
+            <View style={styles.infoRow}>
+              <Text style={styles.itemTitle}>Dirección:</Text>
+              <Text style={styles.itemDescription}>{item.title}</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Text style={styles.itemTitle}>Cliente:</Text>
+              <Text style={styles.itemDescription}>{item.client}</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Text style={styles.itemTitle}>Teléfono:</Text>
+              <Text style={styles.itemDescription}>{item.phone}</Text>
+            </View>
           </View>
         </View>
       </TouchableOpacity>
@@ -92,7 +103,7 @@ const { width } = Dimensions.get('window');
 const styles = StyleSheet.create({
   itemContainer: {
     backgroundColor: CustomColors.cardBackground,
-    padding: 15,
+    padding: 8,
     borderBottomWidth: 1,
     borderBottomColor: CustomColors.divider,
     width: width,
@@ -100,13 +111,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   numberContainer: {
-    width: 40,
-    height: 40,
+    width: 30,
+    height: 30,
     borderRadius: 20,
     backgroundColor: CustomColors.backgroundDark,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 15,
+    marginRight: 10,
   },
   numberText: {
     color: CustomColors.secondary,
@@ -117,16 +128,22 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingRight: 10,
   },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   itemTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: CustomColors.textLight,
+    width: 80, // Ancho fijo para alinear todos los valores
   },
   itemDescription: {
     fontSize: 14,
     color: CustomColors.textLight,
     opacity: 0.7,
-    marginTop: 5,
+    flex: 1, // Permite que el texto ocupe el espacio restante
   },
   leftActions: {
     flexDirection: 'row',

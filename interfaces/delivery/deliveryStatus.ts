@@ -8,73 +8,89 @@ export enum DeliveryStatus {
     FAILED = 'Fallido',
     ON_HOLD = 'En Espera',
     SCHEDULED = 'Programado',
-    READY_FOR_PICKUP = 'Listo para Recoger'
+    READY_FOR_PICKUP = 'Listo para Recoger',
+    ASSIGNED = 'Asignado',
 }
 
 // Define valid status transitions - what status can progress to what other statuses
-export const validStatusTransitions: Record<DeliveryStatus, DeliveryStatus[]> = {    [DeliveryStatus.PENDING]: [
+export const validStatusTransitions: Record<DeliveryStatus, DeliveryStatus[]> = {
+    [DeliveryStatus.PENDING]: [
+        DeliveryStatus.ASSIGNED,
+        DeliveryStatus.SCHEDULED,
+        DeliveryStatus.CANCELLED,
+        DeliveryStatus.ON_HOLD,
+    ],
+    [DeliveryStatus.ASSIGNED]: [
         DeliveryStatus.IN_PROGRESS,
         DeliveryStatus.CANCELLED,
         DeliveryStatus.ON_HOLD,
-        DeliveryStatus.SCHEDULED
+        DeliveryStatus.SCHEDULED,
+    ],
+    [DeliveryStatus.SCHEDULED]: [
+        DeliveryStatus.ASSIGNED,
+        DeliveryStatus.IN_PROGRESS,
+        DeliveryStatus.CANCELLED,
+        DeliveryStatus.ON_HOLD,
     ],
     [DeliveryStatus.IN_PROGRESS]: [
+        DeliveryStatus.READY_FOR_PICKUP,
         DeliveryStatus.COMPLETED,
         DeliveryStatus.DELIVERED,
         DeliveryStatus.FAILED,
         DeliveryStatus.ON_HOLD,
-        DeliveryStatus.READY_FOR_PICKUP
+        DeliveryStatus.CANCELLED,
+    ],
+    [DeliveryStatus.READY_FOR_PICKUP]: [
+        DeliveryStatus.DELIVERED,
+        DeliveryStatus.FAILED,
+        DeliveryStatus.RETURNED,
+        DeliveryStatus.CANCELLED,
     ],
     [DeliveryStatus.COMPLETED]: [
-        DeliveryStatus.DELIVERED
+        DeliveryStatus.DELIVERED,
     ],
-    [DeliveryStatus.CANCELLED]: [],
     [DeliveryStatus.DELIVERED]: [],
     [DeliveryStatus.RETURNED]: [],
     [DeliveryStatus.FAILED]: [
+        DeliveryStatus.RETURNED,
         DeliveryStatus.IN_PROGRESS,
-        DeliveryStatus.RETURNED
+        DeliveryStatus.CANCELLED,
     ],
     [DeliveryStatus.ON_HOLD]: [
         DeliveryStatus.IN_PROGRESS,
         DeliveryStatus.CANCELLED,
-        DeliveryStatus.SCHEDULED
+        DeliveryStatus.SCHEDULED,
     ],
-    [DeliveryStatus.SCHEDULED]: [
-        DeliveryStatus.IN_PROGRESS,
-        DeliveryStatus.CANCELLED,
-        DeliveryStatus.ON_HOLD
-    ],    [DeliveryStatus.READY_FOR_PICKUP]: [
-        DeliveryStatus.DELIVERED,
-        DeliveryStatus.FAILED,
-        DeliveryStatus.RETURNED
-    ]
+    [DeliveryStatus.CANCELLED]: [],
 };
 
 // Helper functions
 export function getStatusColor(status: string): string {
     switch (status) {
         case DeliveryStatus.PENDING:
-            return '#FFA500'; // Orange
+            return '#FFA500';
+        case DeliveryStatus.ASSIGNED:
+            return '#1976D2';
+        case DeliveryStatus.SCHEDULED:
+            return '#64B5F6';
         case DeliveryStatus.IN_PROGRESS:
-            return '#3498DB'; // Blue
-        case DeliveryStatus.COMPLETED:
-            return '#2ECC71'; // Green
-        case DeliveryStatus.CANCELLED:
-            return '#E74C3C'; // Red
-        case DeliveryStatus.DELIVERED:
-            return '#27AE60'; // Dark Green
-        case DeliveryStatus.RETURNED:
-            return '#D35400'; // Dark Orange
-        case DeliveryStatus.FAILED:
-            return '#C0392B'; // Dark Red
-        case DeliveryStatus.ON_HOLD:
-            return '#95A5A6'; // Gray        case DeliveryStatus.SCHEDULED:
-            return '#9B59B6'; // Purple
+            return '#3498DB';
         case DeliveryStatus.READY_FOR_PICKUP:
-            return '#F1C40F'; // Yellow
+            return '#F1C40F';
+        case DeliveryStatus.COMPLETED:
+            return '#2ECC71';
+        case DeliveryStatus.DELIVERED:
+            return '#27AE60';
+        case DeliveryStatus.RETURNED:
+            return '#D35400';
+        case DeliveryStatus.FAILED:
+            return '#C0392B';
+        case DeliveryStatus.ON_HOLD:
+            return '#95A5A6';
+        case DeliveryStatus.CANCELLED:
+            return '#E74C3C';
         default:
-            return '#7F8C8D'; // Default Gray
+            return '#7F8C8D';
     }
 }
 

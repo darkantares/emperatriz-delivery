@@ -14,6 +14,8 @@ const { height } = Dimensions.get('window');
 
 export default function AddressesModal() {
     const { selectedAddresses } = useAppContext();
+    // console.log(selectedAddresses);
+
     const addressSwipeableRefs = useRefState<Map<string, SwipeableRef>>(new Map());
     const [addresses, setAddresses] = useState<AddressItem[]>(
         selectedAddresses
@@ -25,6 +27,7 @@ export default function AddressesModal() {
                 city: addr.city || '',
                 zipCode: addr.zipCode || '',
                 reference: addr.reference || '',
+                cost: addr.cost || 0,
             }))
             : []
     );
