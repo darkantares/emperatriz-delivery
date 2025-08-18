@@ -1,6 +1,7 @@
 import React from 'react';
-import { FlatList, StyleSheet } from 'react-native';
+import { FlatList, StyleSheet, RefreshControl } from 'react-native';
 import { Item, SwipeableRef, DeliveryItem } from './DeliveryItem';
+import { CustomColors } from '@/constants/CustomColors';
 
 interface DeliveryItemListProps {
   data: Item[];
@@ -10,6 +11,8 @@ interface DeliveryItemListProps {
   closeAllSwipeables: (exceptId?: string) => void;
   swipeableRefs: React.MutableRefObject<Map<string, SwipeableRef>>;
   onPressItem: (id: string) => void;
+  refreshing?: boolean;
+  onRefresh?: () => void;
 }
 
 export const DeliveryItemList: React.FC<DeliveryItemListProps> = ({
@@ -20,6 +23,8 @@ export const DeliveryItemList: React.FC<DeliveryItemListProps> = ({
   closeAllSwipeables,
   swipeableRefs,
   onPressItem,
+  refreshing = false,
+  onRefresh,
 }) => {  
   const renderItem = ({ item }: { item: Item }) => (
     <DeliveryItem
@@ -45,6 +50,15 @@ export const DeliveryItemList: React.FC<DeliveryItemListProps> = ({
       renderItem={renderItem}
       keyExtractor={item => item.id}
       style={styles.list}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          colors={[CustomColors.secondary]}
+          tintColor={CustomColors.secondary}
+          progressBackgroundColor={CustomColors.backgroundDark}
+        />
+      }
     />
   );
 };

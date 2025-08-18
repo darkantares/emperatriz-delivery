@@ -1,4 +1,4 @@
-import { StyleSheet, TouchableOpacity, ActivityIndicator, SafeAreaView } from 'react-native';
+import { StyleSheet, TouchableOpacity, ActivityIndicator, SafeAreaView, RefreshControl, ScrollView } from 'react-native';
 import { Text, View } from '@/components/Themed';
 import { socketService, SocketEventType } from '@/services/websocketService';
 import { FontAwesome } from '@expo/vector-icons';
@@ -25,69 +25,62 @@ interface DeliveryItemAdapter {
 
 export default function TabOneScreen() {
   const [deliveries, setDeliveries] = useState<DeliveryItemAdapter[]>([]);
-  const [totalDeliveries, setTotalDeliveries] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const swipeableRefs = useRef<Map<string, SwipeableRef>>(new Map());
   const router = useRouter();
   const { setSelectedAddresses } = useAppContext();
 
-  // Cargar entregas desde el backend
+  // Cargar entregas al montar
   useEffect(() => {
     fetchDeliveries();
+  }, []);
 
+  // Conectar socket y listeners
+  useEffect(() => {
     socketService.connect();
-    
+
     const handleDeliveryAssigned = (data: DeliveryAssigned) => {
       const deliveryIdStr = data.deliveryId.toString();
-
-      const deliveryExists = deliveries.some(d => d.id === deliveryIdStr);
-
-      if (deliveryExists) {
-        setDeliveries(currentDeliveries =>
-          currentDeliveries.map(delivery => {
+      setDeliveries(currentDeliveries => {
+        const deliveryExists = currentDeliveries.some(d => d.id === deliveryIdStr);
+        if (deliveryExists) {
+          return currentDeliveries.map(delivery => {
             if (delivery.id !== deliveryIdStr) return delivery;
-
             const updatedDestinies = delivery.destinies.map(destiny => {
               if (destiny.id !== data.destiny.id) return destiny;
-
               return {
                 ...destiny,
                 deliveryStatus: data.destiny.deliveryStatus
               };
             });
-
             return {
               ...delivery,
               destinies: updatedDestinies
             };
-          })
-        );
-      } else {
-        deliveryService.getDeliveryById(data.deliveryId)
-          .then(response => {
-            if (response.success && response.data) {
-              const newDelivery = mapDeliveries([response.data])[0];
-
-              setDeliveries(current => [newDelivery, ...current]);
-
-              setTotalDeliveries(current => current + 1);
-
-              console.log(`Nueva entrega ${deliveryIdStr} añadida correctamente`);
-            } else {
-              console.error('Error al cargar la nueva entrega:', response.error);
-            }
-          })
-          .catch(error => {
-            console.error('Error al obtener la nueva entrega:', error);
           });
-      }
+        } else {
+          // Si no existe, obtener la nueva entrega y agregarla
+          deliveryService.getDeliveryById(data.deliveryId)
+            .then(response => {
+              if (response.success && response.data) {
+                const newDelivery = mapDeliveries([response.data])[0];
+                setDeliveries(current => [newDelivery, ...current]);
+                console.log(`Nueva entrega ${deliveryIdStr} añadida correctamente`);
+              } else {
+                console.error('Error al cargar la nueva entrega:', response.error);
+              }
+            })
+            .catch(error => {
+              console.error('Error al obtener la nueva entrega:', error);
+            });
+          return currentDeliveries;
+        }
+      });
     };
 
-    // Registrar el listener
     socketService.on(SocketEventType.DRIVER_ASSIGNED, handleDeliveryAssigned);
-
-    // Limpiar al desmontar
     return () => {
       console.log('Componente desmontado, limpiando listeners y desconectando socket');
       socketService.off(SocketEventType.DRIVER_ASSIGNED, handleDeliveryAssigned);
@@ -104,8 +97,10 @@ export default function TabOneScreen() {
     }));
   };
 
-  const fetchDeliveries = async () => {
-    setLoading(true);
+  const fetchDeliveries = async (isRefreshing = false) => {
+    if (!isRefreshing) {
+      setLoading(true);
+    }
     setError(null);
 
     try {
@@ -114,7 +109,6 @@ export default function TabOneScreen() {
       if (response.success && response.data) {
         const adaptedDeliveries = mapDeliveries(response.data);
         setDeliveries(adaptedDeliveries);
-        setTotalDeliveries(response.total || adaptedDeliveries.length);
       } else {
         setError(response.error || 'Error al cargar las entregas');
         console.error('Error al cargar entregas: 1', response.error);
@@ -125,7 +119,13 @@ export default function TabOneScreen() {
       console.error('Error al cargar entregas 2:', err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+  
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchDeliveries(true);
   };
 
   const closeAllSwipeables = (exceptId?: string) => {
@@ -226,7 +226,7 @@ export default function TabOneScreen() {
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>Error: {error}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={fetchDeliveries}>
+        <TouchableOpacity style={styles.retryButton} onPress={() => fetchDeliveries()}>
           <Text style={styles.retryButtonText}>Reintentar</Text>
         </TouchableOpacity>
       </View>
@@ -246,24 +246,26 @@ export default function TabOneScreen() {
             </View>
           </View>
 
-        {/* Mostrar indicador de carga si está refrescando datos */}
-        {loading && (
-          <ActivityIndicator
-            size="small"
-            color={CustomColors.secondary}
-            style={styles.refreshIndicator}
-          />
-        )}
+          {/* Mostrar indicador de carga si está refrescando datos y no es pull-to-refresh */}
+          {loading && !refreshing && (
+            <ActivityIndicator
+              size="small"
+              color={CustomColors.secondary}
+              style={styles.refreshIndicator}
+            />
+          )}
 
-        <DeliveryItemList
-          data={deliveries}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onAdd={handleAdd}
-          closeAllSwipeables={closeAllSwipeables}
-          swipeableRefs={swipeableRefs}
-          onPressItem={handlePressItem}
-        />
+          <DeliveryItemList
+            data={deliveries}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onAdd={handleAdd}
+            closeAllSwipeables={closeAllSwipeables}
+            swipeableRefs={swipeableRefs}
+            onPressItem={handlePressItem}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+          />
 
         <TouchableOpacity style={styles.addButton} onPress={addNewDelivery}>
           <Text style={styles.addButtonText}>+</Text>
