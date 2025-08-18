@@ -1,6 +1,7 @@
-import { StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { StyleSheet, TouchableOpacity, ActivityIndicator, SafeAreaView } from 'react-native';
 import { Text, View } from '@/components/Themed';
 import { socketService, SocketEventType } from '@/services/websocketService';
+import { FontAwesome } from '@expo/vector-icons';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'expo-router';
@@ -17,7 +18,6 @@ import { DeliveryAssigned } from '@/interfaces/socket/DeliveryAssigned';
 interface DeliveryItemAdapter {
   id: string;
   title: string;
-  // description: string;
   client: string;
   phone: string;
   destinies: IDeliveryDestinyEntity[];
@@ -235,11 +235,16 @@ export default function TabOneScreen() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Lista de Entregas {totalDeliveries > 0 ? `(${deliveries.length}/${totalDeliveries})` : ''}</Text>
-          <SocketStatusIndicator />
-        </View>
+      <SafeAreaView style={{ flex: 1, backgroundColor: CustomColors.backgroundDarkest }}>
+        <View style={styles.container}>
+          <View style={styles.headerContainer}>
+            <View style={styles.header}>
+              <TouchableOpacity style={styles.menuButton} onPress={() => console.log('Menú presionado')}>
+                <FontAwesome name="bars" size={24} color={CustomColors.textLight} />
+              </TouchableOpacity>
+              <SocketStatusIndicator />
+            </View>
+          </View>
 
         {/* Mostrar indicador de carga si está refrescando datos */}
         {loading && (
@@ -264,18 +269,69 @@ export default function TabOneScreen() {
           <Text style={styles.addButtonText}>+</Text>
         </TouchableOpacity>
       </View>
+      </SafeAreaView>
     </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
+  headerContainer: {
+    width: '100%',
+    backgroundColor: CustomColors.backgroundMedium,
+    marginBottom: 16,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
   header: {
-    flexDirection: 'column',
+    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     width: '100%',
     paddingHorizontal: 16,
-    marginBottom: 16,
+    paddingVertical: 12,
+  },
+  deliveryInfoContainer: {
+    width: '100%',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    backgroundColor: CustomColors.backgroundDark,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 4,
+  },
+  infoLabel: {
+    color: CustomColors.textLight,
+    fontWeight: 'bold',
+    fontSize: 14,
+    marginRight: 8,
+  },
+  infoValue: {
+    color: CustomColors.textLight,
+    fontSize: 14,
+    flex: 1,
+  },
+  clientCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: CustomColors.secondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  clientInitial: {
+    color: CustomColors.textLight,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  menuButton: {
+    padding: 8,
+    zIndex: 10,
   },
   container: {
     flex: 1,
