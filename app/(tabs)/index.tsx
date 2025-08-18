@@ -1,4 +1,4 @@
-import { StyleSheet, TouchableOpacity, ActivityIndicator, SafeAreaView, RefreshControl, ScrollView } from 'react-native';
+import { StyleSheet, TouchableOpacity, ActivityIndicator, SafeAreaView } from 'react-native';
 import { Text, View } from '@/components/Themed';
 import { socketService, SocketEventType } from '@/services/websocketService';
 import { FontAwesome } from '@expo/vector-icons';
@@ -7,7 +7,6 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { useAppContext } from '@/context/AppContext';
 import { DeliveryItemList } from '@/components/delivery-items/DeliveryItemList';
-import type { SwipeableRef } from '@/components/delivery-items/DeliveryItem';
 import { CustomColors } from '@/constants/CustomColors';
 import { deliveryService } from '@/services/deliveryService';
 import { IDelivery, IDeliveryDestinyEntity } from '@/interfaces/delivery/delivery';
@@ -28,9 +27,9 @@ export default function TabOneScreen() {
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const swipeableRefs = useRef<Map<string, SwipeableRef>>(new Map());
   const router = useRouter();
   const { setSelectedAddresses } = useAppContext();
+  const isNavigating = useRef(false);
 
   // Cargar entregas al montar
   useEffect(() => {
@@ -128,57 +127,11 @@ export default function TabOneScreen() {
     fetchDeliveries(true);
   };
 
-  const closeAllSwipeables = (exceptId?: string) => {
-    swipeableRefs.current.forEach((ref, id) => {
-      if (id !== exceptId && ref) {
-        ref.close();
-      }
-    });
-  };
-
-  const handleEdit = (id: string) => {
-    console.log('Editar entrega:', id);
-    // Aquí podrías implementar la navegación a una pantalla de edición
-    // o abrir un modal para editar la entrega
-  };
-
-  const handleDelete = async (id: string) => {
-    try {
-      const deliveryId = parseInt(id);
-      if (isNaN(deliveryId)) {
-        console.error('ID de entrega inválido:', id);
-        return;
-      }
-
-      setLoading(true);
-
-      const response = await deliveryService.deleteDelivery(deliveryId);
-      if (response.success) {
-        // Actualizar el estado local eliminando la entrega
-        setDeliveries(deliveries.filter(item => item.id !== id));
-      } else {
-        setError(response.error || 'Error al eliminar la entrega');
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
-      console.error('Error al eliminar entrega:', err);
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAdd = (id: string) => {
-    console.log('Añadir destino a entrega:', id);
-    // Aquí podrías implementar la navegación a una pantalla para añadir destinos
-    // o abrir un modal para añadir destinos a la entrega
-  };
-
   const handlePressItem = (id: string) => {
+    if (isNavigating.current) return;
+    isNavigating.current = true;
     const selectedItem = deliveries.find(item => item.id === id);
-    console.log(selectedItem);
-
-    if (selectedItem) {      // Adaptar los destinos al formato que espera el AppContext
+    if (selectedItem) {
       const adaptedDestinies = selectedItem.destinies.map(destiny => ({
         id: destiny.id.toString(),
         label: destiny.customerName,
@@ -189,16 +142,15 @@ export default function TabOneScreen() {
         status: destiny.deliveryStatus,
         cost: destiny.cost || 0,
       }));
-      console.log(adaptedDestinies);
-
       setSelectedAddresses({
         elementId: selectedItem.id,
         elementTitle: selectedItem.title,
         addresses: adaptedDestinies
       });
-
-      // Navegar a la pantalla modal de direcciones
       router.push("/addresses");
+      setTimeout(() => { isNavigating.current = false; }, 1000);
+    } else {
+      isNavigating.current = false;
     }
   };
 
@@ -257,11 +209,6 @@ export default function TabOneScreen() {
 
           <DeliveryItemList
             data={deliveries}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onAdd={handleAdd}
-            closeAllSwipeables={closeAllSwipeables}
-            swipeableRefs={swipeableRefs}
             onPressItem={handlePressItem}
             refreshing={refreshing}
             onRefresh={onRefresh}

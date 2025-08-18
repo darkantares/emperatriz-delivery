@@ -1,15 +1,10 @@
 import React from 'react';
 import { FlatList, StyleSheet, RefreshControl } from 'react-native';
-import { Item, SwipeableRef, DeliveryItem } from './DeliveryItem';
+import { Item, DeliveryItem } from './DeliveryItem';
 import { CustomColors } from '@/constants/CustomColors';
 
 interface DeliveryItemListProps {
   data: Item[];
-  onEdit: (id: string) => void;
-  onDelete: (id: string) => void;
-  onAdd: (id: string) => void;
-  closeAllSwipeables: (exceptId?: string) => void;
-  swipeableRefs: React.MutableRefObject<Map<string, SwipeableRef>>;
   onPressItem: (id: string) => void;
   refreshing?: boolean;
   onRefresh?: () => void;
@@ -17,29 +12,13 @@ interface DeliveryItemListProps {
 
 export const DeliveryItemList: React.FC<DeliveryItemListProps> = ({
   data,
-  onEdit,
-  onDelete,
-  onAdd,
-  closeAllSwipeables,
-  swipeableRefs,
   onPressItem,
   refreshing = false,
   onRefresh,
-}) => {  
+}) => {
   const renderItem = ({ item }: { item: Item }) => (
     <DeliveryItem
       item={item}
-      onEdit={onEdit}
-      onDelete={onDelete}
-      onAdd={onAdd}
-      closeAllSwipeables={closeAllSwipeables}
-      swipeableRef={ref => {
-        if (ref) {
-          swipeableRefs.current.set(item.id, ref);
-        } else {
-          swipeableRefs.current.delete(item.id);
-        }
-      }}
       onPress={onPressItem}
     />
   );
