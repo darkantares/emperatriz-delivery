@@ -89,7 +89,7 @@ export default function TabOneScreen() {
   const mapDeliveries = (deliveries: IDelivery[]): DeliveryItemAdapter[] => {
     return deliveries.map((delivery: IDelivery) => ({
       id: delivery.id.toString(),
-      title: `${delivery.provinciaOrigen.nombre},${delivery.sectorOrigen.nombre}, ${delivery.municipioOrigen.nombre}`,      
+      title: `${delivery.provinciaOrigen.nombre}, ${delivery.municipioOrigen.nombre}, ${delivery.sectorOrigen.nombre}`,      
       client: delivery.contactPerson,
       phone: delivery.contactPhone,
       destinies: delivery.destinies || []
@@ -154,15 +154,6 @@ export default function TabOneScreen() {
     }
   };
 
-  // Función para crear una nueva entrega
-  const addNewDelivery = async () => {
-    // Aquí sería ideal navegar a una página de creación de entregas
-    // router.push("/create-delivery");
-
-    // Por ahora, mostramos un mensaje de desarrollo
-    console.log('Funcionalidad para crear nuevas entregas aún no implementada');
-  };
-
   // Renderizar indicador de carga mientras se obtienen los datos
   if (loading && deliveries.length === 0) {
     return (
@@ -214,9 +205,9 @@ export default function TabOneScreen() {
             onRefresh={onRefresh}
           />
 
-        <TouchableOpacity style={styles.addButton} onPress={addNewDelivery}>
+        {/* <TouchableOpacity style={styles.addButton} onPress={() => console.log('Botón de agregar presionado')}>
           <Text style={styles.addButtonText}>+</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
       </SafeAreaView>
     </GestureHandlerRootView>
@@ -227,7 +218,6 @@ const styles = StyleSheet.create({
   headerContainer: {
     width: '100%',
     backgroundColor: CustomColors.backgroundMedium,
-    marginBottom: 16,
     elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },

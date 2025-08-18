@@ -1,6 +1,5 @@
 import { StyleSheet, Dimensions, TouchableOpacity, View } from 'react-native';
 import { Text } from '@/components/Themed';
-import { Swipeable } from 'react-native-gesture-handler';
 import React, { useState } from 'react';
 import { CustomColors } from '@/constants/CustomColors';
 import { StatusUpdateModal } from '@/components/modals/StatusUpdateModal';
@@ -14,7 +13,7 @@ export interface Address {
     city?: string;
     zipCode?: string;
     reference?: string;
-    status: string | undefined;
+    status: string;
     cost: number;
 }
 
@@ -27,83 +26,54 @@ export interface AddressItem {
     city: string;
     zipCode: string;
     reference: string;
-    status: string | undefined;   
+    status: string;   
     cost: number; 
 }
 
-export type SwipeableRef = Swipeable | null;
-
 interface AddressItemProps {
     item: AddressItem;
-    closeAllSwipeables: (exceptId?: string) => void;
-    swipeableRef: (ref: SwipeableRef) => void;
     onStatusUpdate?: (id: string, newStatus: string) => void;
 }
 
 export const AddressListItem: React.FC<AddressItemProps> = ({
-    item,    
-    closeAllSwipeables,
-    swipeableRef,
+    item,
     onStatusUpdate,
 }) => {
     const [statusModalVisible, setStatusModalVisible] = useState(false);
-    
+
     const handleStatusSelected = (newStatus: string) => {
         if (onStatusUpdate) {
             onStatusUpdate(item.id, newStatus);
         }
     };
 
-    const renderRightActions = () => (
-        <View style={styles.rightActions}>
-            <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: CustomColors.tertiary }]}
-                onPress={() => {
-                    setStatusModalVisible(true);
-                    closeAllSwipeables();
-                }}
-            >                
-            <Text style={styles.actionText}>Progresar</Text>
-            </TouchableOpacity>
-        </View>
-    );
-
     return (
         <>
-            <Swipeable
-                ref={swipeableRef}
-                renderRightActions={renderRightActions}
-                onSwipeableOpen={() => closeAllSwipeables(item.id)}
-            >
-                <View style={styles.addressContainer}>
-                    <View style={styles.row}>
-                        <View style={{ flex: 1 }}>
-                            <Text style={styles.addressLabel}>{item.label}</Text>
-                            <Text style={styles.addressText}>{item.street}</Text>
-                            {item.status && (
-                                <View style={[styles.statusContainer, { backgroundColor: getStatusColor(item.status)}]}>                                    
-                                    <Text style={[styles.statusText]}>
-                                        {item.status}
-                                    </Text>
-                                </View>
-                            )}
-                            {/* <Text style={styles.addressLabel}>{item.label}</Text> */}
-                            <Text style={styles.addressDetails}>
-                                {item.city}{item.zipCode ? `, ${item.zipCode}` : ''}
-                            </Text>
-                            <Text style={styles.addressLabel}>Monto a cobrar: $RD {item.cost || 0}</Text>
-                            {item.reference ? <Text style={styles.addressReference}>Ref: {item.reference}</Text> : null}
+            <View style={styles.addressContainer}>
+                <View style={styles.row}>
+                    {/* Columna izquierda */}
+                    <View style={styles.leftColumn}>
+                        <Text style={styles.addressLabel}>{item.label}</Text>
+                        <Text style={styles.addressText}>{item.street}</Text>
+                        <Text style={styles.addressDetails}>{item.city}</Text>
+                        {item.reference ? <Text style={styles.addressReference}>Ref: {item.reference}</Text> : null}
+                    </View>
+                    {/* Columna derecha */}
+                    <View style={styles.rightColumn}>
+                        <View style={[styles.statusContainer, { backgroundColor: getStatusColor(item.status)}]}>
+                            <Text style={styles.statusText}>{item.status}</Text>
                         </View>
-                        {/* Indicador de swipe */}
-                      <FontAwesome
-                            name="angle-left"
-                            size={64} // 28 * 3 = 84 (300% más grande)
-                            color="#FFF" // Blanco puro
-                            style={styles.swipeIndicator}
-                        />
+                        <Text style={styles.amountLabel}>Monto a cobrar:</Text>
+                        <Text style={styles.amountValue}>$RD {item.cost || 0}</Text>
+                        <TouchableOpacity
+                            style={[styles.actionButton, { backgroundColor: CustomColors.tertiary, marginTop: 8 }]}
+                            onPress={() => setStatusModalVisible(true)}
+                        >
+                            <Text style={styles.actionText}>Progresar</Text>
+                        </TouchableOpacity>
                     </View>
                 </View>
-            </Swipeable>
+            </View>
 
             <StatusUpdateModal
                 isVisible={statusModalVisible}
@@ -129,47 +99,68 @@ const styles = StyleSheet.create({
     addressLabel: {
         fontSize: 16,
         fontWeight: 'bold',
-        marginBottom: 4,
+        marginBottom: 2,
         color: CustomColors.secondary,
     },
     addressText: {
         fontSize: 14,
         color: CustomColors.textLight,
+        marginBottom: 2,
     },
     addressDetails: {
         fontSize: 14,
         color: CustomColors.textLight,
         opacity: 0.7,
-        marginTop: 2,
-    },    addressReference: {
+        marginBottom: 2,
+    },
+    addressReference: {
         fontSize: 13,
         color: CustomColors.textLight,
         opacity: 0.5,
-        marginTop: 4,
         fontStyle: 'italic',
-    }, 
-    rightActions: {
-        flexDirection: 'row',
-        width: 120, // Width for a single button
-        height: '100%',
-    }, 
-    actionButton: {
+        marginBottom: 2,
+    },
+    leftColumn: {
+        flex: 2,
+        paddingRight: 10,
+        justifyContent: 'center',
+    },
+    rightColumn: {
         flex: 1,
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+    },
+    amountLabel: {
+        fontSize: 13,
+        color: CustomColors.secondary,
+        fontWeight: 'bold',
+        marginTop: 2,
+    },
+    amountValue: {
+        fontSize: 16,
+        color: CustomColors.secondary,
+        fontWeight: 'bold',
+        marginBottom: 4,
+    },
+    actionButton: {
         justifyContent: 'center',
         alignItems: 'center',
-        width: '100%',
+        paddingHorizontal: 10,
+        // paddingVertical: 4,
+        borderRadius: 8,
     },
     actionText: {
         color: CustomColors.textLight,
         fontWeight: 'bold',
         padding: 10,
-    }, statusContainer: {
+    },
+    statusContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: 5,
         paddingHorizontal: 10,
         borderRadius: 12,
-        alignSelf: 'flex-start',
+        alignSelf: 'flex-end',
         marginVertical: 5,
         borderWidth: 1,
         borderColor: 'rgba(0,0,0,0.1)',

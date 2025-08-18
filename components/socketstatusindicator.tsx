@@ -21,26 +21,26 @@ export const SocketStatusIndicator: React.FC = () => {
     };
   }, []);
 
-  const handleReconnect = async () => {
-    // Intentar reconectar
-    console.log("Intentando reconexión manual...");
+  // const handleReconnect = async () => {
+  //   // Intentar reconectar
+  //   console.log("Intentando reconexión manual...");
     
-    // Desconectar primero para limpiar estado
-    socketService.disconnect();
+  //   // Desconectar primero para limpiar estado
+  //   socketService.disconnect();
     
-    // Esperar un momento antes de reconectar
-    setTimeout(async () => {
-      await socketService.connect();
-    }, 500);
-  };
+  //   // Esperar un momento antes de reconectar
+  //   setTimeout(async () => {
+  //     await socketService.connect();
+  //   }, 500);
+  // };
 
   return (
     <View style={styles.container}>
       <View style={[styles.indicator, { backgroundColor: isConnected ? CustomColors.success : CustomColors.error }]} />
       <Text style={styles.text}>{isConnected ? 'Conectado' : 'Desconectado'}</Text>
-      <TouchableOpacity style={styles.retryButton} onPress={handleReconnect}>
+      {/* <TouchableOpacity style={styles.retryButton} onPress={handleReconnect}>
         <Text style={styles.retryText}>Reconectar</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
     </View>
   );
 };

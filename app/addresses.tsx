@@ -1,11 +1,10 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect,useState } from 'react';
 import { StyleSheet, Animated, TouchableOpacity, Dimensions, View as RNView } from 'react-native';
 import { Text, View } from '@/components/Themed';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useRef as useRefState, useState } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { AddressList } from '@/components/delivery-items/AddressList';
-import { AddressItem, SwipeableRef } from '@/components/delivery-items/AddressListItem';
+import { AddressItem } from '@/components/delivery-items/AddressListItem';
 import { router } from 'expo-router';
 import { AntDesign } from '@expo/vector-icons';
 import { CustomColors } from '@/constants/CustomColors';
@@ -16,7 +15,6 @@ export default function AddressesModal() {
     const { selectedAddresses } = useAppContext();
     // console.log(selectedAddresses);
 
-    const addressSwipeableRefs = useRefState<Map<string, SwipeableRef>>(new Map());
     const [addresses, setAddresses] = useState<AddressItem[]>(
         selectedAddresses
             ? selectedAddresses.addresses.map(addr => ({
@@ -28,6 +26,7 @@ export default function AddressesModal() {
                 zipCode: addr.zipCode || '',
                 reference: addr.reference || '',
                 cost: addr.cost || 0,
+                status: addr.status,
             }))
             : []
     );
@@ -102,7 +101,6 @@ export default function AddressesModal() {
                         onEditAddress={handleEditAddress}
                         onDeleteAddress={handleDeleteAddress}
                         onStatusUpdate={handleStatusUpdate}
-                        addressSwipeableRefs={addressSwipeableRefs}
                     />
                 </GestureHandlerRootView>
             </Animated.View>

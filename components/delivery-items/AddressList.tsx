@@ -1,42 +1,25 @@
 import React from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/Themed';
-import { AddressItem, AddressListItem, SwipeableRef } from './AddressListItem';
+import { AddressItem, AddressListItem } from './AddressListItem';
 import { CustomColors } from '@/constants/CustomColors';
+
 
 interface AddressListProps {
   addresses: AddressItem[];
   onEditAddress: (id: string) => void;
   onDeleteAddress: (id: string) => void;
   onStatusUpdate?: (id: string, newStatus: string) => void;
-  addressSwipeableRefs: React.MutableRefObject<Map<string, SwipeableRef>>;
 }
 
 export const AddressList: React.FC<AddressListProps> = ({
   addresses,
   onStatusUpdate,
-  addressSwipeableRefs,
 }) => {
-  const closeAllSwipeables = (exceptId?: string) => {
-    addressSwipeableRefs.current.forEach((ref, id) => {
-      if (id !== exceptId && ref) {
-        ref.close();
-      }
-    });
-  };
-
   const renderItem = ({ item }: { item: AddressItem }) => (
     <AddressListItem
-      item={item}      
+      item={item}
       onStatusUpdate={onStatusUpdate}
-      closeAllSwipeables={closeAllSwipeables}
-      swipeableRef={ref => {
-        if (ref) {
-          addressSwipeableRefs.current.set(item.id, ref);
-        } else {
-          addressSwipeableRefs.current.delete(item.id);
-        }
-      }}
     />
   );
   return addresses.length > 0 ? (

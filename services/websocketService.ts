@@ -115,7 +115,6 @@ class SocketService {
   private setupEventListeners() {
     if (!this.socket) return;
 
-
     this.socket.on(SocketEventType.DRIVER_ASSIGNED, (data) => {
       console.log('Evento recibido - Conductor asignado:', data);
 

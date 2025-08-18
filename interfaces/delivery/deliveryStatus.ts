@@ -1,14 +1,14 @@
 export enum DeliveryStatus {
     PENDING = 'Pendiente',
     IN_PROGRESS = 'En Progreso',
-    COMPLETED = 'Completado',
+    // COMPLETED = 'Completado',
     CANCELLED = 'Cancelado',
     DELIVERED = 'Entregado',
     RETURNED = 'Devuelto',
     FAILED = 'Fallido',
     ON_HOLD = 'En Espera',
     SCHEDULED = 'Programado',
-    READY_FOR_PICKUP = 'Listo para Recoger',
+    // READY_FOR_PICKUP = 'Listo para Recoger',
     ASSIGNED = 'Asignado',
 }
 
@@ -33,22 +33,22 @@ export const validStatusTransitions: Record<DeliveryStatus, DeliveryStatus[]> = 
         DeliveryStatus.ON_HOLD,
     ],
     [DeliveryStatus.IN_PROGRESS]: [
-        DeliveryStatus.READY_FOR_PICKUP,
-        DeliveryStatus.COMPLETED,
+        // DeliveryStatus.READY_FOR_PICKUP,
+        // DeliveryStatus.COMPLETED,
         DeliveryStatus.DELIVERED,
         DeliveryStatus.FAILED,
         DeliveryStatus.ON_HOLD,
         DeliveryStatus.CANCELLED,
     ],
-    [DeliveryStatus.READY_FOR_PICKUP]: [
-        DeliveryStatus.DELIVERED,
-        DeliveryStatus.FAILED,
-        DeliveryStatus.RETURNED,
-        DeliveryStatus.CANCELLED,
-    ],
-    [DeliveryStatus.COMPLETED]: [
-        DeliveryStatus.DELIVERED,
-    ],
+    // [DeliveryStatus.READY_FOR_PICKUP]: [
+    //     DeliveryStatus.DELIVERED,
+    //     DeliveryStatus.FAILED,
+    //     DeliveryStatus.RETURNED,
+    //     DeliveryStatus.CANCELLED,
+    // ],
+    // [DeliveryStatus.COMPLETED]: [
+    //     DeliveryStatus.DELIVERED,
+    // ],
     [DeliveryStatus.DELIVERED]: [],
     [DeliveryStatus.RETURNED]: [],
     [DeliveryStatus.FAILED]: [
@@ -75,10 +75,10 @@ export function getStatusColor(status: string): string {
             return '#64B5F6';
         case DeliveryStatus.IN_PROGRESS:
             return '#3498DB';
-        case DeliveryStatus.READY_FOR_PICKUP:
-            return '#F1C40F';
-        case DeliveryStatus.COMPLETED:
-            return '#2ECC71';
+        // case DeliveryStatus.READY_FOR_PICKUP:
+        //     return '#F1C40F';
+        // case DeliveryStatus.COMPLETED:
+        //     return '#2ECC71';
         case DeliveryStatus.DELIVERED:
             return '#27AE60';
         case DeliveryStatus.RETURNED:

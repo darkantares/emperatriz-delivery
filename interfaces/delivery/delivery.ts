@@ -38,7 +38,7 @@ export interface IDeliveryDestinyEntity {
   customerName: string;
   customerPhone: string;
   deliveryAddress: string;
-  deliveryStatus?: string;
+  deliveryStatus: string;
   shippingDate?: string;
   cost: number;
   amount: number;
