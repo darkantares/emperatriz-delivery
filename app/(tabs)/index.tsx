@@ -1,7 +1,7 @@
 import { StyleSheet, TouchableOpacity, ActivityIndicator, SafeAreaView } from 'react-native';
 import { Text, View } from '@/components/Themed';
 import { socketService, SocketEventType } from '@/services/websocketService';
-import { FontAwesome } from '@expo/vector-icons';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'expo-router';
@@ -9,9 +9,9 @@ import { useAppContext } from '@/context/AppContext';
 import { DeliveryItemList } from '@/components/delivery-items/DeliveryItemList';
 import { CustomColors } from '@/constants/CustomColors';
 import { deliveryService } from '@/services/deliveryService';
-import { IDelivery, IDeliveryDestinyEntity } from '@/interfaces/delivery/delivery';
 import { SocketStatusIndicator } from '@/components/socketstatusindicator';
-import { DeliveryAssigned } from '@/interfaces/socket/DeliveryAssigned';
+import { IDeliveryAssignmentEntity, IDeliveryStatusEntity } from '@/interfaces/delivery/delivery';
+import { IProvincia, IMunicipio, ISector } from '@/interfaces/location';
 
 // Interfaz adaptada para trabajar con los datos del backend
 interface DeliveryItemAdapter {
@@ -19,7 +19,13 @@ interface DeliveryItemAdapter {
   title: string;
   client: string;
   phone: string;
-  destinies: IDeliveryDestinyEntity[];
+  deliveryStatus: IDeliveryStatusEntity;
+  deliveryAddress: string;
+  observations?: string;
+  provincia: IProvincia;
+  municipio: IMunicipio;
+  origin: ISector;
+  destiny: ISector;
 }
 
 export default function TabOneScreen() {
@@ -40,23 +46,16 @@ export default function TabOneScreen() {
   useEffect(() => {
     socketService.connect();
 
-    const handleDeliveryAssigned = (data: DeliveryAssigned) => {
+    const handleDeliveryAssigned = (data: {deliveryId: number, status: IDeliveryStatusEntity}) => {
       const deliveryIdStr = data.deliveryId.toString();
       setDeliveries(currentDeliveries => {
         const deliveryExists = currentDeliveries.some(d => d.id === deliveryIdStr);
         if (deliveryExists) {
           return currentDeliveries.map(delivery => {
             if (delivery.id !== deliveryIdStr) return delivery;
-            const updatedDestinies = delivery.destinies.map(destiny => {
-              if (destiny.id !== data.destiny.id) return destiny;
-              return {
-                ...destiny,
-                deliveryStatus: data.destiny.deliveryStatus
-              };
-            });
             return {
               ...delivery,
-              destinies: updatedDestinies
+              deliveryStatus: data.status
             };
           });
         } else {
@@ -64,7 +63,7 @@ export default function TabOneScreen() {
           deliveryService.getDeliveryById(data.deliveryId)
             .then(response => {
               if (response.success && response.data) {
-                const newDelivery = mapDeliveries([response.data])[0];
+                const newDelivery = mapDelivery(response.data);
                 setDeliveries(current => [newDelivery, ...current]);
                 console.log(`Nueva entrega ${deliveryIdStr} añadida correctamente`);
               } else {
@@ -80,20 +79,27 @@ export default function TabOneScreen() {
     };
 
     socketService.on(SocketEventType.DRIVER_ASSIGNED, handleDeliveryAssigned);
+    
     return () => {
       console.log('Componente desmontado, limpiando listeners y desconectando socket');
       socketService.off(SocketEventType.DRIVER_ASSIGNED, handleDeliveryAssigned);
     };
   }, []);
 
-  const mapDeliveries = (deliveries: IDelivery[]): DeliveryItemAdapter[] => {
-    return deliveries.map((delivery: IDelivery) => ({
+  const mapDelivery = (delivery: IDeliveryAssignmentEntity): DeliveryItemAdapter => {
+    return {
       id: delivery.id.toString(),
-      title: `${delivery.provinciaOrigen.nombre}, ${delivery.municipioOrigen.nombre}, ${delivery.sectorOrigen.nombre}`,      
-      client: delivery.contactPerson,
-      phone: delivery.contactPhone,
-      destinies: delivery.destinies || []
-    }));
+      title: `${delivery.provincia.nombre}, ${delivery.municipio.nombre}, ${delivery.origin.nombre}`,      
+      client: delivery.contact,
+      phone: delivery.phone,
+      deliveryStatus: delivery.deliveryStatus,
+      deliveryAddress: delivery.deliveryAddress,
+      observations: delivery.observations,
+      provincia: delivery.provincia,
+      municipio: delivery.municipio,
+      origin: delivery.origin,
+      destiny: delivery.destiny
+    };
   };
 
   const fetchDeliveries = async (isRefreshing = false) => {
@@ -106,7 +112,7 @@ export default function TabOneScreen() {
       const response = await deliveryService.getDeliveries();
       
       if (response.success && response.data) {
-        const adaptedDeliveries = mapDeliveries(response.data);
+        const adaptedDeliveries = response.data.map(delivery => mapDelivery(delivery));
         setDeliveries(adaptedDeliveries);
       } else {
         setError(response.error || 'Error al cargar las entregas');
@@ -132,20 +138,21 @@ export default function TabOneScreen() {
     isNavigating.current = true;
     const selectedItem = deliveries.find(item => item.id === id);
     if (selectedItem) {
-      const adaptedDestinies = selectedItem.destinies.map(destiny => ({
-        id: destiny.id.toString(),
-        label: destiny.customerName,
-        street: destiny.deliveryAddress,
-        city: `${destiny.provincia?.nombre || ''}, ${destiny.municipio?.nombre || ''}, ${destiny.sector?.nombre || ''}`,
+      const adaptedAddress = {
+        id: selectedItem.id,
+        label: selectedItem.client,
+        street: selectedItem.deliveryAddress,
+        city: `${selectedItem.provincia?.nombre || ''}, ${selectedItem.municipio?.nombre || ''}, ${selectedItem.origin?.nombre || ''}`,
         zipCode: '',
-        reference: destiny.observations || '',
-        status: destiny.deliveryStatus,
-        cost: destiny.cost || 0,
-      }));
+        reference: selectedItem.observations || '',
+        status: selectedItem.deliveryStatus.title, // Usamos el título del estado
+        cost: 0, // Asumimos un valor por defecto o tomamos de la entidad si existe
+      };
+      
       setSelectedAddresses({
         elementId: selectedItem.id,
         elementTitle: selectedItem.title,
-        addresses: adaptedDestinies
+        addresses: [adaptedAddress]
       });
       router.push("/addresses");
       setTimeout(() => { isNavigating.current = false; }, 1000);
@@ -182,7 +189,11 @@ export default function TabOneScreen() {
         <View style={styles.container}>
           <View style={styles.headerContainer}>
             <View style={styles.header}>
-              <TouchableOpacity style={styles.menuButton} onPress={() => console.log('Menú presionado')}>
+              <TouchableOpacity 
+                style={styles.menuButton} 
+                onPress={() => console.log('Menú presionado')}
+                activeOpacity={0.7}
+              >
                 <FontAwesome name="bars" size={24} color={CustomColors.textLight} />
               </TouchableOpacity>
               <SocketStatusIndicator />
@@ -223,6 +234,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
+    zIndex: 10,
   },
   header: {
     flexDirection: 'row',
@@ -231,6 +243,7 @@ const styles = StyleSheet.create({
     width: '100%',
     paddingHorizontal: 16,
     paddingVertical: 12,
+    backgroundColor: 'transparent',
   },
   deliveryInfoContainer: {
     width: '100%',
@@ -271,12 +284,15 @@ const styles = StyleSheet.create({
   menuButton: {
     padding: 8,
     zIndex: 10,
+    borderRadius: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
   },
   container: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'flex-start',
-    paddingTop: 20,
     backgroundColor: CustomColors.backgroundDarkest,
   },
   title: {

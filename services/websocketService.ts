@@ -56,7 +56,7 @@ class SocketService {
 
       const token = await AsyncStorage.getItem('auth_token');
       if (!token) {
-        console.error("No se pudo iniciar Socket.IO: token no disponible");
+        console.log("No se pudo iniciar Socket.IO: token no disponible");
         return false;
       }
 

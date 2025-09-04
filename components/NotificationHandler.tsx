@@ -90,7 +90,7 @@ export const NotificationHandler: React.FC = () => {
   const audioSource = require('@/assets/sounds/ndc.mp3');
   const player = useAudioPlayer(audioSource);
   
-  useEffect(() => {
+  useEffect(() => { 
     const interval = setInterval(() => {
       const notification = checkPendingNotifications();
       if (notification) {

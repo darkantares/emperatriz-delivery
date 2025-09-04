@@ -1,13 +1,19 @@
 import { IEnterpriseEntity } from "./auth";
+import { IDeliveryAssignmentEntity } from "./delivery/delivery";
 
 
-export interface ICarrierEntity {
+export interface IDeliveryPerson {
     id: number;
-    title: string;
+    firstname: string;
+    lastname: string;
     phone: string;
     tuition: string;
     description?: string;
-    enterprise?: IEnterpriseEntity;
+    enterprise?: IEnterpriseEntity
+}
+
+export interface IDeliveryPersonWithAssignments extends IDeliveryPerson {
+    assignments?: IDeliveryAssignmentEntity[]
 }
 
 export interface ICreateCarrier { 

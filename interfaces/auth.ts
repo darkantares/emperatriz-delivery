@@ -1,15 +1,4 @@
-// Interfaces base
-export interface IGlobalEntity {
-  id: number;
-  // Otras propiedades comunes que pueda tener
-}
-
-// Interfaces de usuario y autenticación
-// export interface IEmployeeEntity {
-//   // Define según necesites
-//   id: number;
-//   // otras propiedades
-// }
+import { IGlobalEntity } from "./global";
 
 export interface IEnterpriseEntity {
     id: number;
@@ -35,7 +24,6 @@ export interface IUserEntity extends IGlobalEntity {
   phone: string;
   firstname: string;
   lastname: string;
-//   employee?: IEmployeeEntity;
   avatar?: string;
   enterprise: IEnterpriseEntity;
 }

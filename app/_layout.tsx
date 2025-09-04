@@ -105,7 +105,6 @@ function RootLayoutNav() {
               </Stack>
               
               <NotificationHandler />
-              {/* <Toast /> */}
             </ProtectedRouteGuard>
           </ThemeProvider>
         </AppProvider>

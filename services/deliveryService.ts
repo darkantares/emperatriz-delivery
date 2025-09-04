@@ -1,23 +1,29 @@
-import { IDelivery, IDeliveryDestinyEntity, ICreateDelivery, IUpdateDelivery } from '@/interfaces/delivery/delivery';
+import { IDeliveryAssignmentEntity, IUpdateDelivery, ICreateDeliveryAssigment } from '@/interfaces/delivery/delivery';
 import { api, extractDataFromResponse } from './api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ResponseDataAPI } from '@/interfaces/response';
-
+import { BackendUrls } from '@/utils/enum';
 
 /**
  * Servicio para gestionar las operaciones relacionadas con las entregas (deliveries)
  */
-export const deliveryService = {  /**
-   * Obtiene un listado paginado de entregas
-   * @param filters Filtros opcionales para la búsqueda
-   * @returns Resultado paginado de entregas
-   */
-    getDeliveries: async (filters?: IDelivery): Promise<{
+export const deliveryService = {
+    
+    getDeliveries: async (filters?: Partial<IDeliveryAssignmentEntity>): Promise<{
         success: boolean;
-        data?: IDelivery[];
+        data?: IDeliveryAssignmentEntity[];
         total?: number;
         error?: string;
         details?: any;
     }> => {
+        // Verificar token antes de hacer la solicitud
+        const token = await AsyncStorage.getItem('auth_token');
+        if (!token) {
+            return {
+                success: false,
+                error: 'No autenticado: token no encontrado',
+            };
+        }
         try {
             // Construir los query params si hay filtros
             let queryParams = '';
@@ -32,7 +38,7 @@ export const deliveryService = {  /**
             }
 
             // Hacemos la petición al API
-            const response = await api.get<ResponseDataAPI<IDelivery[]>>(`delivery/user/deliveries${queryParams}`);
+            const response = await api.get<ResponseDataAPI<IDeliveryAssignmentEntity[]>>(`${BackendUrls.DeliveryAssignments}/by-driver/${queryParams}`);
 
             // Si hay un error en la respuesta, lo devolvemos
             if (response.error || !response.data) {
@@ -89,12 +95,20 @@ export const deliveryService = {  /**
      */
     getDeliveryById: async (id: number): Promise<{
         success: boolean;
-        data?: IDelivery;
+        data?: IDeliveryAssignmentEntity;
         error?: string;
         details?: any;
     }> => {
+        // Verificar token antes de hacer la solicitud
+        const token = await AsyncStorage.getItem('auth_token');
+        if (!token) {
+            return {
+                success: false,
+                error: 'No autenticado: token no encontrado',
+            };
+        }
         try {
-            const response = await api.get<IDelivery>(`delivery/${id}`);
+            const response = await api.get<ResponseDataAPI<IDeliveryAssignmentEntity>>(`delivery/${id}`);
 
             if (response.error || !response.data) {
                 return {
@@ -113,9 +127,21 @@ export const deliveryService = {  /**
                 };
             }
 
+            // Extraer los datos del ResponseAPI
+            const deliveryData = extractDataFromResponse<IDeliveryAssignmentEntity>(response);
+
+            if (!deliveryData) {
+                console.error('Error processing delivery response:', response);
+                return {
+                    success: false,
+                    error: 'Error al procesar la respuesta del servidor',
+                    details: response
+                };
+            }
+
             return {
                 success: true,
-                data: response.data.data
+                data: deliveryData
             };
         } catch (error) {
             console.error(`Error getting delivery with ID ${id}:`, error);
@@ -133,12 +159,20 @@ export const deliveryService = {  /**
      */
     getDeliveryDestinies: async (deliveryId: number): Promise<{
         success: boolean;
-        data?: IDeliveryDestinyEntity[];
+        data?: IDeliveryAssignmentEntity[];
         error?: string;
         details?: any;
     }> => {
+        // Verificar token antes de hacer la solicitud
+        const token = await AsyncStorage.getItem('auth_token');
+        if (!token) {
+            return {
+                success: false,
+                error: 'No autenticado: token no encontrado',
+            };
+        }
         try {
-            const response = await api.get<IDeliveryDestinyEntity[]>(`delivery/${deliveryId}/destinies`);
+            const response = await api.get<ResponseDataAPI<IDeliveryAssignmentEntity[]>>(`delivery/${deliveryId}/destinies`);
 
             if (response.error || !response.data) {
                 return {
@@ -149,7 +183,7 @@ export const deliveryService = {  /**
             }
 
             // Extraer los datos del ResponseAPI
-            const destiniesData = extractDataFromResponse<IDeliveryDestinyEntity[]>(response);
+            const destiniesData = extractDataFromResponse<IDeliveryAssignmentEntity[]>(response);
 
             if (!destiniesData) {
                 console.error('Error processing destinies response:', response);
@@ -178,14 +212,22 @@ export const deliveryService = {  /**
      * @param deliveryData Datos de la nueva entrega
      * @returns Entrega creada
      */
-    createDelivery: async (deliveryData: ICreateDelivery): Promise<{
+    createDelivery: async (deliveryData: ICreateDeliveryAssigment): Promise<{
         success: boolean;
-        data?: IDelivery;
+        data?: IDeliveryAssignmentEntity;
         error?: string;
         details?: any;
     }> => {
+        // Verificar token antes de hacer la solicitud
+        const token = await AsyncStorage.getItem('auth_token');
+        if (!token) {
+            return {
+                success: false,
+                error: 'No autenticado: token no encontrado',
+            };
+        }
         try {
-            const response = await api.post<IDelivery>('deliveries', deliveryData);
+            const response = await api.post<ResponseDataAPI<IDeliveryAssignmentEntity>>('deliveries', deliveryData);
 
             if (response.error || !response.data) {
                 return {
@@ -196,7 +238,7 @@ export const deliveryService = {  /**
             }
 
             // Extraer los datos del ResponseAPI
-            const newDeliveryData = extractDataFromResponse<IDelivery>(response);
+            const newDeliveryData = extractDataFromResponse<IDeliveryAssignmentEntity>(response);
 
             if (!newDeliveryData) {
                 console.error('Error processing create delivery response:', response);
@@ -228,12 +270,20 @@ export const deliveryService = {  /**
      */
     updateDelivery: async (id: number, deliveryData: IUpdateDelivery): Promise<{
         success: boolean;
-        data?: IDelivery;
+        data?: IDeliveryAssignmentEntity;
         error?: string;
         details?: any;
     }> => {
+        // Verificar token antes de hacer la solicitud
+        const token = await AsyncStorage.getItem('auth_token');
+        if (!token) {
+            return {
+                success: false,
+                error: 'No autenticado: token no encontrado',
+            };
+        }
         try {
-            const response = await api.put<IDelivery>(`delivery/${id}`, deliveryData);
+            const response = await api.put<ResponseDataAPI<IDeliveryAssignmentEntity>>(`delivery/${id}`, deliveryData);
 
             if (response.error || !response.data) {
                 return {
@@ -244,7 +294,7 @@ export const deliveryService = {  /**
             }
 
             // Extraer los datos del ResponseAPI
-            const updatedDeliveryData = extractDataFromResponse<IDelivery>(response);
+            const updatedDeliveryData = extractDataFromResponse<IDeliveryAssignmentEntity>(response);
 
             if (!updatedDeliveryData) {
                 console.error('Error processing update delivery response:', response);
@@ -278,10 +328,18 @@ export const deliveryService = {  /**
         error?: string;
         details?: any;
     }> => {
+        // Verificar token antes de hacer la solicitud
+        const token = await AsyncStorage.getItem('auth_token');
+        if (!token) {
+            return {
+                success: false,
+                error: 'No autenticado: token no encontrado',
+            };
+        }
         try {
             const response = await api.delete(`delivery/${id}`);
 
-            if (response.error) {
+            if (response.error || !response.data) {
                 return {
                     success: false,
                     error: response.error || `Error al eliminar la entrega con ID ${id}`,
@@ -305,29 +363,24 @@ export const deliveryService = {  /**
      * Actualiza el estado de una entrega
      * @param id ID de la entrega a actualizar
      * @param status Nuevo estado de la entrega
-     * @returns Entrega actualizada con el nuevo estado
+     * @returns Entrega actualizada
      */
     updateDeliveryStatus: async (id: string, status: string): Promise<{
         success: boolean;
-        data?: IDelivery;
+        data?: IDeliveryAssignmentEntity;
         error?: string;
         details?: any;
     }> => {
-        try {
-            // Verificamos que tanto el ID como el status tengan valores válidos
-            if (!id || !status) {
-                console.error('Error: ID o status inválidos', { id, status });
-                return {
-                    success: false,
-                    error: 'ID o status inválidos'
-                };
-            }
-            // Enviamos solo el campo que queremos actualizar
-            const statusUpdate = {
-                deliveryStatus: status,
+        // Verificar token antes de hacer la solicitud
+        const token = localStorage.getItem('token');
+        if (!token) {
+            return {
+                success: false,
+                error: 'No autenticado: token no encontrado',
             };
-
-            const response = await api.patch<IDelivery>(`delivery-destiny/${id}/status`, statusUpdate);
+        }
+        try {
+            const response = await api.patch<ResponseDataAPI<IDeliveryAssignmentEntity>>(`delivery/${id}/status`, { status });
 
             if (response.error || !response.data) {
                 return {
@@ -338,7 +391,7 @@ export const deliveryService = {  /**
             }
 
             // Extraer los datos del ResponseAPI
-            const updatedDeliveryData = extractDataFromResponse<IDelivery>(response);
+            const updatedDeliveryData = extractDataFromResponse<IDeliveryAssignmentEntity>(response);
 
             if (!updatedDeliveryData) {
                 console.error('Error processing update delivery status response:', response);

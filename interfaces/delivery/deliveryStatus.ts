@@ -1,44 +1,43 @@
-export enum DeliveryStatus {
+export enum IDeliveryStatus {
     PENDING = 'Pendiente',
+    ASSIGNED = 'Asignado',
     IN_PROGRESS = 'En Progreso',
-    // COMPLETED = 'Completado',
-    CANCELLED = 'Cancelado',
     DELIVERED = 'Entregado',
+    COMPLETED = 'Completado',
+    FAILED = 'Fallido',    
+    CANCELLED = 'Cancelado',
     RETURNED = 'Devuelto',
-    FAILED = 'Fallido',
     ON_HOLD = 'En Espera',
     SCHEDULED = 'Programado',
-    // READY_FOR_PICKUP = 'Listo para Recoger',
-    ASSIGNED = 'Asignado',
 }
 
 // Define valid status transitions - what status can progress to what other statuses
-export const validStatusTransitions: Record<DeliveryStatus, DeliveryStatus[]> = {
-    [DeliveryStatus.PENDING]: [
-        DeliveryStatus.ASSIGNED,
-        DeliveryStatus.SCHEDULED,
-        DeliveryStatus.CANCELLED,
-        DeliveryStatus.ON_HOLD,
+export const validStatusTransitions: Record<IDeliveryStatus, IDeliveryStatus[]> = {
+    [IDeliveryStatus.PENDING]: [
+        IDeliveryStatus.ASSIGNED,
+        IDeliveryStatus.SCHEDULED,
+        IDeliveryStatus.CANCELLED,
+        IDeliveryStatus.ON_HOLD,
     ],
-    [DeliveryStatus.ASSIGNED]: [
-        DeliveryStatus.IN_PROGRESS,
-        DeliveryStatus.CANCELLED,
-        DeliveryStatus.ON_HOLD,
-        DeliveryStatus.SCHEDULED,
+    [IDeliveryStatus.ASSIGNED]: [
+        IDeliveryStatus.IN_PROGRESS,
+        IDeliveryStatus.CANCELLED,
+        IDeliveryStatus.ON_HOLD,
+        IDeliveryStatus.SCHEDULED,
     ],
-    [DeliveryStatus.SCHEDULED]: [
-        DeliveryStatus.ASSIGNED,
-        DeliveryStatus.IN_PROGRESS,
-        DeliveryStatus.CANCELLED,
-        DeliveryStatus.ON_HOLD,
+    [IDeliveryStatus.SCHEDULED]: [
+        IDeliveryStatus.ASSIGNED,
+        IDeliveryStatus.IN_PROGRESS,
+        IDeliveryStatus.CANCELLED,
+        IDeliveryStatus.ON_HOLD,
     ],
-    [DeliveryStatus.IN_PROGRESS]: [
-        // DeliveryStatus.READY_FOR_PICKUP,
-        // DeliveryStatus.COMPLETED,
-        DeliveryStatus.DELIVERED,
-        DeliveryStatus.FAILED,
-        DeliveryStatus.ON_HOLD,
-        DeliveryStatus.CANCELLED,
+    [IDeliveryStatus.IN_PROGRESS]: [
+        // IDeliveryStatus.READY_FOR_PICKUP,
+        // IDeliveryStatus.COMPLETED,
+        IDeliveryStatus.DELIVERED,
+        IDeliveryStatus.FAILED,
+        IDeliveryStatus.ON_HOLD,
+        IDeliveryStatus.CANCELLED,
     ],
     // [DeliveryStatus.READY_FOR_PICKUP]: [
     //     DeliveryStatus.DELIVERED,
@@ -49,64 +48,65 @@ export const validStatusTransitions: Record<DeliveryStatus, DeliveryStatus[]> = 
     // [DeliveryStatus.COMPLETED]: [
     //     DeliveryStatus.DELIVERED,
     // ],
-    [DeliveryStatus.DELIVERED]: [],
-    [DeliveryStatus.RETURNED]: [],
-    [DeliveryStatus.FAILED]: [
-        DeliveryStatus.RETURNED,
-        DeliveryStatus.IN_PROGRESS,
-        DeliveryStatus.CANCELLED,
+    [IDeliveryStatus.DELIVERED]: [],
+    [IDeliveryStatus.RETURNED]: [],
+    [IDeliveryStatus.FAILED]: [
+        IDeliveryStatus.RETURNED,
+        IDeliveryStatus.IN_PROGRESS,
+        IDeliveryStatus.CANCELLED,
     ],
-    [DeliveryStatus.ON_HOLD]: [
-        DeliveryStatus.IN_PROGRESS,
-        DeliveryStatus.CANCELLED,
-        DeliveryStatus.SCHEDULED,
+    [IDeliveryStatus.ON_HOLD]: [
+        IDeliveryStatus.IN_PROGRESS,
+        IDeliveryStatus.CANCELLED,
+        IDeliveryStatus.SCHEDULED,
     ],
-    [DeliveryStatus.CANCELLED]: [],
+    [IDeliveryStatus.CANCELLED]: [],
+    [IDeliveryStatus.COMPLETED]: [],
 };
 
 // Helper functions
 export function getStatusColor(status: string): string {
     switch (status) {
-        case DeliveryStatus.PENDING:
+        case IDeliveryStatus.PENDING:
             return '#FFA500';
-        case DeliveryStatus.ASSIGNED:
+        case IDeliveryStatus.ASSIGNED:
             return '#1976D2';
-        case DeliveryStatus.SCHEDULED:
+        case IDeliveryStatus.SCHEDULED:
             return '#64B5F6';
-        case DeliveryStatus.IN_PROGRESS:
+        case IDeliveryStatus.IN_PROGRESS:
             return '#3498DB';
-        // case DeliveryStatus.READY_FOR_PICKUP:
+        // case IDeliveryStatus.READY_FOR_PICKUP:
         //     return '#F1C40F';
-        // case DeliveryStatus.COMPLETED:
+        // case IDeliveryStatus.COMPLETED:
         //     return '#2ECC71';
-        case DeliveryStatus.DELIVERED:
+        case IDeliveryStatus.DELIVERED:
             return '#27AE60';
-        case DeliveryStatus.RETURNED:
+        case IDeliveryStatus.RETURNED:
             return '#D35400';
-        case DeliveryStatus.FAILED:
+        case IDeliveryStatus.FAILED:
             return '#C0392B';
-        case DeliveryStatus.ON_HOLD:
+        case IDeliveryStatus.ON_HOLD:
             return '#95A5A6';
-        case DeliveryStatus.CANCELLED:
+        case IDeliveryStatus.CANCELLED:
             return '#E74C3C';
         default:
             return '#7F8C8D';
     }
 }
 
-export function getNextValidStatuses(currentStatus: string): DeliveryStatus[] {
+export function getNextValidStatuses(currentStatus: string): IDeliveryStatus[] {
     // Find the matching DeliveryStatus enum value
-    const matchingStatus = Object.values(DeliveryStatus).find(
+    const matchingStatus = Object.values(IDeliveryStatus).find(
         status => status === currentStatus
     );
 
     if (matchingStatus) {
         // Return the valid transitions for this status
-        const statusKey = Object.keys(DeliveryStatus).find(
-            key => DeliveryStatus[key as keyof typeof DeliveryStatus] === matchingStatus
-        ) as keyof typeof DeliveryStatus;
+        const statusKey = Object.keys(IDeliveryStatus).find(
+            key => IDeliveryStatus[key as keyof typeof IDeliveryStatus] === matchingStatus
+        ) as keyof typeof IDeliveryStatus;
         
-        return validStatusTransitions[DeliveryStatus[statusKey]];
+        return validStatusTransitions[IDeliveryStatus[statusKey]];
     }
     
     // If no matching status is found, return an empty array
