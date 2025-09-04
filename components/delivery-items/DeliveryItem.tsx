@@ -1,10 +1,13 @@
 import { StyleSheet, Dimensions, TouchableOpacity, View } from 'react-native';
 import { Text } from '@/components/Themed';
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
+import { getStatusColor } from '@/interfaces/delivery/deliveryStatus';
 import React from 'react';
 import { CustomColors } from '@/constants/CustomColors';
 import { AssignmentType } from '@/utils/enum';
 import { IProvincia, IMunicipio, ISector } from '@/interfaces/location';
+
+import { IDeliveryStatusEntity } from '@/interfaces/delivery/delivery';
 
 export interface Item {
   id: string;
@@ -17,6 +20,7 @@ export interface Item {
   municipio: IMunicipio;
   origin: ISector;
   destiny: ISector;
+  deliveryStatus: IDeliveryStatusEntity;
 }
 
 interface DeliveryItemProps {
@@ -61,15 +65,23 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item, onPress }) => 
               <Text style={styles.itemDescription}>{deliveryAddress}</Text>
             </View>
           )}
-          {/* Tipo */}
-          <View style={styles.infoRow}>
-            <MaterialIcons name="assignment" size={16} color={CustomColors.textLight} style={{marginRight: 6}} />
-            <View style={[
-              styles.typeIndicator, 
-              item.type === AssignmentType.PICKUP ? styles.pickupIndicator : styles.deliveryIndicator
-            ]}>
-              <Text style={styles.typeText}>
-                {item.type === AssignmentType.PICKUP ? 'Recogida' : 'Entrega'}
+          {/* Estado de entrega y tipo en la misma fila */}
+          <View style={[styles.infoRow, { justifyContent: 'space-between' }]}> 
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <MaterialIcons name="assignment" size={16} color={CustomColors.textLight} style={{marginRight: 6}} />
+              <View style={[
+                styles.typeIndicator, 
+                item.type === AssignmentType.PICKUP ? styles.pickupIndicator : styles.deliveryIndicator
+              ]}>
+                <Text style={styles.typeText}>
+                  {item.type === AssignmentType.PICKUP ? 'Recogida' : 'Entrega'}
+                </Text>
+              </View>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
+              <MaterialIcons name="info" size={16} color={getStatusColor(item.deliveryStatus.title)} style={{marginRight: 6}} />
+              <Text style={[styles.statusText, { color: getStatusColor(item.deliveryStatus.title) }]}> 
+                {item.deliveryStatus.title}
               </Text>
             </View>
           </View>
@@ -152,6 +164,11 @@ const styles = StyleSheet.create({
     color: CustomColors.textLight,
     fontSize: 12,
     fontWeight: 'bold',
+  },
+  statusText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginLeft: 2,
   },
   // ...existing code...
 });

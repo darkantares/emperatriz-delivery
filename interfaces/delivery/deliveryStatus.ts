@@ -68,29 +68,27 @@ export const validStatusTransitions: Record<IDeliveryStatus, IDeliveryStatus[]> 
 export function getStatusColor(status: string): string {
     switch (status) {
         case IDeliveryStatus.PENDING:
-            return '#FFA500';
+            return '#FF00FF'; // Magenta
         case IDeliveryStatus.ASSIGNED:
-            return '#1976D2';
+            return '#00BFFF'; // Azul intenso
         case IDeliveryStatus.SCHEDULED:
-            return '#64B5F6';
+            return '#FFD700'; // Amarillo
         case IDeliveryStatus.IN_PROGRESS:
-            return '#3498DB';
-        // case IDeliveryStatus.READY_FOR_PICKUP:
-        //     return '#F1C40F';
-        // case IDeliveryStatus.COMPLETED:
-        //     return '#2ECC71';
+            return '#00FF00'; // Verde puro
+        case IDeliveryStatus.COMPLETED:
+            return '#0011ffff'; // Naranja fuerte
         case IDeliveryStatus.DELIVERED:
-            return '#27AE60';
+            return '#8A2BE2'; // Violeta
         case IDeliveryStatus.RETURNED:
-            return '#D35400';
+            return '#00CED1'; // Turquesa
         case IDeliveryStatus.FAILED:
-            return '#C0392B';
+            return '#FF0000'; // Rojo puro
         case IDeliveryStatus.ON_HOLD:
-            return '#95A5A6';
+            return '#A52A2A'; // Marrón
         case IDeliveryStatus.CANCELLED:
-            return '#E74C3C';
+            return '#FF4500'; // Negro
         default:
-            return '#7F8C8D';
+            return '#7F8C8D'; // Gris
     }
 }
 
