@@ -30,6 +30,8 @@ interface DeliveryItemAdapter {
   municipio: IMunicipio;
   origin: ISector;
   destiny: ISector;
+  fee: number;
+  cost: number;
 }
 
 export default function TabOneScreen() {
@@ -89,7 +91,9 @@ export default function TabOneScreen() {
       provincia: delivery.provincia,
       municipio: delivery.municipio,
       origin: delivery.origin,
-      destiny: delivery.destiny
+      destiny: delivery.destiny,
+      fee: delivery.fee,
+      cost: delivery.cost
     };
   };
 

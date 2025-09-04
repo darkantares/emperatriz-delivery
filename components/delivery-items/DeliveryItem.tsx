@@ -21,6 +21,8 @@ export interface Item {
   origin: ISector;
   destiny: ISector;
   deliveryStatus: IDeliveryStatusEntity;
+  fee: number;
+  cost: number;
 }
 
 interface DeliveryItemProps {
@@ -28,13 +30,13 @@ interface DeliveryItemProps {
   onPress: (id: string) => void;
 }
 
-export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item, onPress }) => {  
+export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item, onPress }) => {
 
   // Construir dirección de recogida
   const pickupAddress = `${item.provincia.nombre}, ${item.municipio.nombre}, ${item.origin.nombre}, ${item.deliveryAddress}`;
-  
+
   // Construir dirección de entrega (solo para DELIVERY)
-  const deliveryAddress = item.type === AssignmentType.DELIVERY 
+  const deliveryAddress = item.type === AssignmentType.DELIVERY
     ? `${item.provincia.nombre}, ${item.municipio.nombre}, ${item.destiny.nombre}, ${item.deliveryAddress}`
     : '';
 
@@ -43,30 +45,45 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item, onPress }) => 
       <View style={[styles.itemContainer, styles.deliveryContainer]}>
         <View style={styles.contentContainer}>
           {/* Cliente y Teléfono en la misma fila */}
-          <View style={styles.infoRow}>
-            <FontAwesome name="user" size={16} color={CustomColors.textLight} style={{marginRight: 6}} />
-            <Text style={styles.itemDescription}>{item.client}</Text>
-            <FontAwesome name="phone" size={16} color={CustomColors.textLight} style={{marginLeft: 16, marginRight: 6}} />
-            <Text style={styles.itemDescription}>{item.phone}</Text>
+          <View style={[styles.infoRow, { justifyContent: 'space-between' }]}>
+            
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
+              <FontAwesome name="user" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
+              <Text style={styles.statusText}>{item.client}</Text>
+            </View>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
+              <FontAwesome name="phone" size={16} color={CustomColors.textLight} style={{ marginLeft: 16, marginRight: 6 }} />
+              <Text style={styles.statusText}>{item.phone}</Text>
+            </View>
+
           </View>
           {/* Recoger en */}
           <View style={styles.infoRow}>
-            <MaterialIcons name="store-mall-directory" size={16} color={CustomColors.textLight} style={{marginRight: 6}} />
+            <MaterialIcons name="store-mall-directory" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
             <Text style={styles.itemDescription}>{pickupAddress}</Text>
           </View>
           {/* Entregar en (solo DELIVERY) */}
           {item.type === AssignmentType.DELIVERY && (
             <View style={styles.infoRow}>
-              <MaterialIcons name="location-on" size={16} color={CustomColors.textLight} style={{marginRight: 6}} />
+              <MaterialIcons name="location-on" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
               <Text style={styles.itemDescription}>{deliveryAddress}</Text>
             </View>
           )}
+
+
           {/* Estado de entrega y tipo en la misma fila */}
-          <View style={[styles.infoRow, { justifyContent: 'space-between' }]}> 
+          <View style={[styles.infoRow, { justifyContent: 'space-between' }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
+              <FontAwesome name="money" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
+              <Text style={styles.statusText}>
+                RD$ {(item.fee + item.cost).toFixed(2)}
+              </Text>
+            </View>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <MaterialIcons name="assignment" size={16} color={CustomColors.textLight} style={{marginRight: 6}} />
+              <MaterialIcons name="assignment" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
               <View style={[
-                styles.typeIndicator, 
+                styles.typeIndicator,
                 item.type === AssignmentType.PICKUP ? styles.pickupIndicator : styles.deliveryIndicator
               ]}>
                 <Text style={styles.typeText}>
@@ -74,9 +91,10 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item, onPress }) => 
                 </Text>
               </View>
             </View>
+
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
-              <MaterialIcons name="info" size={16} color={getStatusColor(item.deliveryStatus.title)} style={{marginRight: 6}} />
-              <Text style={[styles.statusText, { color: getStatusColor(item.deliveryStatus.title) }]}> 
+              <MaterialIcons name="info" size={16} color={getStatusColor(item.deliveryStatus.title)} style={{ marginRight: 6 }} />
+              <Text style={[styles.statusText, { color: getStatusColor(item.deliveryStatus.title) }]}>
                 {item.deliveryStatus.title}
               </Text>
             </View>
