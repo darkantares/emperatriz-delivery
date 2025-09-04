@@ -12,6 +12,7 @@ import { deliveryService } from '@/services/deliveryService';
 import { SocketStatusIndicator } from '@/components/socketstatusindicator';
 import { IDeliveryAssignmentEntity, IDeliveryStatusEntity } from '@/interfaces/delivery/delivery';
 import { IProvincia, IMunicipio, ISector } from '@/interfaces/location';
+import { AssignmentType } from '@/utils/enum';
 
 // Interfaz adaptada para trabajar con los datos del backend
 interface DeliveryItemAdapter {
@@ -19,6 +20,7 @@ interface DeliveryItemAdapter {
   title: string;
   client: string;
   phone: string;
+  type: AssignmentType;
   deliveryStatus: IDeliveryStatusEntity;
   deliveryAddress: string;
   observations?: string;
@@ -79,7 +81,7 @@ export default function TabOneScreen() {
     };
 
     socketService.on(SocketEventType.DRIVER_ASSIGNED, handleDeliveryAssigned);
-    
+
     return () => {
       console.log('Componente desmontado, limpiando listeners y desconectando socket');
       socketService.off(SocketEventType.DRIVER_ASSIGNED, handleDeliveryAssigned);
@@ -92,6 +94,7 @@ export default function TabOneScreen() {
       title: `${delivery.provincia.nombre}, ${delivery.municipio.nombre}, ${delivery.origin.nombre}`,      
       client: delivery.contact,
       phone: delivery.phone,
+      type: delivery.type,
       deliveryStatus: delivery.deliveryStatus,
       deliveryAddress: delivery.deliveryAddress,
       observations: delivery.observations,

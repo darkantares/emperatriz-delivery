@@ -2,12 +2,14 @@ import { StyleSheet, Dimensions, TouchableOpacity, View } from 'react-native';
 import { Text } from '@/components/Themed';
 import React from 'react';
 import { CustomColors } from '@/constants/CustomColors';
+import { AssignmentType } from '@/utils/enum';
 
 export interface Item {
   id: string;
   title: string;
   client: string;
   phone: string;
+  type: AssignmentType;
 }
 
 interface DeliveryItemProps {
@@ -15,41 +17,68 @@ interface DeliveryItemProps {
   onPress: (id: string) => void;
 }
 
-export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item, onPress }) => (
-  <TouchableOpacity onPress={() => onPress(item.id)}>
-    <View style={styles.itemContainer}>
-      <View style={styles.numberContainer}>
-        <Text style={styles.numberText}>{item.id}</Text>
+export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item, onPress }) => {
+  // Determinar el estilo según el tipo de asignación
+  const containerStyle = item.type === AssignmentType.PICKUP 
+    ? [styles.itemContainer, styles.deliveryContainer]
+    : [styles.itemContainer, styles.pickupContainer];
+
+  return (
+    <TouchableOpacity onPress={() => onPress(item.id)}>
+      <View style={containerStyle}>
+        <View style={styles.numberContainer}>
+          <Text style={styles.numberText}>{item.id}</Text>
+        </View>
+        <View style={styles.contentContainer}>
+          <View style={styles.infoRow}>
+            <Text style={styles.itemTitle}>Dirección:</Text>
+            <Text style={styles.itemDescription}>{item.title}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.itemTitle}>Cliente:</Text>
+            <Text style={styles.itemDescription}>{item.client}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.itemTitle}>Teléfono:</Text>
+            <Text style={styles.itemDescription}>{item.phone}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.itemTitle}>Tipo:</Text>
+            <View style={[
+              styles.typeIndicator, 
+              item.type === AssignmentType.PICKUP ? styles.pickupIndicator : styles.deliveryIndicator
+            ]}>
+              <Text style={styles.typeText}>
+                {item.type === AssignmentType.PICKUP ? 'Recogida' : 'Entrega'}
+              </Text>
+            </View>
+          </View>
+        </View>
       </View>
-      <View style={styles.contentContainer}>
-        <View style={styles.infoRow}>
-          <Text style={styles.itemTitle}>Dirección:</Text>
-          <Text style={styles.itemDescription}>{item.title}</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.itemTitle}>Cliente:</Text>
-          <Text style={styles.itemDescription}>{item.client}</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.itemTitle}>Teléfono:</Text>
-          <Text style={styles.itemDescription}>{item.phone}</Text>
-        </View>
-      </View>
-    </View>
-  </TouchableOpacity>
-);
+    </TouchableOpacity>
+  );
+};
 
 const { width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   itemContainer: {
-    backgroundColor: CustomColors.cardBackground,
     padding: 8,
     borderBottomWidth: 1,
     borderBottomColor: CustomColors.divider,
     width: width,
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  pickupContainer: {
+    backgroundColor: CustomColors.cardBackground, // Fondo para tipo PICKUP (más claro)
+    borderLeftWidth: 4,
+    borderLeftColor: CustomColors.quaternary, // Borde morado para PICKUP
+  },
+  deliveryContainer: {
+    backgroundColor: CustomColors.backgroundDark, // Fondo para tipo DELIVERY (más oscuro)
+    borderLeftWidth: 4,
+    borderLeftColor: CustomColors.secondary, // Borde dorado para DELIVERY
   },
   numberContainer: {
     width: 30,
@@ -85,6 +114,24 @@ const styles = StyleSheet.create({
     color: CustomColors.textLight,
     opacity: 0.7,
     flex: 1, // Permite que el texto ocupe el espacio restante
+  },
+  typeIndicator: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pickupIndicator: {
+    backgroundColor: CustomColors.quaternary,
+  },
+  deliveryIndicator: {
+    backgroundColor: CustomColors.secondary,
+  },
+  typeText: {
+    color: CustomColors.textLight,
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   // ...existing code...
 });
