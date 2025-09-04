@@ -116,17 +116,17 @@ class SocketService {
     if (!this.socket) return;
 
     this.socket.on(SocketEventType.DRIVER_ASSIGNED, (data) => {
-      console.log('Evento recibido - Conductor asignado:', data);
+      console.log('Evento recibido - Conductor asignado');
 
       // Encolar una notificación
       queueNotification(
         NotificationType.SUCCESS,
         'Nueva entrega asignada',
-        `Se te ha asignado la entrega #${data.deliveryId}`,
-        true // Reproducir sonido
+        `Se te ha asignado la entrega #${data.data.id}`,
+        true
       );
 
-      this.notifyListeners(SocketEventType.DRIVER_ASSIGNED, data);
+      this.notifyListeners(SocketEventType.DRIVER_ASSIGNED, data.data);
     });
 
 
@@ -145,7 +145,7 @@ class SocketService {
 
 
     this.socket.on(SocketEventType.DELIVERY_STATUS_CHANGED, (data) => {
-      console.log('Evento recibido - Estado de entrega cambiado:', data);
+      console.log('Evento recibido - Estado de entrega cambiado');
 
       queueNotification(
         NotificationType.INFO,
@@ -158,7 +158,6 @@ class SocketService {
     });
   }
 
-
   disconnect() {
     if (this.socket) {
       console.log("Desconectando Socket.IO...");
@@ -167,7 +166,6 @@ class SocketService {
       this.notifyConnectionListeners();
     }
   }
-
 
   on(event: string, callback: Function) {
     if (!this.listeners.has(event)) {

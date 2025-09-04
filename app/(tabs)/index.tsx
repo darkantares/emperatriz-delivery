@@ -13,6 +13,8 @@ import { SocketStatusIndicator } from '@/components/socketstatusindicator';
 import { IDeliveryAssignmentEntity, IDeliveryStatusEntity } from '@/interfaces/delivery/delivery';
 import { IProvincia, IMunicipio, ISector } from '@/interfaces/location';
 import { AssignmentType } from '@/utils/enum';
+import { StatusUpdateModal } from '@/components/modals/StatusUpdateModal';
+import { IDeliveryStatus } from '@/interfaces/delivery/deliveryStatus';
 
 // Interfaz adaptada para trabajar con los datos del backend
 interface DeliveryItemAdapter {
@@ -35,6 +37,8 @@ export default function TabOneScreen() {
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [isStatusModalVisible, setIsStatusModalVisible] = useState<boolean>(false);
+  const [selectedDelivery, setSelectedDelivery] = useState<DeliveryItemAdapter | null>(null);
   const router = useRouter();
   const { setSelectedAddresses } = useAppContext();
   const isNavigating = useRef(false);
@@ -48,36 +52,11 @@ export default function TabOneScreen() {
   useEffect(() => {
     socketService.connect();
 
-    const handleDeliveryAssigned = (data: {deliveryId: number, status: IDeliveryStatusEntity}) => {
-      const deliveryIdStr = data.deliveryId.toString();
-      setDeliveries(currentDeliveries => {
-        const deliveryExists = currentDeliveries.some(d => d.id === deliveryIdStr);
-        if (deliveryExists) {
-          return currentDeliveries.map(delivery => {
-            if (delivery.id !== deliveryIdStr) return delivery;
-            return {
-              ...delivery,
-              deliveryStatus: data.status
-            };
-          });
-        } else {
-          // Si no existe, obtener la nueva entrega y agregarla
-          deliveryService.getDeliveryById(data.deliveryId)
-            .then(response => {
-              if (response.success && response.data) {
-                const newDelivery = mapDelivery(response.data);
-                setDeliveries(current => [newDelivery, ...current]);
-                console.log(`Nueva entrega ${deliveryIdStr} añadida correctamente`);
-              } else {
-                console.error('Error al cargar la nueva entrega:', response.error);
-              }
-            })
-            .catch(error => {
-              console.error('Error al obtener la nueva entrega:', error);
-            });
-          return currentDeliveries;
-        }
-      });
+    const handleDeliveryAssigned = (data: any) => {
+    console.log(data);
+      
+    // Agregar la data recibida directamente al array de entregas
+    setDeliveries(currentDeliveries => [...currentDeliveries, mapDelivery(data)]);
     };
 
     socketService.on(SocketEventType.DRIVER_ASSIGNED, handleDeliveryAssigned);
@@ -141,26 +120,38 @@ export default function TabOneScreen() {
     isNavigating.current = true;
     const selectedItem = deliveries.find(item => item.id === id);
     if (selectedItem) {
-      const adaptedAddress = {
-        id: selectedItem.id,
-        label: selectedItem.client,
-        street: selectedItem.deliveryAddress,
-        city: `${selectedItem.provincia?.nombre || ''}, ${selectedItem.municipio?.nombre || ''}, ${selectedItem.origin?.nombre || ''}`,
-        zipCode: '',
-        reference: selectedItem.observations || '',
-        status: selectedItem.deliveryStatus.title, // Usamos el título del estado
-        cost: 0, // Asumimos un valor por defecto o tomamos de la entidad si existe
-      };
+      // Guardar el delivery seleccionado y mostrar el modal de actualización de estado
+      setSelectedDelivery(selectedItem);
+      setIsStatusModalVisible(true);
       
-      setSelectedAddresses({
-        elementId: selectedItem.id,
-        elementTitle: selectedItem.title,
-        addresses: [adaptedAddress]
-      });
-      router.push("/addresses");
-      setTimeout(() => { isNavigating.current = false; }, 1000);
+      // Restablecer la bandera de navegación
+      setTimeout(() => { isNavigating.current = false; }, 500);
     } else {
       isNavigating.current = false;
+    }
+  };
+
+  // Manejar la actualización de estado
+  const handleStatusUpdate = async (newStatus: string) => {
+    if (selectedDelivery) {
+      try {
+        // Actualizar la entrega en el estado local
+        setDeliveries(currentDeliveries => 
+          currentDeliveries.map(delivery => 
+            delivery.id === selectedDelivery.id 
+              ? { 
+                  ...delivery, 
+                  deliveryStatus: { 
+                    ...delivery.deliveryStatus, 
+                    title: newStatus as IDeliveryStatus 
+                  } 
+                } 
+              : delivery
+          )
+        );
+      } catch (error) {
+        console.error('Error al actualizar el estado localmente:', error);
+      }
     }
   };
 
@@ -223,6 +214,17 @@ export default function TabOneScreen() {
           <Text style={styles.addButtonText}>+</Text>
         </TouchableOpacity> */}
       </View>
+
+      {/* Modal de Actualización de Estado */}
+      {selectedDelivery && (
+        <StatusUpdateModal
+          isVisible={isStatusModalVisible}
+          onClose={() => setIsStatusModalVisible(false)}
+          currentStatus={selectedDelivery.deliveryStatus.title}
+          onStatusSelected={handleStatusUpdate}
+          itemId={selectedDelivery.id}
+        />
+      )}
       </SafeAreaView>
     </GestureHandlerRootView>
   );
