@@ -133,6 +133,7 @@ const styles = StyleSheet.create({
     width: width,
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 4, // Separación entre items
   },
   pickupContainer: {
     backgroundColor: CustomColors.cardBackground, // Fondo para tipo PICKUP (más claro)
