@@ -108,7 +108,7 @@ export const deliveryService = {
             };
         }
         try {
-            const response = await api.get<ResponseDataAPI<IDeliveryAssignmentEntity>>(`delivery/${id}`);
+            const response = await api.get<ResponseDataAPI<IDeliveryAssignmentEntity>>(`${BackendUrls.DeliveryAssignments}/${id}`);
 
             if (response.error || !response.data) {
                 return {
@@ -172,7 +172,7 @@ export const deliveryService = {
             };
         }
         try {
-            const response = await api.get<ResponseDataAPI<IDeliveryAssignmentEntity[]>>(`delivery/${deliveryId}/destinies`);
+            const response = await api.get<ResponseDataAPI<IDeliveryAssignmentEntity[]>>(`${BackendUrls.DeliveryAssignments}/${deliveryId}/destinies`);
 
             if (response.error || !response.data) {
                 return {
@@ -208,61 +208,6 @@ export const deliveryService = {
     },
 
     /**
-     * Crea una nueva entrega
-     * @param deliveryData Datos de la nueva entrega
-     * @returns Entrega creada
-     */
-    createDelivery: async (deliveryData: ICreateDeliveryAssigment): Promise<{
-        success: boolean;
-        data?: IDeliveryAssignmentEntity;
-        error?: string;
-        details?: any;
-    }> => {
-        // Verificar token antes de hacer la solicitud
-        const token = await AsyncStorage.getItem('auth_token');
-        if (!token) {
-            return {
-                success: false,
-                error: 'No autenticado: token no encontrado',
-            };
-        }
-        try {
-            const response = await api.post<ResponseDataAPI<IDeliveryAssignmentEntity>>('deliveries', deliveryData);
-
-            if (response.error || !response.data) {
-                return {
-                    success: false,
-                    error: response.error || 'Error al crear la entrega',
-                    details: response.details
-                };
-            }
-
-            // Extraer los datos del ResponseAPI
-            const newDeliveryData = extractDataFromResponse<IDeliveryAssignmentEntity>(response);
-
-            if (!newDeliveryData) {
-                console.error('Error processing create delivery response:', response);
-                return {
-                    success: false,
-                    error: 'Error al procesar la respuesta del servidor',
-                    details: response
-                };
-            }
-
-            return {
-                success: true,
-                data: newDeliveryData
-            };
-        } catch (error) {
-            console.error('Error creating delivery:', error);
-            return {
-                success: false,
-                error: `Error de conexión: ${error instanceof Error ? error.message : String(error)}`
-            };
-        }
-    },
-
-    /**
      * Actualiza una entrega existente
      * @param id ID de la entrega a actualizar
      * @param deliveryData Datos actualizados
@@ -283,7 +228,7 @@ export const deliveryService = {
             };
         }
         try {
-            const response = await api.put<ResponseDataAPI<IDeliveryAssignmentEntity>>(`delivery/${id}`, deliveryData);
+            const response = await api.put<ResponseDataAPI<IDeliveryAssignmentEntity>>(`${BackendUrls.DeliveryAssignments}/${id}`, deliveryData);
 
             if (response.error || !response.data) {
                 return {
@@ -319,47 +264,6 @@ export const deliveryService = {
     },
 
     /**
-     * Elimina una entrega
-     * @param id ID de la entrega a eliminar
-     * @returns Éxito de la operación
-     */
-    deleteDelivery: async (id: number): Promise<{
-        success: boolean;
-        error?: string;
-        details?: any;
-    }> => {
-        // Verificar token antes de hacer la solicitud
-        const token = await AsyncStorage.getItem('auth_token');
-        if (!token) {
-            return {
-                success: false,
-                error: 'No autenticado: token no encontrado',
-            };
-        }
-        try {
-            const response = await api.delete(`delivery/${id}`);
-
-            if (response.error || !response.data) {
-                return {
-                    success: false,
-                    error: response.error || `Error al eliminar la entrega con ID ${id}`,
-                    details: response.details
-                };
-            }
-
-            return {
-                success: true
-            };
-        } catch (error) {
-            console.error(`Error deleting delivery with ID ${id}:`, error);
-            return {
-                success: false,
-                error: `Error de conexión: ${error instanceof Error ? error.message : String(error)}`
-            };
-        }
-    },
-
-    /**
      * Actualiza el estado de una entrega
      * @param id ID de la entrega a actualizar
      * @param status Nuevo estado de la entrega
@@ -372,7 +276,7 @@ export const deliveryService = {
         details?: any;
     }> => {
         // Verificar token antes de hacer la solicitud
-        const token = localStorage.getItem('token');
+        const token = await AsyncStorage.getItem('auth_token');
         if (!token) {
             return {
                 success: false,
@@ -380,7 +284,7 @@ export const deliveryService = {
             };
         }
         try {
-            const response = await api.patch<ResponseDataAPI<IDeliveryAssignmentEntity>>(`delivery/${id}/status`, { status });
+            const response = await api.patch<ResponseDataAPI<IDeliveryAssignmentEntity>>(`${BackendUrls.DeliveryAssignments}/${id}/status`, { status });
 
             if (response.error || !response.data) {
                 return {
