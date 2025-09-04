@@ -96,12 +96,7 @@ function RootLayoutNav() {
               }}>
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                 <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-                <Stack.Screen name="login" options={{ headerShown: false }} />
-                <Stack.Screen name="addresses" options={{ 
-                  headerShown: false,
-                  presentation: 'transparentModal',
-                  animation: 'slide_from_bottom'
-                }} />
+                <Stack.Screen name="login" options={{ headerShown: false }} />            
               </Stack>
               
               <NotificationHandler />

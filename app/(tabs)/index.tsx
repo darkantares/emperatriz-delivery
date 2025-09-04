@@ -41,8 +41,7 @@ export default function TabOneScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isStatusModalVisible, setIsStatusModalVisible] = useState<boolean>(false);
   const [selectedDelivery, setSelectedDelivery] = useState<DeliveryItemAdapter | null>(null);
-  const router = useRouter();
-  const { setSelectedAddresses } = useAppContext();
+
   const isNavigating = useRef(false);
 
   // Cargar entregas al montar
