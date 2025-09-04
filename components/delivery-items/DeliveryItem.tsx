@@ -3,6 +3,7 @@ import { Text } from '@/components/Themed';
 import React from 'react';
 import { CustomColors } from '@/constants/CustomColors';
 import { AssignmentType } from '@/utils/enum';
+import { IProvincia, IMunicipio, ISector } from '@/interfaces/location';
 
 export interface Item {
   id: string;
@@ -10,6 +11,11 @@ export interface Item {
   client: string;
   phone: string;
   type: AssignmentType;
+  deliveryAddress: string;
+  provincia: IProvincia;
+  municipio: IMunicipio;
+  origin: ISector;
+  destiny: ISector;
 }
 
 interface DeliveryItemProps {
@@ -20,8 +26,16 @@ interface DeliveryItemProps {
 export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item, onPress }) => {
   // Determinar el estilo según el tipo de asignación
   const containerStyle = item.type === AssignmentType.PICKUP 
-    ? [styles.itemContainer, styles.deliveryContainer]
-    : [styles.itemContainer, styles.pickupContainer];
+    ? [styles.itemContainer, styles.pickupContainer]
+    : [styles.itemContainer, styles.deliveryContainer];
+
+  // Construir dirección de recogida
+  const pickupAddress = `${item.provincia.nombre}, ${item.municipio.nombre}, ${item.origin.nombre}, ${item.deliveryAddress}`;
+  
+  // Construir dirección de entrega (solo para DELIVERY)
+  const deliveryAddress = item.type === AssignmentType.DELIVERY 
+    ? `${item.provincia.nombre}, ${item.municipio.nombre}, ${item.destiny.nombre}, ${item.deliveryAddress}`
+    : '';
 
   return (
     <TouchableOpacity onPress={() => onPress(item.id)}>
@@ -31,10 +45,6 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item, onPress }) => 
         </View>
         <View style={styles.contentContainer}>
           <View style={styles.infoRow}>
-            <Text style={styles.itemTitle}>Dirección:</Text>
-            <Text style={styles.itemDescription}>{item.title}</Text>
-          </View>
-          <View style={styles.infoRow}>
             <Text style={styles.itemTitle}>Cliente:</Text>
             <Text style={styles.itemDescription}>{item.client}</Text>
           </View>
@@ -42,6 +52,16 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item, onPress }) => 
             <Text style={styles.itemTitle}>Teléfono:</Text>
             <Text style={styles.itemDescription}>{item.phone}</Text>
           </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.itemTitle}>Recoger En:</Text>
+            <Text style={styles.itemDescription}>{pickupAddress}</Text>
+          </View>
+          {item.type === AssignmentType.DELIVERY && (
+            <View style={styles.infoRow}>
+              <Text style={styles.itemTitle}>Entregar En:</Text>
+              <Text style={styles.itemDescription}>{deliveryAddress}</Text>
+            </View>
+          )}
           <View style={styles.infoRow}>
             <Text style={styles.itemTitle}>Tipo:</Text>
             <View style={[
