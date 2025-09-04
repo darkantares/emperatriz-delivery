@@ -1,5 +1,6 @@
 import { StyleSheet, Dimensions, TouchableOpacity, View } from 'react-native';
 import { Text } from '@/components/Themed';
+import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
 import { CustomColors } from '@/constants/CustomColors';
 import { AssignmentType } from '@/utils/enum';
@@ -26,8 +27,8 @@ interface DeliveryItemProps {
 export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item, onPress }) => {
   // Determinar el estilo según el tipo de asignación
   const containerStyle = item.type === AssignmentType.PICKUP 
-    ? [styles.itemContainer, styles.pickupContainer]
-    : [styles.itemContainer, styles.deliveryContainer];
+    ? [styles.itemContainer, styles.deliveryContainer]
+    : [styles.itemContainer, styles.pickupContainer];
 
   // Construir dirección de recogida
   const pickupAddress = `${item.provincia.nombre}, ${item.municipio.nombre}, ${item.origin.nombre}, ${item.deliveryAddress}`;
@@ -40,30 +41,29 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item, onPress }) => 
   return (
     <TouchableOpacity onPress={() => onPress(item.id)}>
       <View style={containerStyle}>
-        <View style={styles.numberContainer}>
-          <Text style={styles.numberText}>{item.id}</Text>
-        </View>
         <View style={styles.contentContainer}>
+          {/* Cliente y Teléfono en la misma fila */}
           <View style={styles.infoRow}>
-            <Text style={styles.itemTitle}>Cliente:</Text>
+            <FontAwesome name="user" size={16} color={CustomColors.textLight} style={{marginRight: 6}} />
             <Text style={styles.itemDescription}>{item.client}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.itemTitle}>Teléfono:</Text>
+            <FontAwesome name="phone" size={16} color={CustomColors.textLight} style={{marginLeft: 16, marginRight: 6}} />
             <Text style={styles.itemDescription}>{item.phone}</Text>
           </View>
+          {/* Recoger en */}
           <View style={styles.infoRow}>
-            <Text style={styles.itemTitle}>Recoger En:</Text>
+            <MaterialIcons name="store-mall-directory" size={16} color={CustomColors.textLight} style={{marginRight: 6}} />
             <Text style={styles.itemDescription}>{pickupAddress}</Text>
           </View>
+          {/* Entregar en (solo DELIVERY) */}
           {item.type === AssignmentType.DELIVERY && (
             <View style={styles.infoRow}>
-              <Text style={styles.itemTitle}>Entregar En:</Text>
+              <MaterialIcons name="location-on" size={16} color={CustomColors.textLight} style={{marginRight: 6}} />
               <Text style={styles.itemDescription}>{deliveryAddress}</Text>
             </View>
           )}
+          {/* Tipo */}
           <View style={styles.infoRow}>
-            <Text style={styles.itemTitle}>Tipo:</Text>
+            <MaterialIcons name="assignment" size={16} color={CustomColors.textLight} style={{marginRight: 6}} />
             <View style={[
               styles.typeIndicator, 
               item.type === AssignmentType.PICKUP ? styles.pickupIndicator : styles.deliveryIndicator
@@ -83,7 +83,7 @@ const { width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   itemContainer: {
-    padding: 8,
+    padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: CustomColors.divider,
     width: width,
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   itemTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
     color: CustomColors.textLight,
     width: 80, // Ancho fijo para alinear todos los valores

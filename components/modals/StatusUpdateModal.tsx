@@ -10,7 +10,7 @@ import {
     ActivityIndicator,
     Alert
 } from 'react-native';
-import { DeliveryStatus, getStatusColor, getNextValidStatuses } from '@/interfaces/delivery/deliveryStatus';
+import { getStatusColor, getNextValidStatuses, IDeliveryStatus } from '@/interfaces/delivery/deliveryStatus';
 import { CustomColors } from '@/constants/CustomColors';
 import { deliveryService } from '@/services/deliveryService';
 
@@ -30,7 +30,7 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
     itemId
 }) => {
     const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
-    const [availableStatuses, setAvailableStatuses] = useState<DeliveryStatus[]>([]);
+    const [availableStatuses, setAvailableStatuses] = useState<IDeliveryStatus[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
 
     useEffect(() => {
@@ -85,7 +85,7 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
         e.stopPropagation();
     };
 
-    const renderStatusItem = ({ item }: { item: DeliveryStatus }) => {
+    const renderStatusItem = ({ item }: { item: IDeliveryStatus }) => {
         const isSelected = selectedStatus === item;
         const statusColor = getStatusColor(item);
 
