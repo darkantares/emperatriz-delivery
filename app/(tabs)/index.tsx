@@ -51,21 +51,30 @@ export default function TabOneScreen() {
   // Conectar socket y listeners
   useEffect(() => {
     socketService.connect();
-
-    const handleDeliveryAssigned = (data: any) => {
-    console.log(data);
-      
-    // Agregar la data recibida directamente al array de entregas
-    setDeliveries(currentDeliveries => [...currentDeliveries, mapDelivery(data)]);
-    };
-
+    
     socketService.on(SocketEventType.DRIVER_ASSIGNED, handleDeliveryAssigned);
+    socketService.on(SocketEventType.DELIVERY_REORDERED, handleDeliveryReordered); 
 
     return () => {
       console.log('Componente desmontado, limpiando listeners y desconectando socket');
       socketService.off(SocketEventType.DRIVER_ASSIGNED, handleDeliveryAssigned);
+      socketService.off(SocketEventType.DELIVERY_REORDERED, handleDeliveryReordered);
     };
   }, []);
+  
+  const handleDeliveryAssigned = (data: any) => {
+    console.log(data);
+      
+    // Agregar la data recibida directamente al array de entregas
+    setDeliveries(currentDeliveries => [...currentDeliveries, mapDelivery(data)]);
+  };
+
+  const handleDeliveryReordered = (data: IDeliveryAssignmentEntity[]) => {
+    console.log(data);
+      
+    // Agregar la data recibida directamente al array de entregas
+    setDeliveries([...data.map(mapDelivery)]);
+  };
 
   const mapDelivery = (delivery: IDeliveryAssignmentEntity): DeliveryItemAdapter => {
     return {

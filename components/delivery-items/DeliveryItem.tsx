@@ -28,11 +28,7 @@ interface DeliveryItemProps {
   onPress: (id: string) => void;
 }
 
-export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item, onPress }) => {
-  // Determinar el estilo según el tipo de asignación
-  const containerStyle = item.type === AssignmentType.PICKUP 
-    ? [styles.itemContainer, styles.deliveryContainer]
-    : [styles.itemContainer, styles.pickupContainer];
+export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item, onPress }) => {  
 
   // Construir dirección de recogida
   const pickupAddress = `${item.provincia.nombre}, ${item.municipio.nombre}, ${item.origin.nombre}, ${item.deliveryAddress}`;
@@ -44,7 +40,7 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item, onPress }) => 
 
   return (
     <TouchableOpacity onPress={() => onPress(item.id)}>
-      <View style={containerStyle}>
+      <View style={[styles.itemContainer, styles.deliveryContainer]}>
         <View style={styles.contentContainer}>
           {/* Cliente y Teléfono en la misma fila */}
           <View style={styles.infoRow}>

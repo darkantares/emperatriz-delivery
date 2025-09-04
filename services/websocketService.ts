@@ -27,6 +27,7 @@ export enum SocketEventType {
   DRIVER_ASSIGNED = 'driver-assigned',
   DELIVERY_UPDATED = 'delivery-updated',
   DELIVERY_STATUS_CHANGED = 'delivery-status-changed',
+  DELIVERY_REORDERED = 'delivery-reordered',
 }
 
 class SocketService {
@@ -92,7 +93,8 @@ class SocketService {
         if (
           event === SocketEventType.DRIVER_ASSIGNED &&
           event === SocketEventType.DELIVERY_UPDATED &&
-          event === SocketEventType.DELIVERY_STATUS_CHANGED
+          event === SocketEventType.DELIVERY_STATUS_CHANGED &&
+          event === SocketEventType.DELIVERY_REORDERED
         ) {
           console.log('Evento recibido:', event);
           queueNotificationSound();
@@ -136,7 +138,7 @@ class SocketService {
       queueNotification(
         NotificationType.INFO,
         'Entrega actualizada',
-        `La entrega #${data.deliveryId} ha sido actualizada`,
+        `Las entregas ha sido actualizada`,
         true
       );
 
@@ -155,6 +157,20 @@ class SocketService {
       );
 
       this.notifyListeners(SocketEventType.DELIVERY_STATUS_CHANGED, data);
+    });
+
+    this.socket.on(SocketEventType.DELIVERY_REORDERED, (data) => {
+      console.log('Evento recibido - Entrega reordenada');
+      console.log(data);
+      
+      queueNotification(
+        NotificationType.INFO,
+        'Entrega reordenada',
+        data.message,
+        true
+      );
+
+      this.notifyListeners(SocketEventType.DELIVERY_REORDERED, data.data);
     });
   }
 
