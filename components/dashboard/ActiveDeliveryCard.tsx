@@ -37,15 +37,15 @@ export const ActiveDeliveryCard = ({ inProgressDelivery, onViewTask }: ActiveDel
     : '';
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <TouchableOpacity style={styles.container} onPress={onViewTask} activeOpacity={0.85}>
+      <View style={styles.header} pointerEvents="none">
         <Text style={styles.headerText}>En Progreso</Text>
-        <TouchableOpacity>
+        <View>
           <Text style={styles.expandText}>▼</Text>
-        </TouchableOpacity>
+        </View>
       </View>
 
-      <View style={styles.cardContainer}>
+      <View style={styles.cardContainer} pointerEvents="none">
         {/* Cliente y Teléfono en la misma fila */}
         <View style={styles.infoRow}>
           <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
@@ -100,19 +100,13 @@ export const ActiveDeliveryCard = ({ inProgressDelivery, onViewTask }: ActiveDel
         </View>
 
         {/* Barra de progreso */}
-        <View style={styles.progressBarContainer}>
+        {/* <View style={styles.progressBarContainer}>
           <View style={styles.progressBar}>
             <View style={styles.progressIndicator} />
           </View>
-        </View>
-
-        {onViewTask && (
-          <TouchableOpacity style={styles.viewTaskButton} onPress={onViewTask}>
-            <Text style={styles.viewTaskButtonText}>Progresar Entrega</Text>
-          </TouchableOpacity>
-        )}
+        </View> */}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -203,7 +197,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingVertical: 8,
     paddingHorizontal: 20,
-    alignSelf: 'flex-start',
+    alignSelf: 'flex-end', // Alinea el botón a la derecha
     marginTop: 8,
   },
   viewTaskButtonText: {
