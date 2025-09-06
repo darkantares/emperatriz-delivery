@@ -1,4 +1,4 @@
-import { StyleSheet, TouchableOpacity, ActivityIndicator, SafeAreaView } from 'react-native';
+import { StyleSheet, TouchableOpacity, ActivityIndicator, SafeAreaView, Alert } from 'react-native';
 import { Text, View } from '@/components/Themed';
 import { socketService, SocketEventType } from '@/services/websocketService';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
@@ -14,6 +14,7 @@ import { AssignmentType } from '@/utils/enum';
 import { StatusUpdateModal } from '@/components/modals/StatusUpdateModal';
 import { IDeliveryStatus } from '@/interfaces/delivery/deliveryStatus';
 import { ProgressCard } from '@/components/dashboard/ProgressCard';
+import { ActiveDeliveryCard } from '@/components/dashboard/ActiveDeliveryCard';
 import { useAuth } from '@/context/AuthContext';
 
 // Interfaz adaptada para trabajar con los datos del backend
@@ -42,6 +43,7 @@ export default function TabOneScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isStatusModalVisible, setIsStatusModalVisible] = useState<boolean>(false);
   const [selectedDelivery, setSelectedDelivery] = useState<DeliveryItemAdapter | null>(null);
+  const [inProgressDelivery, setInProgressDelivery] = useState<DeliveryItemAdapter | null>(null);
 
   const isNavigating = useRef(false);
 
@@ -49,6 +51,15 @@ export default function TabOneScreen() {
   useEffect(() => {
     fetchDeliveries();
   }, []);
+
+  // Identificar si hay alguna entrega en progreso
+  useEffect(() => {
+    const deliveryInProgress = deliveries.find(delivery => 
+      delivery.deliveryStatus.title === IDeliveryStatus.IN_PROGRESS
+    );
+    
+    setInProgressDelivery(deliveryInProgress || null);
+  }, [deliveries]);
 
   // Conectar socket y listeners
   useEffect(() => {
@@ -131,7 +142,21 @@ export default function TabOneScreen() {
   const handlePressItem = (id: string) => {
     if (isNavigating.current) return;
     isNavigating.current = true;
+    
     const selectedItem = deliveries.find(item => item.id === id);
+    
+    // Verificar si hay una entrega en progreso y si el ítem seleccionado no es esa entrega
+    if (inProgressDelivery && selectedItem && inProgressDelivery.id !== selectedItem.id) {
+      // Mostrar alerta indicando que ya hay una entrega en progreso
+      Alert.alert(
+        "Entrega en Progreso",
+        "Ya tienes una entrega en progreso. Debes completarla antes de actualizar otras entregas.",
+        [{ text: "Entendido" }]
+      );
+      isNavigating.current = false;
+      return;
+    }
+    
     if (selectedItem) {
       // Guardar el delivery seleccionado y mostrar el modal de actualización de estado
       setSelectedDelivery(selectedItem);
@@ -148,6 +173,19 @@ export default function TabOneScreen() {
   const handleStatusUpdate = async (newStatus: string) => {
     if (selectedDelivery) {
       try {
+        // Verificar si se está cambiando a estado "En Progreso" y ya hay otra entrega en progreso
+        if (newStatus === IDeliveryStatus.IN_PROGRESS && 
+            inProgressDelivery && 
+            inProgressDelivery.id !== selectedDelivery.id) {
+          
+          Alert.alert(
+            "No es posible",
+            "Ya tienes una entrega en progreso. Debes completarla antes de iniciar otra.",
+            [{ text: "Entendido" }]
+          );
+          return;
+        }
+        
         // Actualizar la entrega en el estado local
         setDeliveries(currentDeliveries => 
           currentDeliveries.map(delivery => 
@@ -162,6 +200,20 @@ export default function TabOneScreen() {
               : delivery
           )
         );
+        
+        // Actualizar la referencia a la entrega en progreso
+        if (newStatus === IDeliveryStatus.IN_PROGRESS) {
+          setInProgressDelivery({
+            ...selectedDelivery,
+            deliveryStatus: {
+              ...selectedDelivery.deliveryStatus,
+              title: newStatus as IDeliveryStatus
+            }
+          });
+        } else if (selectedDelivery.id === inProgressDelivery?.id) {
+          // Si la entrega que estaba en progreso ahora cambia de estado, limpiar la referencia
+          setInProgressDelivery(null);
+        }
       } catch (error) {
         console.error('Error al actualizar el estado localmente:', error);
       }
@@ -220,6 +272,16 @@ export default function TabOneScreen() {
           <ProgressCard 
             userName={user ? `${user.firstname} ${user.lastname}` : ""}
             deliveries={deliveries}
+          />
+          
+          {/* Tarjeta de entrega en progreso */}
+          <ActiveDeliveryCard 
+            inProgressDelivery={inProgressDelivery}
+            onViewTask={() => {
+              if (inProgressDelivery) {
+                handlePressItem(inProgressDelivery.id);
+              }
+            }}
           />
 
           {/* Lista de entregas */}
