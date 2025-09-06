@@ -13,6 +13,8 @@ import { IProvincia, IMunicipio, ISector } from '@/interfaces/location';
 import { AssignmentType } from '@/utils/enum';
 import { StatusUpdateModal } from '@/components/modals/StatusUpdateModal';
 import { IDeliveryStatus } from '@/interfaces/delivery/deliveryStatus';
+import { ProgressCard } from '@/components/dashboard/ProgressCard';
+import { useAuth } from '@/context/AuthContext';
 
 // Interfaz adaptada para trabajar con los datos del backend
 interface DeliveryItemAdapter {
@@ -33,6 +35,7 @@ interface DeliveryItemAdapter {
 }
 
 export default function TabOneScreen() {
+  const { user } = useAuth();
   const [deliveries, setDeliveries] = useState<DeliveryItemAdapter[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -212,8 +215,12 @@ export default function TabOneScreen() {
               style={styles.refreshIndicator}
             />
           )}
-          {/* mostrar card aqui */}
-
+          
+          {/* Tarjeta de progreso de entregas */}
+          <ProgressCard 
+            userName={user ? `${user.firstname} ${user.lastname}` : ""}
+            deliveries={deliveries}
+          />
 
           {/* Lista de entregas */}
           <DeliveryItemList
