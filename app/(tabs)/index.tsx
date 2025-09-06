@@ -292,9 +292,9 @@ export default function TabOneScreen() {
             onRefresh={onRefresh}
           />
 
-        {/* <TouchableOpacity style={styles.addButton} onPress={() => console.log('Botón de agregar presionado')}>
+        <TouchableOpacity style={styles.addButton} onPress={() => console.log('Botón de agregar presionado')}>
           <Text style={styles.addButtonText}>+</Text>
-        </TouchableOpacity> */}
+        </TouchableOpacity>
       </View>
 
       {/* Modal de Actualización de Estado */}
