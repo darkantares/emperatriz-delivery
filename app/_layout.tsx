@@ -7,7 +7,6 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { AppProvider } from '@/context/AppContext';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { useColorScheme } from '@/components/useColorScheme';
 import { CustomColors } from '@/constants/CustomColors';
@@ -85,24 +84,22 @@ function RootLayoutNav() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <AppProvider>
-          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-            <ProtectedRouteGuard>
-              <Stack screenOptions={{ 
-                headerStyle: { 
-                  backgroundColor: CustomColors.backgroundDark
-                },
-                headerTintColor: CustomColors.textLight
-              }}>
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-                <Stack.Screen name="login" options={{ headerShown: false }} />            
-              </Stack>
-              
-              <NotificationHandler />
-            </ProtectedRouteGuard>
-          </ThemeProvider>
-        </AppProvider>
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <ProtectedRouteGuard>
+            <Stack screenOptions={{ 
+              headerStyle: { 
+                backgroundColor: CustomColors.backgroundDark
+              },
+              headerTintColor: CustomColors.textLight
+            }}>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="login" options={{ headerShown: false }} />            
+            </Stack>
+            
+            <NotificationHandler />
+          </ProtectedRouteGuard>
+        </ThemeProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );

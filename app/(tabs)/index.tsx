@@ -4,8 +4,6 @@ import { socketService, SocketEventType } from '@/services/websocketService';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'expo-router';
-import { useAppContext } from '@/context/AppContext';
 import { DeliveryItemList } from '@/components/delivery-items/DeliveryItemList';
 import { CustomColors } from '@/constants/CustomColors';
 import { deliveryService } from '@/services/deliveryService';
@@ -214,7 +212,10 @@ export default function TabOneScreen() {
               style={styles.refreshIndicator}
             />
           )}
+          {/* mostrar card aqui */}
 
+
+          {/* Lista de entregas */}
           <DeliveryItemList
             data={deliveries}
             onPressItem={handlePressItem}
