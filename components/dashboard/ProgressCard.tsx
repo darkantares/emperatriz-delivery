@@ -37,19 +37,11 @@ export const ProgressCard = ({ userName, deliveries, onPressViewTask }: Progress
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Hola!</Text>
-          <Text style={styles.userName}>{userName}</Text>
-        </View>
-      </View>
-      
       <View style={styles.cardContainer}>
         <View style={styles.progressInfoContainer}>
           <Text style={styles.progressText}>
             Progreso de tus entregas de hoy:
           </Text>
-          
           <View style={styles.progressCircleContainer}>
             <View style={styles.progressCircle}>
               <Text style={styles.progressPercentage}>{progress}%</Text>
@@ -67,22 +59,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginVertical: 16,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  greeting: {
-    fontSize: 16,
-    color: CustomColors.textLight,
-    opacity: 0.8,
-  },
-  userName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: CustomColors.textLight,
-  },
+  // header, greeting, userName removidos porque ahora están en Greeting
   cardContainer: {
     backgroundColor: '#6C4FEA', // Color morado como en la imagen
     borderRadius: 16,

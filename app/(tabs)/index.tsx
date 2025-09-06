@@ -14,6 +14,7 @@ import { AssignmentType } from '@/utils/enum';
 import { StatusUpdateModal } from '@/components/modals/StatusUpdateModal';
 import { IDeliveryStatus } from '@/interfaces/delivery/deliveryStatus';
 import { ProgressCard } from '@/components/dashboard/ProgressCard';
+import { Greeting } from '@/components/dashboard/Greeting';
 import { ActiveDeliveryCard } from '@/components/dashboard/ActiveDeliveryCard';
 import { useAuth } from '@/context/AuthContext';
 import { useActiveDelivery } from '@/context/ActiveDeliveryContext';
@@ -241,12 +242,13 @@ export default function TabOneScreen() {
     );
   }
 
-  // Si no hay entregas y no hay error ni loading, mostrar solo el saludo y mensaje central
+  // Si no hay entregas y no hay error ni loading, mostrar el saludo y mensaje central
   if (!loading && !error && deliveries.length === 0) {
     return (
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaView style={{ flex: 1, backgroundColor: CustomColors.backgroundDarkest }}>
           <View style={styles.container}>
+            <Greeting userName={user ? `${user.firstname} ${user.lastname}` : ""} />
             <View style={styles.noDeliveriesContainer}>
               <Text style={styles.noDeliveriesText}>No tienes envíos asignados actualmente</Text>
             </View>
@@ -282,6 +284,8 @@ export default function TabOneScreen() {
             />
           )}
           
+          {/* Saludo */}
+          <Greeting userName={user ? `${user.firstname} ${user.lastname}` : ""} />
           {/* Tarjeta de progreso de entregas */}
           <ProgressCard 
             userName={user ? `${user.firstname} ${user.lastname}` : ""}
