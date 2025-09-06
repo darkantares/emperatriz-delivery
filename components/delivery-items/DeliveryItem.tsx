@@ -103,13 +103,20 @@ const { width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   itemContainer: {
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: CustomColors.divider,
-    width: width,
+    padding: 16,
+    borderRadius: 18,
+    marginHorizontal: 14,
+    marginBottom: 10,
+    backgroundColor: CustomColors.backgroundDark,
+    borderBottomWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4, // Separación entre items
+    // Sombra sutil para destacar la tarjeta
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
   pickupContainer: {
     backgroundColor: CustomColors.cardBackground, // Fondo para tipo PICKUP (más claro)

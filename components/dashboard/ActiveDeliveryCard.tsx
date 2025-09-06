@@ -108,7 +108,7 @@ export const ActiveDeliveryCard = ({ inProgressDelivery, onViewTask }: ActiveDel
 
         {onViewTask && (
           <TouchableOpacity style={styles.viewTaskButton} onPress={onViewTask}>
-            <Text style={styles.viewTaskButtonText}>Ver Tarea</Text>
+            <Text style={styles.viewTaskButtonText}>Progresar Entrega</Text>
           </TouchableOpacity>
         )}
       </View>
