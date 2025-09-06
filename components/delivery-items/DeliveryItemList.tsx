@@ -5,21 +5,19 @@ import { CustomColors } from '@/constants/CustomColors';
 
 interface DeliveryItemListProps {
   data: Item[];
-  onPressItem: (id: string) => void;
   refreshing?: boolean;
   onRefresh?: () => void;
 }
 
 export const DeliveryItemList: React.FC<DeliveryItemListProps> = ({
   data,
-  onPressItem,
   refreshing = false,
   onRefresh,
 }) => {
   const renderItem = ({ item }: { item: Item }) => (
     <DeliveryItem
       item={item}
-      onPress={onPressItem}
+      onPress={() => {}} // Sin funcionalidad, solo visual
     />
   );
 

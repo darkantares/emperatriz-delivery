@@ -8,6 +8,7 @@ import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { ActiveDeliveryProvider } from '@/context/ActiveDeliveryContext';
 import { useColorScheme } from '@/components/useColorScheme';
 import { CustomColors } from '@/constants/CustomColors';
 import LoadingScreen from '@/components/LoadingScreen';
@@ -84,22 +85,24 @@ function RootLayoutNav() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <ProtectedRouteGuard>
-            <Stack screenOptions={{ 
-              headerStyle: { 
-                backgroundColor: CustomColors.backgroundDark
-              },
-              headerTintColor: CustomColors.textLight
-            }}>
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-              <Stack.Screen name="login" options={{ headerShown: false }} />            
-            </Stack>
-            
-            <NotificationHandler />
-          </ProtectedRouteGuard>
-        </ThemeProvider>
+        <ActiveDeliveryProvider>
+          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+            <ProtectedRouteGuard>
+              <Stack screenOptions={{ 
+                headerStyle: { 
+                  backgroundColor: CustomColors.backgroundDark
+                },
+                headerTintColor: CustomColors.textLight
+              }}>
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+                <Stack.Screen name="login" options={{ headerShown: false }} />            
+              </Stack>
+              
+              <NotificationHandler />
+            </ProtectedRouteGuard>
+          </ThemeProvider>
+        </ActiveDeliveryProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );

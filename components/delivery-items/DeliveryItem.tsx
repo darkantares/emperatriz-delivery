@@ -42,9 +42,8 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item, onPress }) => 
   };
 
   return (
-    <TouchableOpacity onPress={() => onPress(item.id)}>
-      <View style={[styles.itemContainer, styles.deliveryContainer]}>
-        <View style={styles.contentContainer}>
+    <View style={[styles.itemContainer, styles.deliveryContainer]}>
+      <View style={styles.contentContainer}>
           {/* Cliente y Teléfono en la misma fila */}
           <View style={[styles.infoRow, { justifyContent: 'space-between' }]}>
 
@@ -95,7 +94,7 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item, onPress }) => 
           </View>
         </View>
       </View>
-    </TouchableOpacity>
+    // </View>
   );
 };
 

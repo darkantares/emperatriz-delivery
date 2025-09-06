@@ -16,6 +16,7 @@ import { IDeliveryStatus } from '@/interfaces/delivery/deliveryStatus';
 import { ProgressCard } from '@/components/dashboard/ProgressCard';
 import { ActiveDeliveryCard } from '@/components/dashboard/ActiveDeliveryCard';
 import { useAuth } from '@/context/AuthContext';
+import { useActiveDelivery } from '@/context/ActiveDeliveryContext';
 
 // Interfaz adaptada para trabajar con los datos del backend
 interface DeliveryItemAdapter {
@@ -37,6 +38,7 @@ interface DeliveryItemAdapter {
 
 export default function TabOneScreen() {
   const { user } = useAuth();
+  const { activeDelivery, setActiveDelivery, getNextDeliveryToProcess, canProcessNewDelivery } = useActiveDelivery();
   const [deliveries, setDeliveries] = useState<DeliveryItemAdapter[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -139,53 +141,46 @@ export default function TabOneScreen() {
     fetchDeliveries(true);
   };
 
-  const handlePressItem = (id: string) => {
+  const handlePressItem = () => {
     if (isNavigating.current) return;
     isNavigating.current = true;
     
-    const selectedItem = deliveries.find(item => item.id === id);
+    // Obtener el siguiente delivery a procesar
+    const nextDelivery = getNextDeliveryToProcess(deliveries);
     
-    // Verificar si hay una entrega en progreso y si el ítem seleccionado no es esa entrega
-    if (inProgressDelivery && selectedItem && inProgressDelivery.id !== selectedItem.id) {
-      // Mostrar alerta indicando que ya hay una entrega en progreso
+    if (!nextDelivery) {
+      Alert.alert(
+        "Sin entregas",
+        "No hay entregas disponibles para procesar.",
+        [{ text: "Entendido" }]
+      );
+      isNavigating.current = false;
+      return;
+    }
+
+    // Verificar si se puede procesar un nuevo delivery
+    if (!canProcessNewDelivery(deliveries)) {
       Alert.alert(
         "Entrega en Progreso",
-        "Ya tienes una entrega en progreso. Debes completarla antes de actualizar otras entregas.",
+        "Ya tienes una entrega en progreso. Debes completarla antes de iniciar otra.",
         [{ text: "Entendido" }]
       );
       isNavigating.current = false;
       return;
     }
     
-    if (selectedItem) {
-      // Guardar el delivery seleccionado y mostrar el modal de actualización de estado
-      setSelectedDelivery(selectedItem);
-      setIsStatusModalVisible(true);
-      
-      // Restablecer la bandera de navegación
-      setTimeout(() => { isNavigating.current = false; }, 500);
-    } else {
-      isNavigating.current = false;
-    }
+    // Guardar el delivery seleccionado y mostrar el modal de actualización de estado
+    setSelectedDelivery(nextDelivery);
+    setIsStatusModalVisible(true);
+    
+    // Restablecer la bandera de navegación
+    setTimeout(() => { isNavigating.current = false; }, 500);
   };
 
   // Manejar la actualización de estado
   const handleStatusUpdate = async (newStatus: string) => {
     if (selectedDelivery) {
       try {
-        // Verificar si se está cambiando a estado "En Progreso" y ya hay otra entrega en progreso
-        if (newStatus === IDeliveryStatus.IN_PROGRESS && 
-            inProgressDelivery && 
-            inProgressDelivery.id !== selectedDelivery.id) {
-          
-          Alert.alert(
-            "No es posible",
-            "Ya tienes una entrega en progreso. Debes completarla antes de iniciar otra.",
-            [{ text: "Entendido" }]
-          );
-          return;
-        }
-        
         // Actualizar la entrega en el estado local
         setDeliveries(currentDeliveries => 
           currentDeliveries.map(delivery => 
@@ -203,16 +198,19 @@ export default function TabOneScreen() {
         
         // Actualizar la referencia a la entrega en progreso
         if (newStatus === IDeliveryStatus.IN_PROGRESS) {
-          setInProgressDelivery({
+          const updatedDelivery = {
             ...selectedDelivery,
             deliveryStatus: {
               ...selectedDelivery.deliveryStatus,
               title: newStatus as IDeliveryStatus
             }
-          });
+          };
+          setInProgressDelivery(updatedDelivery);
+          setActiveDelivery(updatedDelivery);
         } else if (selectedDelivery.id === inProgressDelivery?.id) {
           // Si la entrega que estaba en progreso ahora cambia de estado, limpiar la referencia
           setInProgressDelivery(null);
+          setActiveDelivery(null);
         }
       } catch (error) {
         console.error('Error al actualizar el estado localmente:', error);
@@ -279,7 +277,9 @@ export default function TabOneScreen() {
             inProgressDelivery={inProgressDelivery}
             onViewTask={() => {
               if (inProgressDelivery) {
-                handlePressItem(inProgressDelivery.id);
+                // Seleccionar directamente el delivery en progreso para continuar
+                setSelectedDelivery(inProgressDelivery);
+                setIsStatusModalVisible(true);
               }
             }}
           />
@@ -287,13 +287,21 @@ export default function TabOneScreen() {
           {/* Lista de entregas */}
           <DeliveryItemList
             data={deliveries}
-            onPressItem={handlePressItem}
             refreshing={refreshing}
             onRefresh={onRefresh}
           />
 
-        <TouchableOpacity style={styles.addButton} onPress={() => console.log('Botón de agregar presionado')}>
-          <Text style={styles.addButtonText}>+</Text>
+        <TouchableOpacity 
+          style={[
+            styles.progressButton,
+            !canProcessNewDelivery(deliveries) && styles.progressButtonDisabled
+          ]} 
+          onPress={handlePressItem}
+          disabled={!canProcessNewDelivery(deliveries)}
+        >
+          <Text style={styles.progressButtonText}>
+            {!canProcessNewDelivery(deliveries) ? 'Completa entrega actual' : 'Progresar Envío'}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -416,6 +424,32 @@ const styles = StyleSheet.create({
     color: CustomColors.textLight,
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  progressButton: {
+    backgroundColor: CustomColors.secondary,
+    paddingVertical: 14,
+    // paddingHorizontal: 20,
+    borderRadius: 12,
+    marginVertical: 10,
+    elevation: 5,
+    shadowColor: CustomColors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 3,
+    position: 'absolute',
+    bottom: 10, // antes 20, ahora más abajo
+    right: 20,
+    left: 20,
+  },
+  progressButtonDisabled: {
+    backgroundColor: CustomColors.divider,
+    opacity: 0.6,
+  },
+  progressButtonText: {
+    color: CustomColors.textLight,
+    fontWeight: 'bold',
+    fontSize: 16,
+    textAlign: 'center',
   },
   loadingContainer: {
     flex: 1,
