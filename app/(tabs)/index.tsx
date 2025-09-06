@@ -218,6 +218,7 @@ export default function TabOneScreen() {
     }
   };
 
+
   // Renderizar indicador de carga mientras se obtienen los datos
   if (loading && deliveries.length === 0) {
     return (
@@ -237,6 +238,21 @@ export default function TabOneScreen() {
           <Text style={styles.retryButtonText}>Reintentar</Text>
         </TouchableOpacity>
       </View>
+    );
+  }
+
+  // Si no hay entregas y no hay error ni loading, mostrar solo el saludo y mensaje central
+  if (!loading && !error && deliveries.length === 0) {
+    return (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: CustomColors.backgroundDarkest }}>
+          <View style={styles.container}>
+            <View style={styles.noDeliveriesContainer}>
+              <Text style={styles.noDeliveriesText}>No tienes envíos asignados actualmente</Text>
+            </View>
+          </View>
+        </SafeAreaView>
+      </GestureHandlerRootView>
     );
   }
 
@@ -321,6 +337,19 @@ export default function TabOneScreen() {
 }
 
 const styles = StyleSheet.create({
+  noDeliveriesContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+  },
+  noDeliveriesText: {
+    color: CustomColors.textLight,
+    fontSize: 18,
+    textAlign: 'center',
+    opacity: 0.7,
+    marginTop: 30,
+  },
   headerContainer: {
     width: '100%',
     backgroundColor: CustomColors.backgroundMedium,
