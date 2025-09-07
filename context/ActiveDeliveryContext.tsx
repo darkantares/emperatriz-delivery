@@ -40,13 +40,9 @@ export const ActiveDeliveryProvider: React.FC<{ children: React.ReactNode }> = (
   };
 
   // Verificar si se puede procesar un nuevo delivery
-  const canProcessNewDelivery = (deliveries: DeliveryItemAdapter[]): boolean => {
-    // No se puede procesar si ya hay uno en progreso
-    const hasInProgressDelivery = deliveries.some(delivery => 
-      delivery.deliveryStatus.title === IDeliveryStatus.IN_PROGRESS
-    );
-
-    return !hasInProgressDelivery;
+  const canProcessNewDelivery = (_deliveries: DeliveryItemAdapter[]): boolean => {
+    // No se puede procesar si ya hay un envío activo en el contexto
+    return activeDelivery === null;
   };
 
   return (

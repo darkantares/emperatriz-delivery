@@ -36,13 +36,12 @@ export default function TabOneScreen() {
     fetchDeliveries();
   }, []);
 
-  // Identificar si hay alguna entrega en progreso
+  // Ya no necesitamos esta lógica ya que ahora manejamos 
+  // los envíos en progreso directamente en fetchDeliveries
+  // y actualizamos inProgressDelivery desde allí
   useEffect(() => {
-    const deliveryInProgress = deliveries.find(delivery => 
-      delivery.deliveryStatus.title === IDeliveryStatus.IN_PROGRESS
-    );
-    
-    setInProgressDelivery(deliveryInProgress || null);
+    // Este efecto se mantiene vacío pero podemos usarlo si necesitamos
+    // alguna lógica adicional en el futuro
   }, [deliveries]);
 
   // Conectar socket y listeners
@@ -65,9 +64,29 @@ export default function TabOneScreen() {
     console.log('Entrega actualizada:', data);
     const updatedDelivery = adaptDeliveriesToAdapter([data])[0];
 
-    setDeliveries(currentDeliveries => currentDeliveries.map(delivery => 
-      delivery.id === updatedDelivery.id ? updatedDelivery : delivery
-    ));
+    // Verificar si la entrega actualizada está en progreso
+    if (updatedDelivery.deliveryStatus.title === IDeliveryStatus.IN_PROGRESS) {
+      // Si está en progreso, actualizar el estado de la entrega en progreso
+      setInProgressDelivery(updatedDelivery);
+      setActiveDelivery(updatedDelivery);
+      
+      // Eliminar de la lista principal si existe
+      setDeliveries(currentDeliveries => 
+        currentDeliveries.filter(delivery => delivery.id !== updatedDelivery.id)
+      );
+    } 
+    // Si no está en progreso pero era la entrega en progreso, entonces la completó o la canceló
+    else if (inProgressDelivery && updatedDelivery.id === inProgressDelivery.id) {
+      // Limpiar estados
+      setInProgressDelivery(null);
+      setActiveDelivery(null);
+    } 
+    // Actualización normal para entregas que no están en progreso
+    else {
+      setDeliveries(currentDeliveries => currentDeliveries.map(delivery => 
+        delivery.id === updatedDelivery.id ? updatedDelivery : delivery
+      ));
+    }
   };
   
   const handleDeliveryAssigned = (data: IDeliveryAssignmentEntity) => {
@@ -95,7 +114,29 @@ export default function TabOneScreen() {
       
       if (response.success && response.data) {
         const adaptedDeliveries = adaptDeliveriesToAdapter(response.data);
-        setDeliveries(adaptedDeliveries);
+        
+        // Verificar si hay algún envío en progreso (IN_PROGRESS)
+        const inProgressIndex = adaptedDeliveries.findIndex(delivery => 
+          delivery.deliveryStatus.title === IDeliveryStatus.IN_PROGRESS
+        );
+        
+        if (inProgressIndex !== -1) {
+          // Extraer el envío en progreso
+          const inProgress = adaptedDeliveries[inProgressIndex];
+          
+          // Eliminar el envío en progreso del array principal
+          const remainingDeliveries = adaptedDeliveries.filter((_, index) => index !== inProgressIndex);
+          
+          // Actualizar los estados
+          setDeliveries(remainingDeliveries);
+          setInProgressDelivery(inProgress);
+          setActiveDelivery(inProgress);
+        } else {
+          // Si no hay envío en progreso, simplemente actualizar las entregas
+          setDeliveries(adaptedDeliveries);
+          setInProgressDelivery(null);
+          setActiveDelivery(null);
+        }
       } else {
         setError(response.error || 'Error al cargar las entregas');
         console.error('Error al cargar entregas: 1', response.error);
@@ -155,36 +196,40 @@ export default function TabOneScreen() {
   const handleStatusUpdate = async (newStatus: string) => {
     if (selectedDelivery) {
       try {
-        // Actualizar la entrega en el estado local
-        setDeliveries(currentDeliveries => 
-          currentDeliveries.map(delivery => 
-            delivery.id === selectedDelivery.id 
-              ? { 
-                  ...delivery, 
-                  deliveryStatus: { 
-                    ...delivery.deliveryStatus, 
-                    title: newStatus as IDeliveryStatus 
-                  } 
-                } 
-              : delivery
-          )
-        );
+        // Crear un objeto con la entrega actualizada
+        const updatedDelivery = {
+          ...selectedDelivery,
+          deliveryStatus: {
+            ...selectedDelivery.deliveryStatus,
+            title: newStatus as IDeliveryStatus
+          }
+        };
         
-        // Actualizar la referencia a la entrega en progreso
         if (newStatus === IDeliveryStatus.IN_PROGRESS) {
-          const updatedDelivery = {
-            ...selectedDelivery,
-            deliveryStatus: {
-              ...selectedDelivery.deliveryStatus,
-              title: newStatus as IDeliveryStatus
-            }
-          };
+          // Si el estado cambia a "En Progreso":
+          // 1. Eliminar la entrega del array principal si existe
+          setDeliveries(currentDeliveries => 
+            currentDeliveries.filter(delivery => delivery.id !== selectedDelivery.id)
+          );
+          
+          // 2. Actualizar la referencia a la entrega en progreso
           setInProgressDelivery(updatedDelivery);
           setActiveDelivery(updatedDelivery);
-        } else if (selectedDelivery.id === inProgressDelivery?.id) {
-          // Si la entrega que estaba en progreso ahora cambia de estado, limpiar la referencia
+        } 
+        // Si estamos actualizando la entrega que ya estaba en progreso
+        else if (selectedDelivery.id === inProgressDelivery?.id) {
+          // Limpiar la referencia a la entrega en progreso
           setInProgressDelivery(null);
           setActiveDelivery(null);
+        } 
+        // Para otros estados (que no son IN_PROGRESS)
+        else {
+          // Actualizar normalmente en el array de entregas
+          setDeliveries(currentDeliveries => 
+            currentDeliveries.map(delivery => 
+              delivery.id === selectedDelivery.id ? updatedDelivery : delivery
+            )
+          );
         }
       } catch (error) {
         console.error('Error al actualizar el estado localmente:', error);
@@ -287,13 +332,13 @@ export default function TabOneScreen() {
         <TouchableOpacity 
           style={[
             styles.progressButton,
-            !canProcessNewDelivery(deliveries) && styles.progressButtonDisabled
+            (inProgressDelivery !== null || !canProcessNewDelivery(deliveries)) && styles.progressButtonDisabled
           ]} 
           onPress={handlePressItem}
-          disabled={!canProcessNewDelivery(deliveries)}
+          disabled={inProgressDelivery !== null || !canProcessNewDelivery(deliveries)}
         >
           <Text style={styles.progressButtonText}>
-            {!canProcessNewDelivery(deliveries) ? 'Completa entrega actual' : 'Progresar Envío'}
+            {inProgressDelivery !== null ? 'Completa entrega actual' : 'Progresar Envío'}
           </Text>
         </TouchableOpacity>
       </View>
