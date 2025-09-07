@@ -1,22 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { IDeliveryStatus } from '@/interfaces/delivery/deliveryStatus';
-
-interface DeliveryItemAdapter {
-  id: string;
-  title: string;
-  client: string;
-  phone: string;
-  type: any;
-  deliveryStatus: any;
-  deliveryAddress: string;
-  observations?: string;
-  provincia: any;
-  municipio: any;
-  origin: any;
-  destiny: any;
-  fee: number;
-  cost: number;
-}
+import { DeliveryItemAdapter } from '@/interfaces/delivery/deliveryAdapters';
 
 interface ActiveDeliveryContextType {
   activeDelivery: DeliveryItemAdapter | null;

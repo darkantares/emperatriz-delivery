@@ -3,6 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getBaseUrl } from './api';
 // Importar el servicio de notificaciones
 import { queueNotification, NotificationType } from './notificationService';
+import { IEnterpriseEntity, IUserEntity } from '@/interfaces/auth';
+import { IDeliveryAssignmentEntity } from '@/interfaces/delivery/delivery';
 
 const SOCKET_URL = getBaseUrl();
 
@@ -10,6 +12,14 @@ let pendingNotification = false;
 
 function queueNotificationSound() {
   pendingNotification = true;
+}
+
+export interface SocketParam<T> {
+  data: T;
+	userId: IUserEntity['id'];
+	enterpriseId: IEnterpriseEntity['id'];
+	message: string;
+	timestamp: string
 }
 
 export function checkPendingNotifications(): boolean {
@@ -28,6 +38,7 @@ export enum SocketEventType {
   DELIVERY_UPDATED = 'delivery-updated',
   DELIVERY_STATUS_CHANGED = 'delivery-status-changed',
   DELIVERY_REORDERED = 'delivery-reordered',
+  DELIVERY_ASSIGNMENT_UPDATED = 'delivery-assignment-updated',
 }
 
 class SocketService {
@@ -117,27 +128,27 @@ class SocketService {
   private setupEventListeners() {
     if (!this.socket) return;
 
-    this.socket.on(SocketEventType.DRIVER_ASSIGNED, (data) => {
+    this.socket.on(SocketEventType.DRIVER_ASSIGNED, ({data,message}: SocketParam<IDeliveryAssignmentEntity>) => {
       console.log('Evento recibido - Conductor asignado');
 
       // Encolar una notificación
       queueNotification(
         NotificationType.SUCCESS,
-        'Nueva entrega asignada',
-        `Se te ha asignado la entrega #${data.data.id}`,
+        message,
+        `Se te ha asignado la entrega #${data.id}`,
         true
       );
 
-      this.notifyListeners(SocketEventType.DRIVER_ASSIGNED, data.data);
+      this.notifyListeners(SocketEventType.DRIVER_ASSIGNED, data);
     });
 
 
-    this.socket.on(SocketEventType.DELIVERY_UPDATED, (data) => {
+    this.socket.on(SocketEventType.DELIVERY_UPDATED, ({data,message}: SocketParam<IDeliveryAssignmentEntity>) => {
       console.log('Evento recibido - Entrega actualizada:', data);
 
       queueNotification(
         NotificationType.INFO,
-        'Entrega actualizada',
+        message,
         `Las entregas ha sido actualizada`,
         true
       );
@@ -146,31 +157,36 @@ class SocketService {
     });
 
 
-    this.socket.on(SocketEventType.DELIVERY_STATUS_CHANGED, (data) => {
+    this.socket.on(SocketEventType.DELIVERY_STATUS_CHANGED, ({data,message}: SocketParam<IDeliveryAssignmentEntity>) => {
       console.log('Evento recibido - Estado de entrega cambiado');
 
       queueNotification(
         NotificationType.INFO,
-        'Estado de entrega cambiado',
-        `La entrega #${data.deliveryId} ahora está ${data.destiny.deliveryStatus}`,
+        message,
+        `La entrega #${data.id} ahora está ${data.deliveryStatus.title}`,
         true
       );
 
       this.notifyListeners(SocketEventType.DELIVERY_STATUS_CHANGED, data);
     });
 
-    this.socket.on(SocketEventType.DELIVERY_REORDERED, (data) => {
+    this.socket.on(SocketEventType.DELIVERY_ASSIGNMENT_UPDATED, ({data}: SocketParam<IDeliveryAssignmentEntity>) => {
+      console.log('Evento recibido - Asignación de entrega actualizada');
+      this.notifyListeners(SocketEventType.DELIVERY_ASSIGNMENT_UPDATED, data);
+    });
+
+    this.socket.on(SocketEventType.DELIVERY_REORDERED, ({data,message}: SocketParam<IDeliveryAssignmentEntity>) => {
       console.log('Evento recibido - Entrega reordenada');
       console.log(data);
       
       queueNotification(
         NotificationType.INFO,
         'Entrega reordenada',
-        data.message,
+        message,
         true
       );
 
-      this.notifyListeners(SocketEventType.DELIVERY_REORDERED, data.data);
+      this.notifyListeners(SocketEventType.DELIVERY_REORDERED, data);
     });
   }
 

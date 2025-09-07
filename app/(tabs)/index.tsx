@@ -8,9 +8,7 @@ import { DeliveryItemList } from '@/components/delivery-items/DeliveryItemList';
 import { CustomColors } from '@/constants/CustomColors';
 import { deliveryService } from '@/services/deliveryService';
 import { SocketStatusIndicator } from '@/components/socketstatusindicator';
-import { IDeliveryAssignmentEntity, IDeliveryStatusEntity } from '@/interfaces/delivery/delivery';
-import { IProvincia, IMunicipio, ISector } from '@/interfaces/location';
-import { AssignmentType } from '@/utils/enum';
+import { IDeliveryAssignmentEntity } from '@/interfaces/delivery/delivery';
 import { StatusUpdateModal } from '@/components/modals/StatusUpdateModal';
 import { IDeliveryStatus } from '@/interfaces/delivery/deliveryStatus';
 import { ProgressCard } from '@/components/dashboard/ProgressCard';
@@ -18,24 +16,7 @@ import { Greeting } from '@/components/dashboard/Greeting';
 import { ActiveDeliveryCard } from '@/components/dashboard/ActiveDeliveryCard';
 import { useAuth } from '@/context/AuthContext';
 import { useActiveDelivery } from '@/context/ActiveDeliveryContext';
-
-// Interfaz adaptada para trabajar con los datos del backend
-interface DeliveryItemAdapter {
-  id: string;
-  title: string;
-  client: string;
-  phone: string;
-  type: AssignmentType;
-  deliveryStatus: IDeliveryStatusEntity;
-  deliveryAddress: string;
-  observations?: string;
-  provincia: IProvincia;
-  municipio: IMunicipio;
-  origin: ISector;
-  destiny: ISector;
-  fee: number;
-  cost: number;
-}
+import { DeliveryItemAdapter, adaptDeliveriesToAdapter } from '@/interfaces/delivery/deliveryAdapters';
 
 export default function TabOneScreen() {
   const { user } = useAuth();
@@ -70,45 +51,37 @@ export default function TabOneScreen() {
     
     socketService.on(SocketEventType.DRIVER_ASSIGNED, handleDeliveryAssigned);
     socketService.on(SocketEventType.DELIVERY_REORDERED, handleDeliveryReordered); 
+    socketService.on(SocketEventType.DELIVERY_ASSIGNMENT_UPDATED, handleDeliveryUpdated);
 
     return () => {
       console.log('Componente desmontado, limpiando listeners y desconectando socket');
       socketService.off(SocketEventType.DRIVER_ASSIGNED, handleDeliveryAssigned);
       socketService.off(SocketEventType.DELIVERY_REORDERED, handleDeliveryReordered);
+      socketService.off(SocketEventType.DELIVERY_ASSIGNMENT_UPDATED, handleDeliveryUpdated);  
     };
   }, []);
   
-  const handleDeliveryAssigned = (data: any) => {
+  const handleDeliveryUpdated = (data: IDeliveryAssignmentEntity) => {
+    console.log('Entrega actualizada:', data);
+    const updatedDelivery = adaptDeliveriesToAdapter([data])[0];
+
+    setDeliveries(currentDeliveries => currentDeliveries.map(delivery => 
+      delivery.id === updatedDelivery.id ? updatedDelivery : delivery
+    ));
+  };
+  
+  const handleDeliveryAssigned = (data: IDeliveryAssignmentEntity) => {
     console.log(data);
       
     // Agregar la data recibida directamente al array de entregas
-    setDeliveries(currentDeliveries => [...currentDeliveries, mapDelivery(data)]);
+    setDeliveries(currentDeliveries => [...currentDeliveries, adaptDeliveriesToAdapter([data])[0]]);
   };
 
   const handleDeliveryReordered = (data: IDeliveryAssignmentEntity[]) => {
     console.log(data);
       
     // Agregar la data recibida directamente al array de entregas
-    setDeliveries([...data.map(mapDelivery)]);
-  };
-
-  const mapDelivery = (delivery: IDeliveryAssignmentEntity): DeliveryItemAdapter => {
-    return {
-      id: delivery.id.toString(),
-      title: `${delivery.provincia.nombre}, ${delivery.municipio.nombre}, ${delivery.origin.nombre}`,      
-      client: delivery.contact,
-      phone: delivery.phone,
-      type: delivery.type,
-      deliveryStatus: delivery.deliveryStatus,
-      deliveryAddress: delivery.deliveryAddress,
-      observations: delivery.observations,
-      provincia: delivery.provincia,
-      municipio: delivery.municipio,
-      origin: delivery.origin,
-      destiny: delivery.destiny,
-      fee: delivery.fee,
-      cost: delivery.cost
-    };
+    setDeliveries(adaptDeliveriesToAdapter(data));
   };
 
   const fetchDeliveries = async (isRefreshing = false) => {
@@ -121,7 +94,7 @@ export default function TabOneScreen() {
       const response = await deliveryService.getDeliveries();
       
       if (response.success && response.data) {
-        const adaptedDeliveries = response.data.map(delivery => mapDelivery(delivery));
+        const adaptedDeliveries = adaptDeliveriesToAdapter(response.data);
         setDeliveries(adaptedDeliveries);
       } else {
         setError(response.error || 'Error al cargar las entregas');
