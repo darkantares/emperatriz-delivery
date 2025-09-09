@@ -25,9 +25,9 @@ export const ActiveDeliveryProvider: React.FC<{ children: React.ReactNode }> = (
   // Obtener el siguiente delivery a procesar (primer elemento que no esté completado)
   const getNextDeliveryToProcess = (deliveries: DeliveryItemAdapter[]): DeliveryItemAdapter | null => {
     const completedStatuses = [
-      IDeliveryStatus.COMPLETED,
+      // IDeliveryStatus.COMPLETED,
       IDeliveryStatus.RETURNED,
-      IDeliveryStatus.FAILED,
+      // IDeliveryStatus.FAILED,
       IDeliveryStatus.CANCELLED
     ];
 

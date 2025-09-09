@@ -3,8 +3,8 @@ export enum IDeliveryStatus {
     ASSIGNED = 'Asignado',
     IN_PROGRESS = 'En Progreso',
     DELIVERED = 'Entregado',
-    COMPLETED = 'Completado',
-    FAILED = 'Fallido',    
+    // COMPLETED = 'Completado',
+    // FAILED = 'Fallido',    
     CANCELLED = 'Cancelado',
     RETURNED = 'Devuelto',
     ON_HOLD = 'En Espera',
@@ -35,7 +35,7 @@ export const validStatusTransitions: Record<IDeliveryStatus, IDeliveryStatus[]> 
         // IDeliveryStatus.READY_FOR_PICKUP,
         // IDeliveryStatus.COMPLETED,
         IDeliveryStatus.DELIVERED,
-        IDeliveryStatus.FAILED,
+        // IDeliveryStatus.FAILED,
         IDeliveryStatus.ON_HOLD,
         IDeliveryStatus.CANCELLED,
     ],
@@ -50,18 +50,18 @@ export const validStatusTransitions: Record<IDeliveryStatus, IDeliveryStatus[]> 
     // ],
     [IDeliveryStatus.DELIVERED]: [],
     [IDeliveryStatus.RETURNED]: [],
-    [IDeliveryStatus.FAILED]: [
-        IDeliveryStatus.RETURNED,
-        IDeliveryStatus.IN_PROGRESS,
-        IDeliveryStatus.CANCELLED,
-    ],
+    // [IDeliveryStatus.FAILED]: [
+    //     IDeliveryStatus.RETURNED,
+    //     IDeliveryStatus.IN_PROGRESS,
+    //     IDeliveryStatus.CANCELLED,
+    // ],
     [IDeliveryStatus.ON_HOLD]: [
         IDeliveryStatus.IN_PROGRESS,
         IDeliveryStatus.CANCELLED,
         IDeliveryStatus.SCHEDULED,
     ],
     [IDeliveryStatus.CANCELLED]: [],
-    [IDeliveryStatus.COMPLETED]: [],
+    // [IDeliveryStatus.COMPLETED]: [],
 };
 
 // Helper functions
@@ -75,14 +75,14 @@ export function getStatusColor(status: string): string {
             return '#FFD700'; // Amarillo
         case IDeliveryStatus.IN_PROGRESS:
             return '#00FF00'; // Verde puro
-        case IDeliveryStatus.COMPLETED:
-            return '#0011ffff'; // Naranja fuerte
+        // case IDeliveryStatus.COMPLETED:
+        //     return '#0011ffff'; // Naranja fuerte
         case IDeliveryStatus.DELIVERED:
             return '#8A2BE2'; // Violeta
         case IDeliveryStatus.RETURNED:
             return '#00CED1'; // Turquesa
-        case IDeliveryStatus.FAILED:
-            return '#FF0000'; // Rojo puro
+        // case IDeliveryStatus.FAILED:
+        //     return '#FF0000'; // Rojo puro
         case IDeliveryStatus.ON_HOLD:
             return '#A52A2A'; // Marrón
         case IDeliveryStatus.CANCELLED:

@@ -17,9 +17,9 @@ export const ProgressCard = ({ userName, deliveries, onPressViewTask }: Progress
     if (deliveries.length === 0) return 100;
     
     const completedStatuses = [
-      IDeliveryStatus.COMPLETED,
+      // IDeliveryStatus.COMPLETED,
       IDeliveryStatus.RETURNED,
-      IDeliveryStatus.FAILED,
+      // IDeliveryStatus.FAILED,
       IDeliveryStatus.CANCELLED
     ];
     
