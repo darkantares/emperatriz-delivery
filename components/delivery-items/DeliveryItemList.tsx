@@ -17,7 +17,6 @@ export const DeliveryItemList: React.FC<DeliveryItemListProps> = ({
   const renderItem = ({ item }: { item: Item }) => (
     <DeliveryItem
       item={item}
-      onPress={() => {}} // Sin funcionalidad, solo visual
     />
   );
 

@@ -1,7 +1,6 @@
-import { StyleSheet, Dimensions, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Dimensions, View } from 'react-native';
 import { Text } from '@/components/Themed';
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
-import { getStatusColor } from '@/interfaces/delivery/deliveryStatus';
 import React from 'react';
 import { CustomColors } from '@/constants/CustomColors';
 import { AssignmentType } from '@/utils/enum';
@@ -23,15 +22,15 @@ export interface Item {
   deliveryStatus: IDeliveryStatusEntity;
   fee: number;
   cost: number;
+  enterprise: string;
 }
 
 interface DeliveryItemProps {
   item: Item;
-  onPress: (id: string) => void;
 }
 
-export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item, onPress }) => {
-  // Formatear teléfono a xxx-xxx-xxxx
+export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item }) => {
+  
   const formatPhone = (phone: string) => {
     if (!phone) return '';
     const cleaned = phone.replace(/\D/g, '');

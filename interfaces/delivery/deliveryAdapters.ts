@@ -20,6 +20,7 @@ export interface DeliveryItemAdapter {
   destiny: ISector;
   fee: number;
   cost: number;
+  enterprise: string;
 }
 
 // Convierte un array de IDeliveryAssignmentEntity a DeliveryItemAdapter
@@ -38,6 +39,7 @@ export function adaptDeliveriesToAdapter(deliveries: IDeliveryAssignmentEntity[]
     origin: delivery.origin,
     destiny: delivery.destiny,
     fee: delivery.fee,
-    cost: delivery.cost
+    cost: delivery.cost,
+    enterprise: delivery.enterprise.title,
   }));
 }

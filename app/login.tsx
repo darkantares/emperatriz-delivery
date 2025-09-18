@@ -26,7 +26,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import { authService } from '@/services/authService';
 
 export default function LoginScreen() {
-    const [email, setEmail] = useState('valentin.delivey@umarket.com');
+    const [email, setEmail] = useState('valentin.delivery@umarket.com');
     const [password, setPassword] = useState('Si22500192319.');
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);

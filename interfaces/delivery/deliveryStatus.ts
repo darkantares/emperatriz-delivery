@@ -3,8 +3,6 @@ export enum IDeliveryStatus {
     ASSIGNED = 'Asignado',
     IN_PROGRESS = 'En Progreso',
     DELIVERED = 'Entregado',
-    // COMPLETED = 'Completado',
-    // FAILED = 'Fallido',    
     CANCELLED = 'Cancelado',
     RETURNED = 'Devuelto',
     ON_HOLD = 'En Espera',

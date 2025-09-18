@@ -2,8 +2,6 @@ import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Text } from '@/components/Themed';
 import { CustomColors } from '@/constants/CustomColors';
-import { IDeliveryStatus } from '@/interfaces/delivery/deliveryStatus';
-import { IDeliveryStatusEntity } from '@/interfaces/delivery/delivery';
 import { Item } from '@/components/delivery-items/DeliveryItem';
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import { AssignmentType } from '@/utils/enum';
@@ -40,9 +38,6 @@ export const ActiveDeliveryCard = ({ inProgressDelivery, onViewTask }: ActiveDel
     <TouchableOpacity style={styles.container} onPress={onViewTask} activeOpacity={0.85}>
       <View style={styles.header} pointerEvents="none">
         <Text style={styles.headerText}>En Progreso</Text>
-        <View>
-          <Text style={styles.expandText}>▼</Text>
-        </View>
       </View>
 
       <View style={styles.cardContainer} pointerEvents="none">
@@ -50,7 +45,13 @@ export const ActiveDeliveryCard = ({ inProgressDelivery, onViewTask }: ActiveDel
         <View style={styles.infoRow}>
           <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
             <FontAwesome name="user" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
-            <Text style={styles.statusText}>{inProgressDelivery.client}</Text>
+            <Text style={styles.statusText}>
+              {inProgressDelivery.client}
+              {inProgressDelivery.enterprise && (
+                <Text style={styles.subtitleText}> {inProgressDelivery.enterprise}</Text>
+              )}
+            </Text>
+
           </View>
 
           <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 8 }}>
@@ -111,6 +112,12 @@ export const ActiveDeliveryCard = ({ inProgressDelivery, onViewTask }: ActiveDel
 };
 
 const styles = StyleSheet.create({
+    subtitleText: {
+    fontSize: 13,
+    color: CustomColors.textLight,
+    opacity: 0.6,
+    fontWeight: 'normal',
+  },
   container: {
     width: '100%',
     paddingHorizontal: 16,
