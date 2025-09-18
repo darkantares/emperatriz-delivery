@@ -7,4 +7,5 @@ export enum AssignmentType {
 export enum BackendUrls {
     DeliveryAssignments = 'delivery-assignments',
     DeliveryOriginAddress = 'delivery-origin-address',
+    DeliveryStatus = 'delivery-status',
 }

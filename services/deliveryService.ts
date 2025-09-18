@@ -1,4 +1,4 @@
-import { IDeliveryAssignmentEntity, IUpdateDelivery, ICreateDeliveryAssigment } from '@/interfaces/delivery/delivery';
+import { IDeliveryAssignmentEntity, IUpdateDelivery, ICreateDeliveryAssigment, IDeliveryStatusEntity } from '@/interfaces/delivery/delivery';
 import { api, extractDataFromResponse } from './api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ResponseDataAPI } from '@/interfaces/response';
@@ -266,10 +266,11 @@ export const deliveryService = {
     /**
      * Actualiza el estado de una entrega
      * @param id ID de la entrega a actualizar
-     * @param status Nuevo estado de la entrega
+     * @param status ID del nuevo estado de la entrega
+     * @param note Nota opcional para ciertos estados
      * @returns Entrega actualizada
      */
-    updateDeliveryStatus: async (id: string, status: string): Promise<{
+    updateDeliveryStatus: async (id: string, status: number, note?: string): Promise<{
         success: boolean;
         data?: IDeliveryAssignmentEntity;
         error?: string;
@@ -284,7 +285,12 @@ export const deliveryService = {
             };
         }
         try {
-            const response = await api.patch<ResponseDataAPI<IDeliveryAssignmentEntity>>(`${BackendUrls.DeliveryAssignments}/${id}/status`, { status });
+            const payload: { status: number; note?: string } = { status };
+            if (note) {
+                payload.note = note;
+            }
+            
+            const response = await api.patch<ResponseDataAPI<IDeliveryAssignmentEntity>>(`${BackendUrls.DeliveryAssignments}/${id}/status`, payload);
 
             if (response.error || !response.data) {
                 return {

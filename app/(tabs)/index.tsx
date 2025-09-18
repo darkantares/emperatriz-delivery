@@ -10,7 +10,7 @@ import { deliveryService } from '@/services/deliveryService';
 import { SocketStatusIndicator } from '@/components/socketstatusindicator';
 import { IDeliveryAssignmentEntity } from '@/interfaces/delivery/delivery';
 import { StatusUpdateModal } from '@/components/modals/StatusUpdateModal';
-import { IDeliveryStatus } from '@/interfaces/delivery/deliveryStatus';
+import { IDeliveryStatus, getStatusIdFromTitle } from '@/interfaces/delivery/deliveryStatus';
 import { ProgressCard } from '@/components/dashboard/ProgressCard';
 import { Greeting } from '@/components/dashboard/Greeting';
 import { ActiveDeliveryCard } from '@/components/dashboard/ActiveDeliveryCard';
@@ -196,6 +196,24 @@ export default function TabOneScreen() {
   const handleStatusUpdate = async (newStatus: string) => {
     if (selectedDelivery) {
       try {
+        // Obtener el statusId del nuevo status
+        const statusId = getStatusIdFromTitle(newStatus as IDeliveryStatus);
+        if (!statusId) {
+          Alert.alert('Error', 'Estado de entrega no válido');
+          return;
+        }
+
+        // Llamar al backend para actualizar el estado
+        const response = await deliveryService.updateDeliveryStatus(
+          selectedDelivery.id,
+          statusId
+        );
+
+        if (!response.success) {
+          Alert.alert('Error', response.error || 'No se pudo actualizar el estado');
+          return;
+        }
+
         // Crear un objeto con la entrega actualizada
         const updatedDelivery = {
           ...selectedDelivery,
@@ -231,8 +249,14 @@ export default function TabOneScreen() {
             )
           );
         }
+
+        // Cerrar el modal
+        setIsStatusModalVisible(false);
+        setSelectedDelivery(null);
+        
       } catch (error) {
-        console.error('Error al actualizar el estado localmente:', error);
+        console.error('Error al actualizar el estado:', error);
+        Alert.alert('Error', 'Ocurrió un error al actualizar el estado');
       }
     }
   };

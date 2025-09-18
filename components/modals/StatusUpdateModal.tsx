@@ -1,18 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { 
-    Modal, 
-    View, 
-    Text, 
-    TouchableOpacity, 
-    StyleSheet, 
+import {
+    Modal,
+    View,
+    Text,
+    TouchableOpacity,
+    StyleSheet,
     FlatList,
     TouchableWithoutFeedback,
     ActivityIndicator,
-    Alert
+    Alert,
+    TextInput
 } from 'react-native';
-import { getStatusColor, getNextValidStatuses, IDeliveryStatus } from '@/interfaces/delivery/deliveryStatus';
+import { getStatusColor, IDeliveryStatus, getStatusIdFromTitle, setDeliveryStatuses, areStatusesLoaded, getDeliveryStatuses, validStatusTransitions } from '@/interfaces/delivery/deliveryStatus';
 import { CustomColors } from '@/constants/CustomColors';
 import { deliveryService } from '@/services/deliveryService';
+import { deliveryStatusService } from '@/services/deliveryStatusService';
+import { IDeliveryStatusEntity } from '@/interfaces/delivery/delivery';
 
 interface StatusUpdateModalProps {
     isVisible: boolean;
@@ -30,27 +33,111 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
     itemId
 }) => {
     const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
-    const [availableStatuses, setAvailableStatuses] = useState<IDeliveryStatus[]>([]);
+    const [availableStatuses, setAvailableStatuses] = useState<IDeliveryStatusEntity[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
+    const [note, setNote] = useState<string>('');
+
+    // Estados que requieren nota obligatoria
+    const statusesRequiringNote = [
+        IDeliveryStatus.CANCELLED,
+        IDeliveryStatus.RETURNED,
+        IDeliveryStatus.ON_HOLD,
+        IDeliveryStatus.SCHEDULED
+    ];
+
+    const requiresNote = selectedStatus && statusesRequiringNote.includes(selectedStatus as IDeliveryStatus);
 
     useEffect(() => {
+        const loadStatuses = async () => {
+            // Cargar estados del backend si no están cargados
+            if (!areStatusesLoaded()) {
+                try {
+                    const response = await deliveryStatusService.getDeliveryStatuses();
+                    if (response.success && response.data) {
+                        setDeliveryStatuses(response.data);
+                    } else {
+                        console.error('Error al cargar estados:', response.error);
+                        Alert.alert('Error', 'No se pudieron cargar los estados de entrega');
+                        return;
+                    }
+                } catch (error) {
+                    console.error('Error al cargar estados:', error);
+                    Alert.alert('Error', 'Error de conexión al cargar los estados');
+                    return;
+                }
+            }
+        };
+
         if (isVisible) {
-            // Reset selected status when modal opens
+            // Reset selected status and note when modal opens
             setSelectedStatus(null);
-            
-            // Get valid next statuses
-            const nextStatuses = getNextValidStatuses(currentStatus);
-            setAvailableStatuses(nextStatuses);
+            setNote('');
+
+            // Cargar estados si es necesario
+            loadStatuses().then(() => {
+                // Obtener todos los estados cargados del backend
+                const allStatuses = getDeliveryStatuses();
+                
+                // Obtener las transiciones válidas basadas en el estado actual
+                const currentStatusAsEnum = Object.values(IDeliveryStatus).find(
+                    status => status === currentStatus
+                ) as IDeliveryStatus;
+                
+                let validNextStatuses: string[] = [];
+                
+                if (currentStatusAsEnum && validStatusTransitions[currentStatusAsEnum]) {
+                    // Usar las transiciones definidas en el enum
+                    validNextStatuses = validStatusTransitions[currentStatusAsEnum];
+                } else {
+                    // Si no se encuentra el estado en el enum, mostrar todos menos el actual
+                    validNextStatuses = allStatuses
+                        .filter(status => status.title !== currentStatus)
+                        .map(status => status.title);
+                }
+                
+                // Filtrar los estados del backend que coincidan con las transiciones válidas
+                const filteredStatuses = allStatuses.filter(status => 
+                    validNextStatuses.includes(status.title)
+                );
+                
+                setAvailableStatuses(filteredStatuses);
+            });
         }
     }, [isVisible, currentStatus]);
 
     const handleConfirm = async () => {
         if (selectedStatus) {
+            // Validar que se haya escrito una nota si es requerida
+            if (requiresNote && note.trim() === '') {
+                Alert.alert(
+                    "Campo requerido",
+                    "Debes escribir una nota para este estado.",
+                    [{ text: "OK" }]
+                );
+                return;
+            }
+
+            // Obtener el ID del estado seleccionado
+            const statusId = getStatusIdFromTitle(selectedStatus);
+            if (!statusId) {
+                Alert.alert(
+                    "Error",
+                    "No se pudo obtener el ID del estado seleccionado.",
+                    [{ text: "OK" }]
+                );
+                return;
+            }
+
             setLoading(true);
+            
             try {
-                // Llamar al servicio para actualizar el estado
-                const result = await deliveryService.updateDeliveryStatus(itemId, selectedStatus);
-                
+                // Llamar al servicio para actualizar el estado, usando el ID del estado
+                const result = await deliveryService.updateDeliveryStatus(
+                    itemId,
+                    statusId,
+                    requiresNote ? note.trim() : undefined
+                );
+
                 if (result.success) {
                     onStatusSelected(selectedStatus);
                     onClose();
@@ -73,9 +160,7 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                 setLoading(false);
             }
         }
-    };
-    
-    // Close modal when clicking outside the content area
+    };    // Close modal when clicking outside the content area
     const handleOutsidePress = () => {
         onClose();
     };
@@ -85,9 +170,9 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
         e.stopPropagation();
     };
 
-    const renderStatusItem = ({ item }: { item: IDeliveryStatus }) => {
-        const isSelected = selectedStatus === item;
-        const statusColor = getStatusColor(item);
+    const renderStatusItem = ({ item }: { item: IDeliveryStatusEntity }) => {
+        const isSelected = selectedStatus === item.title;
+        const statusColor = getStatusColor(item.title);
 
         return (
             <TouchableOpacity
@@ -95,13 +180,13 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                     styles.statusItem,
                     isSelected && { borderColor: statusColor, borderWidth: 2 }
                 ]}
-                onPress={() => setSelectedStatus(item)}
+                onPress={() => setSelectedStatus(item.title)}
             >
                 <View style={[styles.radioButton, isSelected && { borderColor: statusColor }]}>
                     {isSelected && <View style={[styles.radioButtonSelected, { backgroundColor: statusColor }]} />}
                 </View>
                 <Text style={[styles.statusText, { color: isSelected ? statusColor : CustomColors.textLight }]}>
-                    {item}
+                    {item.title}
                 </Text>
                 <View style={[styles.statusIndicator, { backgroundColor: statusColor }]} />
             </TouchableOpacity>
@@ -124,12 +209,12 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                                 <Text style={styles.currentStatus}>
                                     Estado actual: <Text style={[styles.statusValue, { color: getStatusColor(currentStatus) }]}>{currentStatus}</Text>
                                 </Text>
-                            </View>                            
+                            </View>
                             {availableStatuses.length > 0 ? (
                                 <FlatList
                                     data={availableStatuses}
                                     renderItem={renderStatusItem}
-                                    keyExtractor={(item) => item}
+                                    keyExtractor={(item) => item.id.toString()}
                                     style={styles.statusList}
                                 />
                             ) : (
@@ -141,22 +226,45 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                                 </View>
                             )}
 
+                            {/* Campo de nota para estados específicos */}
+                            {requiresNote && (
+                                <View style={styles.noteContainer}>
+                                    <Text style={styles.noteLabel}>
+                                        Nota requerida para este estado:
+                                    </Text>
+                                    <TextInput
+                                        style={styles.noteInput}
+                                        placeholder="Escribe una nota explicando el motivo..."
+                                        placeholderTextColor={CustomColors.divider}
+                                        value={note}
+                                        onChangeText={setNote}
+                                        multiline={true}
+                                        numberOfLines={3}
+                                        textAlignVertical="top"
+                                        maxLength={500}
+                                    />
+                                    <Text style={styles.characterCount}>
+                                        {note.length}/500 caracteres
+                                    </Text>
+                                </View>
+                            )}
+
                             <View style={styles.buttonContainer}>
-                                <TouchableOpacity 
-                                    style={[styles.button, styles.cancelButton]} 
+                                <TouchableOpacity
+                                    style={[styles.button, styles.cancelButton]}
                                     onPress={onClose}
                                 >
                                     <Text style={styles.buttonText}>Cancelar</Text>
                                 </TouchableOpacity>
-                                
-                                <TouchableOpacity 
+
+                                <TouchableOpacity
                                     style={[
-                                        styles.button, 
+                                        styles.button,
                                         styles.confirmButton,
-                                        (!selectedStatus || availableStatuses.length === 0) && styles.disabledButton
-                                    ]} 
+                                        (!selectedStatus || availableStatuses.length === 0 || (requiresNote && note.trim() === '')) && styles.disabledButton
+                                    ]}
                                     onPress={handleConfirm}
-                                    disabled={!selectedStatus || availableStatuses.length === 0 || loading}
+                                    disabled={!selectedStatus || availableStatuses.length === 0 || loading || (!!requiresNote && note.trim() === '')}
                                 >
                                     {loading ? (
                                         <ActivityIndicator size="small" color="#fff" />
@@ -288,5 +396,32 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         fontSize: 16,
         opacity: 0.7,
+    },
+    noteContainer: {
+        marginBottom: 20,
+    },
+    noteLabel: {
+        fontSize: 16,
+        color: CustomColors.textLight,
+        marginBottom: 8,
+        fontWeight: 'bold',
+    },
+    noteInput: {
+        backgroundColor: CustomColors.backgroundDarkest,
+        borderRadius: 8,
+        padding: 12,
+        color: CustomColors.textLight,
+        fontSize: 16,
+        borderWidth: 1,
+        borderColor: CustomColors.divider,
+        minHeight: 80,
+        maxHeight: 120,
+    },
+    characterCount: {
+        fontSize: 12,
+        color: CustomColors.textLight,
+        opacity: 0.6,
+        textAlign: 'right',
+        marginTop: 4,
     },
 });

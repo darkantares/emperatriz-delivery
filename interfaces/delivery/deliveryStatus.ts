@@ -1,3 +1,5 @@
+import { IDeliveryStatusEntity } from './delivery';
+
 export enum IDeliveryStatus {
     PENDING = 'Pendiente',
     ASSIGNED = 'Asignado',
@@ -7,6 +9,23 @@ export enum IDeliveryStatus {
     RETURNED = 'Devuelto',
     ON_HOLD = 'En Espera',
     SCHEDULED = 'Programado',
+}
+
+// Variable global para almacenar los estados obtenidos del backend
+let deliveryStatuses: IDeliveryStatusEntity[] = [];
+
+/**
+ * Establece los estados de entrega obtenidos del backend
+ */
+export function setDeliveryStatuses(statuses: IDeliveryStatusEntity[]): void {
+    deliveryStatuses = statuses;
+}
+
+/**
+ * Obtiene todos los estados de entrega cargados
+ */
+export function getDeliveryStatuses(): IDeliveryStatusEntity[] {
+    return deliveryStatuses;
 }
 
 // Define valid status transitions - what status can progress to what other statuses
@@ -107,4 +126,27 @@ export function getNextValidStatuses(currentStatus: string): IDeliveryStatus[] {
     
     // If no matching status is found, return an empty array
     return [];
+}
+
+/**
+ * Obtiene el ID de un estado basado en su título
+ */
+export function getStatusIdFromTitle(statusTitle: string): number | null {
+    const status = deliveryStatuses.find(s => s.title === statusTitle);
+    return status ? status.id : null;
+}
+
+/**
+ * Obtiene el título de un estado basado en su ID
+ */
+export function getStatusTitleFromId(statusId: number): string | null {
+    const status = deliveryStatuses.find(s => s.id === statusId);
+    return status ? status.title : null;
+}
+
+/**
+ * Verifica si los estados están cargados
+ */
+export function areStatusesLoaded(): boolean {
+    return deliveryStatuses.length > 0;
 }
