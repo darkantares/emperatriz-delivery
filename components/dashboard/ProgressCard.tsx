@@ -8,27 +8,32 @@ import { IDeliveryStatusEntity } from '@/interfaces/delivery/delivery';
 interface ProgressCardProps {
   userName: string;
   deliveries: Array<{ deliveryStatus: IDeliveryStatusEntity }>;
+  inProgressDelivery?: { deliveryStatus: IDeliveryStatusEntity } | null;
   onPressViewTask?: () => void;
 }
 
-export const ProgressCard = ({ userName, deliveries, onPressViewTask }: ProgressCardProps) => {
+export const ProgressCard = ({ userName, deliveries, inProgressDelivery, onPressViewTask }: ProgressCardProps) => {
   // Calcular el porcentaje de entregas completadas
   const calculateProgress = () => {
-    if (deliveries.length === 0) return 100;
+    // Crear un array con todas las entregas (incluyendo la que está en progreso)
+    const allDeliveries = [...deliveries];
+    if (inProgressDelivery) {
+      allDeliveries.push(inProgressDelivery);
+    }
+    
+    if (allDeliveries.length === 0) return 100;
     
     const completedStatuses = [
-      // IDeliveryStatus.COMPLETED,
+      IDeliveryStatus.DELIVERED,
       IDeliveryStatus.RETURNED,
-      // IDeliveryStatus.FAILED,
       IDeliveryStatus.CANCELLED
     ];
     
-    const completedDeliveries = deliveries.filter(
+    const completedDeliveries = allDeliveries.filter(
       delivery => completedStatuses.includes(delivery.deliveryStatus.title as IDeliveryStatus)
     ).length;
     
-    const pendingDeliveries = deliveries.length - completedDeliveries;
-    const progressPercentage = Math.round((completedDeliveries / deliveries.length) * 100);
+    const progressPercentage = Math.round((completedDeliveries / allDeliveries.length) * 100);
     
     return progressPercentage;
   };

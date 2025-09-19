@@ -9,6 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { ActiveDeliveryProvider } from '@/context/ActiveDeliveryContext';
+import { DeliveryProvider } from '@/context/DeliveryContext';
 import { useColorScheme } from '@/components/useColorScheme';
 import { CustomColors } from '@/constants/CustomColors';
 import LoadingScreen from '@/components/LoadingScreen';
@@ -86,22 +87,24 @@ function RootLayoutNav() {
     <SafeAreaProvider>
       <AuthProvider>
         <ActiveDeliveryProvider>
-          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-            <ProtectedRouteGuard>
-              <Stack screenOptions={{ 
-                headerStyle: { 
-                  backgroundColor: CustomColors.backgroundDark
-                },
-                headerTintColor: CustomColors.textLight
-              }}>
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-                <Stack.Screen name="login" options={{ headerShown: false }} />            
-              </Stack>
-              
-              <NotificationHandler />
-            </ProtectedRouteGuard>
-          </ThemeProvider>
+          <DeliveryProvider>
+            <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+              <ProtectedRouteGuard>
+                <Stack screenOptions={{ 
+                  headerStyle: { 
+                    backgroundColor: CustomColors.backgroundDark
+                  },
+                  headerTintColor: CustomColors.textLight
+                }}>
+                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                  <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+                  <Stack.Screen name="login" options={{ headerShown: false }} />            
+                </Stack>
+                
+                <NotificationHandler />
+              </ProtectedRouteGuard>
+            </ThemeProvider>
+          </DeliveryProvider>
         </ActiveDeliveryProvider>
       </AuthProvider>
     </SafeAreaProvider>

@@ -6,43 +6,36 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useState, useRef, useEffect } from 'react';
 import { DeliveryItemList } from '@/components/delivery-items/DeliveryItemList';
 import { CustomColors } from '@/constants/CustomColors';
-import { deliveryService } from '@/services/deliveryService';
 import { SocketStatusIndicator } from '@/components/socketstatusindicator';
-import { IDeliveryAssignmentEntity } from '@/interfaces/delivery/delivery';
 import { StatusUpdateModal } from '@/components/modals/StatusUpdateModal';
-import { IDeliveryStatus, getStatusIdFromTitle } from '@/interfaces/delivery/deliveryStatus';
 import { ProgressCard } from '@/components/dashboard/ProgressCard';
 import { Greeting } from '@/components/dashboard/Greeting';
 import { ActiveDeliveryCard } from '@/components/dashboard/ActiveDeliveryCard';
 import { useAuth } from '@/context/AuthContext';
 import { useActiveDelivery } from '@/context/ActiveDeliveryContext';
-import { DeliveryItemAdapter, adaptDeliveriesToAdapter } from '@/interfaces/delivery/deliveryAdapters';
+import { useDelivery } from '@/context/DeliveryContext';
+import { DeliveryItemAdapter } from '@/interfaces/delivery/deliveryAdapters';
 
 export default function TabOneScreen() {
   const { user } = useAuth();
-  const { activeDelivery, setActiveDelivery, getNextDeliveryToProcess, canProcessNewDelivery } = useActiveDelivery();
-  const [deliveries, setDeliveries] = useState<DeliveryItemAdapter[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [refreshing, setRefreshing] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  const { getNextDeliveryToProcess, canProcessNewDelivery } = useActiveDelivery();
+  const { 
+    deliveries, 
+    inProgressDelivery, 
+    loading, 
+    refreshing, 
+    error, 
+    onRefresh,
+    fetchDeliveries,
+    handleDeliveryUpdated,
+    handleDeliveryAssigned,
+    handleDeliveryReordered
+  } = useDelivery();
+  
   const [isStatusModalVisible, setIsStatusModalVisible] = useState<boolean>(false);
   const [selectedDelivery, setSelectedDelivery] = useState<DeliveryItemAdapter | null>(null);
-  const [inProgressDelivery, setInProgressDelivery] = useState<DeliveryItemAdapter | null>(null);
 
   const isNavigating = useRef(false);
-
-  // Cargar entregas al montar
-  useEffect(() => {
-    fetchDeliveries();
-  }, []);
-
-  // Ya no necesitamos esta lógica ya que ahora manejamos 
-  // los envíos en progreso directamente en fetchDeliveries
-  // y actualizamos inProgressDelivery desde allí
-  useEffect(() => {
-    // Este efecto se mantiene vacío pero podemos usarlo si necesitamos
-    // alguna lógica adicional en el futuro
-  }, [deliveries]);
 
   // Conectar socket y listeners
   useEffect(() => {
@@ -58,103 +51,7 @@ export default function TabOneScreen() {
       socketService.off(SocketEventType.DELIVERY_REORDERED, handleDeliveryReordered);
       socketService.off(SocketEventType.DELIVERY_ASSIGNMENT_UPDATED, handleDeliveryUpdated);  
     };
-  }, []);
-  
-  const handleDeliveryUpdated = (data: IDeliveryAssignmentEntity) => {
-    console.log('Entrega actualizada:', data);
-    const updatedDelivery = adaptDeliveriesToAdapter([data])[0];
-
-    // Verificar si la entrega actualizada está en progreso
-    if (updatedDelivery.deliveryStatus.title === IDeliveryStatus.IN_PROGRESS) {
-      // Si está en progreso, actualizar el estado de la entrega en progreso
-      setInProgressDelivery(updatedDelivery);
-      setActiveDelivery(updatedDelivery);
-      
-      // Eliminar de la lista principal si existe
-      setDeliveries(currentDeliveries => 
-        currentDeliveries.filter(delivery => delivery.id !== updatedDelivery.id)
-      );
-    } 
-    // Si no está en progreso pero era la entrega en progreso, entonces la completó o la canceló
-    else if (inProgressDelivery && updatedDelivery.id === inProgressDelivery.id) {
-      // Limpiar estados
-      setInProgressDelivery(null);
-      setActiveDelivery(null);
-    } 
-    // Actualización normal para entregas que no están en progreso
-    else {
-      setDeliveries(currentDeliveries => currentDeliveries.map(delivery => 
-        delivery.id === updatedDelivery.id ? updatedDelivery : delivery
-      ));
-    }
-  };
-  
-  const handleDeliveryAssigned = (data: IDeliveryAssignmentEntity) => {
-    console.log(data);
-      
-    // Agregar la data recibida directamente al array de entregas
-    setDeliveries(currentDeliveries => [...currentDeliveries, adaptDeliveriesToAdapter([data])[0]]);
-  };
-
-  const handleDeliveryReordered = (data: IDeliveryAssignmentEntity[]) => {
-    console.log(data);
-      
-    // Agregar la data recibida directamente al array de entregas
-    setDeliveries(adaptDeliveriesToAdapter(data));
-  };
-
-  const fetchDeliveries = async (isRefreshing = false) => {
-    if (!isRefreshing) {
-      setLoading(true);
-    }
-    setError(null);
-
-    try {
-      const response = await deliveryService.getDeliveries();
-      
-      if (response.success && response.data) {
-        const adaptedDeliveries = adaptDeliveriesToAdapter(response.data);
-        
-        // Verificar si hay algún envío en progreso (IN_PROGRESS)
-        const inProgressIndex = adaptedDeliveries.findIndex(delivery => 
-          delivery.deliveryStatus.title === IDeliveryStatus.IN_PROGRESS
-        );
-        
-        if (inProgressIndex !== -1) {
-          // Extraer el envío en progreso
-          const inProgress = adaptedDeliveries[inProgressIndex];
-          
-          // Eliminar el envío en progreso del array principal
-          const remainingDeliveries = adaptedDeliveries.filter((_, index) => index !== inProgressIndex);
-          
-          // Actualizar los estados
-          setDeliveries(remainingDeliveries);
-          setInProgressDelivery(inProgress);
-          setActiveDelivery(inProgress);
-        } else {
-          // Si no hay envío en progreso, simplemente actualizar las entregas
-          setDeliveries(adaptedDeliveries);
-          setInProgressDelivery(null);
-          setActiveDelivery(null);
-        }
-      } else {
-        setError(response.error || 'Error al cargar las entregas');
-        console.error('Error al cargar entregas: 1', response.error);
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
-      setError(errorMessage);
-      console.error('Error al cargar entregas 2:', err);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-  
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchDeliveries(true);
-  };
+  }, [handleDeliveryAssigned, handleDeliveryReordered, handleDeliveryUpdated]);
 
   const handlePressItem = () => {
     if (isNavigating.current) return;
@@ -194,98 +91,57 @@ export default function TabOneScreen() {
 
   // Manejar la actualización de estado
   const handleStatusUpdate = async (newStatus: string) => {
-    if (selectedDelivery) {
-      try {
-        // Obtener el statusId del nuevo status
-        const statusId = getStatusIdFromTitle(newStatus as IDeliveryStatus);
-        if (!statusId) {
-          Alert.alert('Error', 'Estado de entrega no válido');
-          return;
-        }
-
-        // Llamar al backend para actualizar el estado
-        const response = await deliveryService.updateDeliveryStatus(
-          selectedDelivery.id,
-          statusId
-        );
-
-        if (!response.success) {
-          Alert.alert('Error', response.error || 'No se pudo actualizar el estado');
-          return;
-        }
-
-        // Crear un objeto con la entrega actualizada
-        const updatedDelivery = {
-          ...selectedDelivery,
-          deliveryStatus: {
-            ...selectedDelivery.deliveryStatus,
-            title: newStatus as IDeliveryStatus
-          }
-        };
-        
-        if (newStatus === IDeliveryStatus.IN_PROGRESS) {
-          // Si el estado cambia a "En Progreso":
-          // 1. Eliminar la entrega del array principal si existe
-          setDeliveries(currentDeliveries => 
-            currentDeliveries.filter(delivery => delivery.id !== selectedDelivery.id)
-          );
-          
-          // 2. Actualizar la referencia a la entrega en progreso
-          setInProgressDelivery(updatedDelivery);
-          setActiveDelivery(updatedDelivery);
-        } 
-        // Si estamos actualizando la entrega que ya estaba en progreso
-        else if (selectedDelivery.id === inProgressDelivery?.id) {
-          // Limpiar la referencia a la entrega en progreso
-          setInProgressDelivery(null);
-          setActiveDelivery(null);
-        } 
-        // Para otros estados (que no son IN_PROGRESS)
-        else {
-          // Actualizar normalmente en el array de entregas
-          setDeliveries(currentDeliveries => 
-            currentDeliveries.map(delivery => 
-              delivery.id === selectedDelivery.id ? updatedDelivery : delivery
-            )
-          );
-        }
-
-        // Cerrar el modal
-        setIsStatusModalVisible(false);
-        setSelectedDelivery(null);
-        
-      } catch (error) {
-        console.error('Error al actualizar el estado:', error);
-        Alert.alert('Error', 'Ocurrió un error al actualizar el estado');
-      }
-    }
+    // El modal ya se encarga de llamar al backend y actualizar el contexto
+    // Solo necesitamos cerrar el modal aquí
+    setIsStatusModalVisible(false);
+    setSelectedDelivery(null);
   };
 
 
   // Renderizar indicador de carga mientras se obtienen los datos
-  if (loading && deliveries.length === 0) {
+  if (loading && deliveries.length === 0 && !inProgressDelivery) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={CustomColors.secondary} />
-        <Text style={styles.loadingText}>Cargando entregas...</Text>
-      </View>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: CustomColors.backgroundDarkest }}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={CustomColors.secondary} />
+            <Text style={styles.loadingText}>Cargando entregas...</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.manualRefreshButton}
+            onPress={() => fetchDeliveries()}
+          >
+            <Text style={styles.manualRefreshButtonText}>Refrescar entregas</Text>
+          </TouchableOpacity>
+        </SafeAreaView>
+      </GestureHandlerRootView>
     );
   }
 
   // Renderizar mensaje de error si ocurrió alguno
-  if (error && deliveries.length === 0) {
+  if (error && deliveries.length === 0 && !inProgressDelivery) {
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Error: {error}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={() => fetchDeliveries()}>
-          <Text style={styles.retryButtonText}>Reintentar</Text>
-        </TouchableOpacity>
-      </View>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: CustomColors.backgroundDarkest }}>
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>Error: {error}</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={() => fetchDeliveries()}>
+              <Text style={styles.retryButtonText}>Reintentar</Text>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity
+            style={styles.manualRefreshButton}
+            onPress={() => fetchDeliveries()}
+          >
+            <Text style={styles.manualRefreshButtonText}>Refrescar entregas</Text>
+          </TouchableOpacity>
+        </SafeAreaView>
+      </GestureHandlerRootView>
     );
   }
 
   // Si no hay entregas y no hay error ni loading, mostrar el saludo y mensaje central
-  if (!loading && !error && deliveries.length === 0) {
+  if (!loading && !error && deliveries.length === 0 && !inProgressDelivery) {
     return (
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaView style={{ flex: 1, backgroundColor: CustomColors.backgroundDarkest }}>
@@ -295,6 +151,12 @@ export default function TabOneScreen() {
               <Text style={styles.noDeliveriesText}>No tienes envíos asignados actualmente</Text>
             </View>
           </View>
+          <TouchableOpacity
+            style={styles.manualRefreshButton}
+            onPress={() => fetchDeliveries()}
+          >
+            <Text style={styles.manualRefreshButtonText}>Refrescar entregas</Text>
+          </TouchableOpacity>
         </SafeAreaView>
       </GestureHandlerRootView>
     );
@@ -332,6 +194,7 @@ export default function TabOneScreen() {
           <ProgressCard 
             userName={user ? `${user.firstname} ${user.lastname}` : ""}
             deliveries={deliveries}
+            inProgressDelivery={inProgressDelivery}
           />
           
           {/* Tarjeta de entrega en progreso */}
@@ -353,30 +216,38 @@ export default function TabOneScreen() {
             onRefresh={onRefresh}
           />
 
-        <TouchableOpacity 
-          style={[
-            styles.progressButton,
-            (inProgressDelivery !== null || !canProcessNewDelivery(deliveries)) && styles.progressButtonDisabled
-          ]} 
-          onPress={handlePressItem}
-          disabled={inProgressDelivery !== null || !canProcessNewDelivery(deliveries)}
-        >
-          <Text style={styles.progressButtonText}>
-            {inProgressDelivery !== null ? 'Completa entrega actual' : 'Progresar Envío'}
-          </Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity 
+            style={[
+              styles.progressButton,
+              (inProgressDelivery !== null || !canProcessNewDelivery(deliveries)) && styles.progressButtonDisabled
+            ]} 
+            onPress={handlePressItem}
+            disabled={inProgressDelivery !== null || !canProcessNewDelivery(deliveries)}
+          >
+            <Text style={styles.progressButtonText}>
+              {inProgressDelivery !== null ? 'Completa entrega actual' : 'Progresar Envío'}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-      {/* Modal de Actualización de Estado */}
-      {selectedDelivery && (
-        <StatusUpdateModal
-          isVisible={isStatusModalVisible}
-          onClose={() => setIsStatusModalVisible(false)}
-          currentStatus={selectedDelivery.deliveryStatus.title}
-          onStatusSelected={handleStatusUpdate}
-          itemId={selectedDelivery.id}
-        />
-      )}
+        {/* Modal de Actualización de Estado */}
+        {selectedDelivery && (
+          <StatusUpdateModal
+            isVisible={isStatusModalVisible}
+            onClose={() => setIsStatusModalVisible(false)}
+            currentStatus={selectedDelivery.deliveryStatus.title}
+            onStatusSelected={handleStatusUpdate}
+            itemId={selectedDelivery.id}
+          />
+        )}
+
+        {/* Botón manual para refrescar entregas, fuera del View principal */}
+        <TouchableOpacity
+          style={styles.manualRefreshButton}
+          onPress={() => fetchDeliveries()}
+        >
+          <Text style={styles.manualRefreshButtonText}>Refrescar entregas</Text>
+        </TouchableOpacity>
       </SafeAreaView>
     </GestureHandlerRootView>
   );
@@ -563,4 +434,22 @@ const styles = StyleSheet.create({
     color: CustomColors.textLight,
     fontWeight: 'bold',
   },
+    manualRefreshButton: {
+      backgroundColor: CustomColors.primary,
+      paddingVertical: 12,
+      borderRadius: 12,
+      marginVertical: 10,
+      marginHorizontal: 20,
+      alignItems: 'center',
+      position: 'absolute',
+      left: 20,
+      right: 20,
+      bottom: 70,
+      zIndex: 99,
+    },
+    manualRefreshButtonText: {
+      color: CustomColors.textLight,
+      fontWeight: 'bold',
+      fontSize: 16,
+    },
 });

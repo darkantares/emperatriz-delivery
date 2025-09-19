@@ -16,6 +16,7 @@ import { CustomColors } from '@/constants/CustomColors';
 import { deliveryService } from '@/services/deliveryService';
 import { deliveryStatusService } from '@/services/deliveryStatusService';
 import { IDeliveryStatusEntity } from '@/interfaces/delivery/delivery';
+import { useDelivery } from '@/context/DeliveryContext';
 
 interface StatusUpdateModalProps {
     isVisible: boolean;
@@ -32,6 +33,7 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
     onStatusSelected,
     itemId
 }) => {
+    const { fetchDeliveries } = useDelivery();
     const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
     const [availableStatuses, setAvailableStatuses] = useState<IDeliveryStatusEntity[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
@@ -41,6 +43,7 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
     const statusesRequiringNote = [
         IDeliveryStatus.CANCELLED,
         IDeliveryStatus.RETURNED,
+        IDeliveryStatus.DELIVERED,
         IDeliveryStatus.ON_HOLD,
         IDeliveryStatus.SCHEDULED
     ];
@@ -131,6 +134,8 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
             setLoading(true);
             
             try {
+                console.log('Actualizando estado a:', selectedStatus, 'con nota:', note);
+                
                 // Llamar al servicio para actualizar el estado, usando el ID del estado
                 const result = await deliveryService.updateDeliveryStatus(
                     itemId,
@@ -139,6 +144,12 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                 );
 
                 if (result.success) {
+                    // Llamar a fetchDeliveries para actualizar la lista completa
+                    console.log('Estado actualizado con éxito, refrescando entregas...');
+                    
+                    await fetchDeliveries();
+                    
+                    // Llamar al callback del componente padre
                     onStatusSelected(selectedStatus);
                     onClose();
                 } else {

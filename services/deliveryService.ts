@@ -18,6 +18,8 @@ export const deliveryService = {
     }> => {
         // Verificar token antes de hacer la solicitud
         const token = await AsyncStorage.getItem('auth_token');
+        // console.log('Token obtenido en deliveryService.getDeliveries:', token);
+        
         if (!token) {
             return {
                 success: false,
