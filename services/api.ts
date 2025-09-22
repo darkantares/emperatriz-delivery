@@ -18,14 +18,14 @@ export const getBaseUrl = () => {
         if (__DEV__) {
             url = Platform.OS === 'ios'
                 ? apiUrls?.['development_ios']
-                : apiUrls?.['development'] || 'http://192.168.100.135:3000';
+                : apiUrls?.['development'] || 'http://192.168.0.4:3000';
         } else {
-            url = apiUrls?.['production'] || 'http://192.168.100.135:3000';
+            url = apiUrls?.['production'] || 'http://192.168.0.4:3000';
         }
         return url.endsWith('/') ? url.slice(0, -1) : url;
     } catch (error) {
         console.error('Error al obtener URL base:', error);
-        return 'http://192.168.100.135:3000';
+        return 'http://192.168.0.4:3000';
     }
 };
 
@@ -46,7 +46,7 @@ const defaultOptions = {
 };
 
 // Función para añadir token de autorización a las opciones
-const getAuthOptions = async (options: Record<string, any> = {}): Promise<Record<string, any>> => {
+const getAuthOptions = async (options: Record<string, any> = {}): Promise<RequestInit> => {
     try {
         const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
         if (!token) {
@@ -67,7 +67,7 @@ const getAuthOptions = async (options: Record<string, any> = {}): Promise<Record
 
 // Interfaz para las opciones de la API
 interface ApiOptions extends RequestInit {
-    body?: string;
+    body?: string | FormData;
     method?: string;
 }
 
@@ -164,17 +164,26 @@ export const apiRequest = async <T>(endpoint: string, options: ApiOptions = {}):
         const url = `${API_URL}${formattedEndpoint}`;
 
         // Añadir token de autenticación a todas las solicitudes
-        const authOptions = await getAuthOptions(options);   
+        const authOptions = await getAuthOptions(options);
 
+        // Para FormData, no incluir defaultOptions que contienen Content-Type
+        const isFormData = options.body instanceof FormData;
+        
         // Asegurarse de que las opciones tengan los headers correctos
-        const requestOptions = { 
-            ...defaultOptions,
-            ...authOptions,
-            headers: {
-                ...defaultOptions.headers,
-                ...(authOptions.headers || {})
+        const requestOptions = isFormData 
+            ? {
+                // Para FormData, solo usar authOptions sin defaultOptions
+                ...authOptions
             }
-        };
+            : {
+                // Para requests normales, usar defaultOptions + authOptions
+                ...defaultOptions,
+                ...authOptions,
+                headers: {
+                    ...defaultOptions.headers,
+                    ...(authOptions.headers || {})
+                }
+            };
 
         const response = await fetch(url, requestOptions);
 
@@ -187,7 +196,11 @@ export const apiRequest = async <T>(endpoint: string, options: ApiOptions = {}):
                 if (refreshResult.success) {
                     // Reintento con el nuevo token
                     const newAuthOptions = await getAuthOptions(options);
-                    const retryResponse = await fetch(url, { ...defaultOptions, ...newAuthOptions });
+                    const retryRequestOptions = isFormData 
+                        ? { ...newAuthOptions }
+                        : { ...defaultOptions, ...newAuthOptions };
+                    
+                    const retryResponse = await fetch(url, retryRequestOptions);
 
                     if (retryResponse.ok) {
                         return handleSuccessResponse<T>(retryResponse);
@@ -255,11 +268,11 @@ export const api = {
             body: JSON.stringify(data)
         }),
 
-    put: <T>(endpoint: string, data: any, options = {}) =>  apiRequest<T>(endpoint, {
-            ...options,
-            method: 'PUT',
-            body: JSON.stringify(data)
-        }),    
+    put: <T>(endpoint: string, data: any, options = {}) => apiRequest<T>(endpoint, {
+        ...options,
+        method: 'PUT',
+        body: JSON.stringify(data)
+    }),
     patch: <T>(endpoint: string, data: any, options = {}) => {
         return apiRequest<T>(endpoint, {
             ...options,
@@ -274,6 +287,13 @@ export const api = {
 
     delete: <T>(endpoint: string, options = {}) =>
         apiRequest<T>(endpoint, { ...options, method: 'DELETE' }),
+
+    postFormData: <T>(endpoint: string, formData: FormData, options = {}) =>
+        apiRequest<T>(endpoint, {
+            ...options,
+            method: 'POST',
+            body: formData
+        }),
 };
 
 // Función para verificar la conectividad con el servidor
@@ -329,19 +349,19 @@ export const extractDataFromResponse = <T>(response: any): T | null => {
         if ('data' in response.data && 'success' in response.data) {
             // Es un FetchResponse con ResponseAPI anidado
             const innerData = response.data.data;
-            
+
             // Caso 3.1: Verificar si hay otro nivel de anidación para datos paginados
             // Estructura específica de respuestas paginadas: {data: {data: {data: Array, total: number}}}
             if (
-                innerData && 
-                typeof innerData === 'object' && 
-                'data' in innerData && 
+                innerData &&
+                typeof innerData === 'object' &&
+                'data' in innerData &&
                 typeof innerData.data === 'object'
             ) {
                 // Puede ser una respuesta paginada con estructura: {data: Array, total: number}
                 if ('data' in innerData.data && 'total' in innerData.data) {
-                    if (Array.isArray(innerData.data.data) && 
-                        Object.getOwnPropertyNames(innerData.data).length === 2 && 
+                    if (Array.isArray(innerData.data.data) &&
+                        Object.getOwnPropertyNames(innerData.data).length === 2 &&
                         'data' in innerData.data && 'total' in innerData.data) {
                         return innerData.data as T;
                     } else {
@@ -350,7 +370,7 @@ export const extractDataFromResponse = <T>(response: any): T | null => {
                     }
                 }
             }
-            
+
             return innerData as T;
         } else {
             // El data no tiene la estructura ResponseAPI

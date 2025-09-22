@@ -325,5 +325,87 @@ export const deliveryService = {
                 error: `Error de conexión: ${error instanceof Error ? error.message : String(error)}`
             };
         }
+    },
+
+    /**
+     * Actualiza el estado de una entrega con evidencia fotográfica
+     * @param id ID de la entrega a actualizar
+     * @param status ID del nuevo estado de la entrega
+     * @param note Nota opcional para ciertos estados
+     * @param imageUri URI de la imagen de evidencia
+     * @returns Entrega actualizada
+     */
+    updateDeliveryStatusWithImage: async (id: string, status: number, note?: string, imageUri?: string): Promise<{
+        success: boolean;
+        data?: IDeliveryAssignmentEntity;
+        error?: string;
+        details?: any;
+    }> => {
+        // Verificar token antes de hacer la solicitud
+        const token = await AsyncStorage.getItem('auth_token');
+        if (!token) {
+            return {
+                success: false,
+                error: 'No autenticado: token no encontrado',
+            };
+        }
+
+        try {
+            // Si no hay imagen, usar el método normal
+            if (!imageUri) {
+                return await deliveryService.updateDeliveryStatus(id, status, note);
+            }
+
+            // Crear FormData para envío con imagen
+            const formData = new FormData();
+            formData.append('status', status.toString());
+            
+            if (note) {
+                formData.append('note', note);
+            }
+
+            // Agregar la imagen
+            formData.append('image', {
+                uri: imageUri,
+                type: 'image/jpeg',
+                name: `delivery_evidence_${id}_${Date.now()}.jpg`,
+            } as any);
+
+            const response = await api.postFormData<ResponseDataAPI<IDeliveryAssignmentEntity>>(
+                `${BackendUrls.DeliveryAssignments}/${id}/status-with-image`,
+                formData
+            );
+
+            if (response.error || !response.data) {
+                return {
+                    success: false,
+                    error: response.error || `Error al actualizar el estado de la entrega con ID ${id}`,
+                    details: response.details
+                };
+            }
+
+            // Extraer los datos del ResponseAPI
+            const updatedDeliveryData = extractDataFromResponse<IDeliveryAssignmentEntity>(response);
+
+            if (!updatedDeliveryData) {
+                console.error('Error processing update delivery status with image response:', response);
+                return {
+                    success: false,
+                    error: 'Error al procesar la respuesta del servidor',
+                    details: response
+                };
+            }
+
+            return {
+                success: true,
+                data: updatedDeliveryData
+            };
+        } catch (error) {
+            console.error(`Error updating delivery status with image for ID ${id}:`, error);
+            return {
+                success: false,
+                error: `Error de conexión: ${error instanceof Error ? error.message : String(error)}`
+            };
+        }
     }
 };

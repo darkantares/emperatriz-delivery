@@ -9,8 +9,10 @@ import {
     TouchableWithoutFeedback,
     ActivityIndicator,
     Alert,
-    TextInput
+    TextInput,
+    Image
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { getStatusColor, IDeliveryStatus, getStatusIdFromTitle, setDeliveryStatuses, areStatusesLoaded, getDeliveryStatuses, validStatusTransitions } from '@/interfaces/delivery/deliveryStatus';
 import { CustomColors } from '@/constants/CustomColors';
 import { deliveryService } from '@/services/deliveryService';
@@ -38,17 +40,22 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
     const [availableStatuses, setAvailableStatuses] = useState<IDeliveryStatusEntity[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
     const [note, setNote] = useState<string>('');
+    const [photoUri, setPhotoUri] = useState<string | null>(null);
 
     // Estados que requieren nota obligatoria
     const statusesRequiringNote = [
         IDeliveryStatus.CANCELLED,
         IDeliveryStatus.RETURNED,
-        IDeliveryStatus.DELIVERED,
+        // IDeliveryStatus.DELIVERED,
         IDeliveryStatus.ON_HOLD,
         IDeliveryStatus.SCHEDULED
     ];
 
+    // Estados que requieren evidencia fotográfica
+    const statusesRequiringPhoto = [IDeliveryStatus.DELIVERED];
+
     const requiresNote = selectedStatus && statusesRequiringNote.includes(selectedStatus as IDeliveryStatus);
+    const requiresPhoto = selectedStatus && statusesRequiringPhoto.includes(selectedStatus as IDeliveryStatus);
 
     useEffect(() => {
         const loadStatuses = async () => {
@@ -72,9 +79,10 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
         };
 
         if (isVisible) {
-            // Reset selected status and note when modal opens
+            // Reset selected status, note and photo when modal opens
             setSelectedStatus(null);
             setNote('');
+            setPhotoUri(null);
 
             // Cargar estados si es necesario
             loadStatuses().then(() => {
@@ -108,6 +116,46 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
         }
     }, [isVisible, currentStatus]);
 
+    // Función para tomar foto
+    const takePhoto = async () => {
+        try {
+            // Pedir permisos de cámara
+            const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+            
+            if (permissionResult.granted === false) {
+                Alert.alert(
+                    "Permiso denegado",
+                    "Se requiere permiso de cámara para tomar la foto de evidencia.",
+                    [{ text: "OK" }]
+                );
+                return;
+            }
+
+            // Configurar opciones de la cámara
+            const result = await ImagePicker.launchCameraAsync({
+                allowsEditing: true,
+                aspect: [4, 3],
+                quality: 0.8,
+            });
+
+            if (!result.canceled && result.assets[0]) {
+                setPhotoUri(result.assets[0].uri);
+            }
+        } catch (error) {
+            console.error('Error al tomar foto:', error);
+            Alert.alert(
+                "Error",
+                "No se pudo tomar la foto. Inténtalo de nuevo.",
+                [{ text: "OK" }]
+            );
+        }
+    };
+
+    // Función para remover foto
+    const removePhoto = () => {
+        setPhotoUri(null);
+    };
+
     const handleConfirm = async () => {
         if (selectedStatus) {
             // Validar que se haya escrito una nota si es requerida
@@ -115,6 +163,16 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                 Alert.alert(
                     "Campo requerido",
                     "Debes escribir una nota para este estado.",
+                    [{ text: "OK" }]
+                );
+                return;
+            }
+
+            // Validar que se haya tomado una foto si es requerida
+            if (requiresPhoto && !photoUri) {
+                Alert.alert(
+                    "Foto requerida",
+                    "Este estado requiere una foto de evidencia de la entrega.",
                     [{ text: "OK" }]
                 );
                 return;
@@ -134,14 +192,26 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
             setLoading(true);
             
             try {
-                console.log('Actualizando estado a:', selectedStatus, 'con nota:', note);
+                console.log('Actualizando estado a:', selectedStatus, 'con nota:', note, 'con foto:', !!photoUri);
                 
-                // Llamar al servicio para actualizar el estado, usando el ID del estado
-                const result = await deliveryService.updateDeliveryStatus(
-                    itemId,
-                    statusId,
-                    requiresNote ? note.trim() : undefined
-                );
+                let result;
+                
+                // Si tiene foto, usar el método con imagen
+                if (photoUri) {
+                    result = await deliveryService.updateDeliveryStatusWithImage(
+                        itemId,
+                        statusId,
+                        requiresNote ? note.trim() : undefined,
+                        photoUri
+                    );
+                } else {
+                    // Usar el método normal sin imagen
+                    result = await deliveryService.updateDeliveryStatus(
+                        itemId,
+                        statusId,
+                        requiresNote ? note.trim() : undefined
+                    );
+                }
 
                 if (result.success) {
                     // Llamar a fetchDeliveries para actualizar la lista completa
@@ -260,6 +330,33 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                                 </View>
                             )}
 
+                            {/* Campo de foto para estados específicos */}
+                            {requiresPhoto && (
+                                <View style={styles.photoContainer}>
+                                    <Text style={styles.photoLabel}>
+                                        Foto de evidencia requerida:
+                                    </Text>
+                                    {photoUri ? (
+                                        <View style={styles.photoPreviewContainer}>
+                                            <Image source={{ uri: photoUri }} style={styles.photoPreview} />
+                                            <TouchableOpacity
+                                                style={styles.removePhotoButton}
+                                                onPress={removePhoto}
+                                            >
+                                                <Text style={styles.removePhotoText}>✕</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    ) : (
+                                        <TouchableOpacity
+                                            style={styles.photoButton}
+                                            onPress={takePhoto}
+                                        >
+                                            <Text style={styles.photoButtonText}>📷 Tomar Foto</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+                            )}
+
                             <View style={styles.buttonContainer}>
                                 <TouchableOpacity
                                     style={[styles.button, styles.cancelButton]}
@@ -272,10 +369,10 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                                     style={[
                                         styles.button,
                                         styles.confirmButton,
-                                        (!selectedStatus || availableStatuses.length === 0 || (requiresNote && note.trim() === '')) && styles.disabledButton
+                                        (!selectedStatus || availableStatuses.length === 0 || (requiresNote && note.trim() === '') || (requiresPhoto && !photoUri)) && styles.disabledButton
                                     ]}
                                     onPress={handleConfirm}
-                                    disabled={!selectedStatus || availableStatuses.length === 0 || loading || (!!requiresNote && note.trim() === '')}
+                                    disabled={!selectedStatus || availableStatuses.length === 0 || loading || (!!requiresNote && note.trim() === '') || (!!requiresPhoto && !photoUri)}
                                 >
                                     {loading ? (
                                         <ActivityIndicator size="small" color="#fff" />
@@ -434,5 +531,54 @@ const styles = StyleSheet.create({
         opacity: 0.6,
         textAlign: 'right',
         marginTop: 4,
+    },
+    photoContainer: {
+        marginBottom: 20,
+    },
+    photoLabel: {
+        fontSize: 16,
+        color: CustomColors.textLight,
+        marginBottom: 8,
+        fontWeight: 'bold',
+    },
+    photoButton: {
+        backgroundColor: CustomColors.backgroundDarkest,
+        borderRadius: 8,
+        padding: 15,
+        borderWidth: 1,
+        borderColor: CustomColors.divider,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    photoButtonText: {
+        color: CustomColors.textLight,
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    photoPreviewContainer: {
+        position: 'relative',
+        alignItems: 'center',
+    },
+    photoPreview: {
+        width: 200,
+        height: 150,
+        borderRadius: 8,
+        resizeMode: 'cover',
+    },
+    removePhotoButton: {
+        position: 'absolute',
+        top: 5,
+        right: 5,
+        backgroundColor: 'rgba(255, 0, 0, 0.8)',
+        borderRadius: 15,
+        width: 30,
+        height: 30,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    removePhotoText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: 'bold',
     },
 });
