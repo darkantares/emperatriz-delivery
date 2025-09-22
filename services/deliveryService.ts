@@ -325,17 +325,17 @@ export const deliveryService = {
                 error: `Error de conexión: ${error instanceof Error ? error.message : String(error)}`
             };
         }
-    },
+    },  
 
     /**
-     * Actualiza el estado de una entrega con evidencia fotográfica
+     * Actualiza el estado de una entrega con múltiples evidencias fotográficas
      * @param id ID de la entrega a actualizar
      * @param status ID del nuevo estado de la entrega
      * @param note Nota opcional para ciertos estados
-     * @param imageUri URI de la imagen de evidencia
+     * @param imageUris Array de URIs de las imágenes de evidencia
      * @returns Entrega actualizada
      */
-    updateDeliveryStatusWithImage: async (id: string, status: number, note?: string, imageUri?: string): Promise<{
+    updateDeliveryStatusWithImages: async (id: string, status: number, note?: string, imageUris?: string[]): Promise<{
         success: boolean;
         data?: IDeliveryAssignmentEntity;
         error?: string;
@@ -351,12 +351,13 @@ export const deliveryService = {
         }
 
         try {
-            // Si no hay imagen, usar el método normal
-            if (!imageUri) {
+            // Si no hay imágenes, usar el método normal
+            if (!imageUris || imageUris.length === 0) {
+                console.log('No images provided, using standard updateDeliveryStatus');                
                 return await deliveryService.updateDeliveryStatus(id, status, note);
             }
 
-            // Crear FormData para envío con imagen
+            // Crear FormData para envío con imágenes (una o múltiples)
             const formData = new FormData();
             formData.append('status', status.toString());
             
@@ -364,15 +365,19 @@ export const deliveryService = {
                 formData.append('note', note);
             }
 
-            // Agregar la imagen
-            formData.append('image', {
-                uri: imageUri,
-                type: 'image/jpeg',
-                name: `delivery_evidence_${id}_${Date.now()}.jpg`,
-            } as any);
-
+            // Agregar todas las imágenes
+            imageUris.forEach((imageUri, index) => {
+                formData.append('images', {
+                    uri: imageUri,
+                    type: 'image/jpeg',
+                    name: `delivery_evidence_${id}_${index}_${Date.now()}.jpg`,
+                } as any);
+            });
+            console.log('FormData prepared for images:', formData);            
+            console.log('images to upload:', imageUris.length);
+            
             const response = await api.postFormData<ResponseDataAPI<IDeliveryAssignmentEntity>>(
-                `${BackendUrls.DeliveryAssignments}/${id}/status-with-image`,
+                `${BackendUrls.DeliveryAssignments}/${id}/status-with-images`,
                 formData
             );
 
@@ -388,7 +393,7 @@ export const deliveryService = {
             const updatedDeliveryData = extractDataFromResponse<IDeliveryAssignmentEntity>(response);
 
             if (!updatedDeliveryData) {
-                console.error('Error processing update delivery status with image response:', response);
+                console.error('Error processing update delivery status with images response:', response);
                 return {
                     success: false,
                     error: 'Error al procesar la respuesta del servidor',

@@ -41,21 +41,43 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
     const [loading, setLoading] = useState<boolean>(false);
     const [note, setNote] = useState<string>('');
     const [photoUri, setPhotoUri] = useState<string | null>(null);
+    const [imageUri, setImageUri] = useState<string | null>(null);
 
     // Estados que requieren nota obligatoria
     const statusesRequiringNote = [
         IDeliveryStatus.CANCELLED,
         IDeliveryStatus.RETURNED,
-        // IDeliveryStatus.DELIVERED,
         IDeliveryStatus.ON_HOLD,
         IDeliveryStatus.SCHEDULED
     ];
 
-    // Estados que requieren evidencia fotográfica
-    const statusesRequiringPhoto = [IDeliveryStatus.DELIVERED];
+    // Estados que permiten tomar foto (cámara)
+    const statusesAllowingPhoto = [
+        // IDeliveryStatus.CANCELLED,
+        // IDeliveryStatus.RETURNED,
+        // IDeliveryStatus.ON_HOLD,
+        // IDeliveryStatus.SCHEDULED,
+        IDeliveryStatus.DELIVERED,
+    ];
+
+    // Estados que permiten seleccionar imagen (galería)
+    const statusesAllowingImage = [
+        IDeliveryStatus.CANCELLED,
+        IDeliveryStatus.RETURNED,
+        IDeliveryStatus.ON_HOLD,
+        IDeliveryStatus.SCHEDULED,
+        IDeliveryStatus.DELIVERED,
+    ];
+
+    // Estados que requieren evidencia (foto o imagen) obligatoria
+    const statusesRequiringEvidence = [
+        IDeliveryStatus.DELIVERED
+    ];
 
     const requiresNote = selectedStatus && statusesRequiringNote.includes(selectedStatus as IDeliveryStatus);
-    const requiresPhoto = selectedStatus && statusesRequiringPhoto.includes(selectedStatus as IDeliveryStatus);
+    const allowsPhoto = selectedStatus && statusesAllowingPhoto.includes(selectedStatus as IDeliveryStatus);
+    const allowsImage = selectedStatus && statusesAllowingImage.includes(selectedStatus as IDeliveryStatus);
+    const requiresEvidence = selectedStatus && statusesRequiringEvidence.includes(selectedStatus as IDeliveryStatus);
 
     useEffect(() => {
         const loadStatuses = async () => {
@@ -79,10 +101,11 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
         };
 
         if (isVisible) {
-            // Reset selected status, note and photo when modal opens
+            // Reset selected status, note, photo and image when modal opens
             setSelectedStatus(null);
             setNote('');
             setPhotoUri(null);
+            setImageUri(null);
 
             // Cargar estados si es necesario
             loadStatuses().then(() => {
@@ -151,9 +174,50 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
         }
     };
 
+    // Función para seleccionar imagen de la galería
+    const selectImageFromGallery = async () => {
+        try {
+            // Pedir permisos de galería
+            const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            
+            if (permissionResult.granted === false) {
+                Alert.alert(
+                    "Permiso denegado",
+                    "Se requiere permiso para acceder a la galería de imágenes.",
+                    [{ text: "OK" }]
+                );
+                return;
+            }
+
+            // Configurar opciones de la galería
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: 'images',
+                allowsEditing: true,
+                aspect: [4, 3],
+                quality: 0.8,
+            });
+
+            if (!result.canceled && result.assets[0]) {
+                setImageUri(result.assets[0].uri);
+            }
+        } catch (error) {
+            console.error('Error al seleccionar imagen:', error);
+            Alert.alert(
+                "Error",
+                "No se pudo seleccionar la imagen. Inténtalo de nuevo.",
+                [{ text: "OK" }]
+            );
+        }
+    };
+
     // Función para remover foto
     const removePhoto = () => {
         setPhotoUri(null);
+    };
+
+    // Función para remover imagen
+    const removeImage = () => {
+        setImageUri(null);
     };
 
     const handleConfirm = async () => {
@@ -168,11 +232,11 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                 return;
             }
 
-            // Validar que se haya tomado una foto si es requerida
-            if (requiresPhoto && !photoUri) {
+            // Validar que se haya agregado evidencia si es requerida (solo para DELIVERED)
+            if (requiresEvidence && !photoUri && !imageUri) {
                 Alert.alert(
-                    "Foto requerida",
-                    "Este estado requiere una foto de evidencia de la entrega.",
+                    "Evidencia requerida",
+                    "Debes tomar una foto o seleccionar una imagen para el estado DELIVERED.",
                     [{ text: "OK" }]
                 );
                 return;
@@ -192,20 +256,25 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
             setLoading(true);
             
             try {
-                console.log('Actualizando estado a:', selectedStatus, 'con nota:', note, 'con foto:', !!photoUri);
+                console.log('Actualizando estado a:', selectedStatus, 'con nota:', note, 'con foto:', !!photoUri, 'con imagen:', !!imageUri);
                 
                 let result;
                 
-                // Si tiene foto, usar el método con imagen
-                if (photoUri) {
-                    result = await deliveryService.updateDeliveryStatusWithImage(
+                // Verificar si hay evidencias para enviar
+                const evidenceUris: string[] = [];
+                if (photoUri) evidenceUris.push(photoUri);
+                if (imageUri) evidenceUris.push(imageUri);
+                
+                if (evidenceUris.length > 0) {
+                    // Enviar imágenes (una o múltiples)
+                    result = await deliveryService.updateDeliveryStatusWithImages(
                         itemId,
                         statusId,
                         requiresNote ? note.trim() : undefined,
-                        photoUri
+                        evidenceUris
                     );
                 } else {
-                    // Usar el método normal sin imagen
+                    // Sin evidencia
                     result = await deliveryService.updateDeliveryStatus(
                         itemId,
                         statusId,
@@ -241,7 +310,9 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                 setLoading(false);
             }
         }
-    };    // Close modal when clicking outside the content area
+    };
+
+    // Close modal when clicking outside the content area
     const handleOutsidePress = () => {
         onClose();
     };
@@ -311,7 +382,7 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                             {requiresNote && (
                                 <View style={styles.noteContainer}>
                                     <Text style={styles.noteLabel}>
-                                        Nota requerida para este estado:
+                                        Nota (Obligatorio):
                                     </Text>
                                     <TextInput
                                         style={styles.noteInput}
@@ -331,10 +402,10 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                             )}
 
                             {/* Campo de foto para estados específicos */}
-                            {requiresPhoto && (
+                            {allowsPhoto && (
                                 <View style={styles.photoContainer}>
                                     <Text style={styles.photoLabel}>
-                                        Foto de evidencia requerida:
+                                        Tomar Foto {requiresEvidence ? '(obligatorio)' : '(opcional)'}:
                                     </Text>
                                     {photoUri ? (
                                         <View style={styles.photoPreviewContainer}>
@@ -351,7 +422,38 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                                             style={styles.photoButton}
                                             onPress={takePhoto}
                                         >
-                                            <Text style={styles.photoButtonText}>📷 Tomar Foto</Text>
+                                            <Text style={styles.photoButtonText}>
+                                                📷 Tomar Foto {requiresEvidence ? '(obligatorio)' : '(opcional)'}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+                            )}
+
+                            {/* Campo de imagen para estados específicos */}
+                            {allowsImage && (
+                                <View style={styles.photoContainer}>
+                                    <Text style={styles.photoLabel}>
+                                        Seleccionar Imagen {requiresEvidence ? '(obligatorio)' : '(opcional)'}:
+                                    </Text>
+                                    {imageUri ? (
+                                        <View style={styles.photoPreviewContainer}>
+                                            <Image source={{ uri: imageUri }} style={styles.photoPreview} />
+                                            <TouchableOpacity
+                                                style={styles.removePhotoButton}
+                                                onPress={removeImage}
+                                            >
+                                                <Text style={styles.removePhotoText}>✕</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    ) : (
+                                        <TouchableOpacity
+                                            style={styles.photoButton}
+                                            onPress={selectImageFromGallery}
+                                        >
+                                            <Text style={styles.photoButtonText}>
+                                                🖼️ Seleccionar Imagen {requiresEvidence ? '(obligatorio)' : '(opcional)'}
+                                            </Text>
                                         </TouchableOpacity>
                                     )}
                                 </View>
@@ -369,10 +471,10 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                                     style={[
                                         styles.button,
                                         styles.confirmButton,
-                                        (!selectedStatus || availableStatuses.length === 0 || (requiresNote && note.trim() === '') || (requiresPhoto && !photoUri)) && styles.disabledButton
+                                        (!selectedStatus || availableStatuses.length === 0 || (requiresNote && note.trim() === '') || (requiresEvidence && !photoUri && !imageUri)) && styles.disabledButton
                                     ]}
                                     onPress={handleConfirm}
-                                    disabled={!selectedStatus || availableStatuses.length === 0 || loading || (!!requiresNote && note.trim() === '') || (!!requiresPhoto && !photoUri)}
+                                    disabled={!selectedStatus || availableStatuses.length === 0 || loading || (!!requiresNote && note.trim() === '') || (!!requiresEvidence && !photoUri && !imageUri)}
                                 >
                                     {loading ? (
                                         <ActivityIndicator size="small" color="#fff" />
@@ -402,7 +504,7 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         padding: 20,
         width: '100%',
-        maxHeight: '80%',
+        maxHeight: '90%',
     },
     modalHeader: {
         marginBottom: 20,
@@ -549,6 +651,12 @@ const styles = StyleSheet.create({
         borderColor: CustomColors.divider,
         alignItems: 'center',
         justifyContent: 'center',
+        marginVertical: 5,
+    },
+    photoButtonsContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 8,
     },
     photoButtonText: {
         color: CustomColors.textLight,
@@ -560,8 +668,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     photoPreview: {
-        width: 200,
-        height: 150,
+        width: 150,
+        height: 112,
         borderRadius: 8,
         resizeMode: 'cover',
     },

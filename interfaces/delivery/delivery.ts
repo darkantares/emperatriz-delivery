@@ -4,6 +4,7 @@ import { IMunicipio, IProvincia, ISector } from "../location";
 import { IDeliveryPerson } from "../carrier";
 import { IEnterpriseEntity } from "../auth";
 import { IDeliveryStatus } from "./deliveryStatus";
+import { IPaymentMethodEntity } from "../payment/payment";
 
 export interface IUpdateDelivery extends Partial<ICreateDeliveryAssigment>{}
 
@@ -14,6 +15,7 @@ export interface IDeliveryAssignmentSummaryEntity extends IGlobalEntity {
   contact: string;
   cost: number;
   phone: string;
+  amountPaid?: number;
   deliveryAddress: string;
   observations?: string;
   provincia: IProvincia;
@@ -26,6 +28,7 @@ export interface IDeliveryAssignmentSummaryEntity extends IGlobalEntity {
   acceptedAt: Date;
   completedAt: Date;
   driver: IDeliveryPerson;
+  paymentMethod?: IPaymentMethodEntity;
   origin: ISector;
   destiny?: ISector;
   enterprise:IEnterpriseEntity;
@@ -37,6 +40,7 @@ export interface IDeliveryAssignmentEntity extends IGlobalEntity {
   fee: number;
   contact: string;
   cost: number;
+  amountPaid?: number;
   phone: string;
   shipmentId: string;
   type: AssignmentType;
@@ -45,6 +49,7 @@ export interface IDeliveryAssignmentEntity extends IGlobalEntity {
   provincia: IProvincia;
   municipio: IMunicipio;
   deliveryStatus: IDeliveryStatusEntity;
+  paymentMethod?: IPaymentMethodEntity;
   shippingDate: string;
   assignedAt: Date;
   acceptedAt: Date;
