@@ -87,10 +87,10 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
     const requiresPaymentInfo = selectedStatus === IDeliveryStatus.DELIVERED;
 
     // Estado para validar si el formulario está completo
-    const isFormValid = selectedStatus && 
-        availableStatuses.length > 0 && 
-        (!requiresNote || note.trim() !== '') && 
-        (!requiresEvidence || photoUri || imageUri) && 
+    const isFormValid = selectedStatus &&
+        availableStatuses.length > 0 &&
+        (!requiresNote || note.trim() !== '') &&
+        (!requiresEvidence || photoUri || imageUri) &&
         (!requiresPaymentInfo || (amountPaid.trim() !== '' && selectedPaymentMethod));
 
     useEffect(() => {
@@ -118,7 +118,7 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
             try {
                 const response = await paymentMethodService.getPaymentMethods();
                 console.log('Payment methods response:', response);
-                
+
                 if (response.success && response.data) {
                     setPaymentMethods(response.data);
                 } else {
@@ -144,14 +144,14 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
             Promise.all([loadStatuses(), loadPaymentMethods()]).then(() => {
                 // Obtener todos los estados cargados del backend
                 const allStatuses = getDeliveryStatuses();
-                
+
                 // Obtener las transiciones válidas basadas en el estado actual
                 const currentStatusAsEnum = Object.values(IDeliveryStatus).find(
                     status => status === currentStatus
                 ) as IDeliveryStatus;
-                
+
                 let validNextStatuses: string[] = [];
-                
+
                 if (currentStatusAsEnum && validStatusTransitions[currentStatusAsEnum]) {
                     // Usar las transiciones definidas en el enum
                     validNextStatuses = validStatusTransitions[currentStatusAsEnum];
@@ -161,12 +161,12 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                         .filter(status => status.title !== currentStatus)
                         .map(status => status.title);
                 }
-                
+
                 // Filtrar los estados del backend que coincidan con las transiciones válidas
-                const filteredStatuses = allStatuses.filter(status => 
+                const filteredStatuses = allStatuses.filter(status =>
                     validNextStatuses.includes(status.title)
                 );
-                
+
                 setAvailableStatuses(filteredStatuses);
             });
         }
@@ -177,7 +177,7 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
         try {
             // Pedir permisos de cámara
             const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-            
+
             if (permissionResult.granted === false) {
                 Alert.alert(
                     "Permiso denegado",
@@ -212,7 +212,7 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
         try {
             // Pedir permisos de galería
             const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-            
+
             if (permissionResult.granted === false) {
                 Alert.alert(
                     "Permiso denegado",
@@ -307,17 +307,17 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
             }
 
             setLoading(true);
-            
+
             try {
                 console.log('Actualizando estado a:', selectedStatus, 'con nota:', note, 'con foto:', !!photoUri, 'con imagen:', !!imageUri, 'con monto:', amountPaid, 'con método de pago:', selectedPaymentMethod);
-                
+
                 let result;
-                
+
                 // Verificar si hay evidencias para enviar
                 const evidenceUris: string[] = [];
                 if (photoUri) evidenceUris.push(photoUri);
                 if (imageUri) evidenceUris.push(imageUri);
-                
+
                 if (evidenceUris.length > 0) {
                     // Preparar los datos para enviar al servicio
                     const updateData: IUpdateDeliveryStatusData = {
@@ -328,7 +328,7 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                         amountPaid: requiresPaymentInfo && amountPaid.trim() ? parseFloat(amountPaid) : undefined,
                         paymentMethodId: requiresPaymentInfo && selectedPaymentMethod ? selectedPaymentMethod : undefined,
                     };
-                    
+
                     // Enviar imágenes (una o múltiples) con toda la información
                     result = await deliveryService.updateDeliveryStatusWithImages(updateData);
                 } else {
@@ -345,9 +345,9 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                 if (result.success) {
                     // Llamar a fetchDeliveries para actualizar la lista completa
                     console.log('Estado actualizado con éxito, refrescando entregas...');
-                    
+
                     await fetchDeliveries();
-                    
+
                     // Llamar al callback del componente padre
                     onStatusSelected(selectedStatus);
                     onClose();
@@ -413,247 +413,330 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                 animationType="fade"
                 onRequestClose={onClose}
             >
-            <TouchableWithoutFeedback onPress={handleOutsidePress}>
-                <View style={styles.modalOverlay}>
-                    <TouchableWithoutFeedback onPress={handleContentPress}>
-                        <View style={styles.modalContent}>
-                            <View style={styles.modalHeader}>
-                                <Text style={styles.modalTitle}>Actualizar Estado</Text>
-                                <Text style={styles.currentStatus}>
-                                    Estado actual: <Text style={[styles.statusValue, { color: getStatusColor(currentStatus) }]}>{currentStatus}</Text>
-                                </Text>
-                            </View>
-                            {availableStatuses.length > 0 ? (
-                                <FlatList
-                                    data={availableStatuses}
-                                    renderItem={renderStatusItem}
-                                    keyExtractor={(item) => item.id.toString()}
-                                    style={styles.statusList}
-                                />
-                            ) : (
-                                <View style={styles.noStatusesContainer}>
-                                    <Text style={styles.noStatusesText}>
-                                        No hay estados disponibles para progresión.
-                                        Este es un estado final.
+                <TouchableWithoutFeedback onPress={handleOutsidePress}>
+                    <View style={styles.modalOverlay}>
+                        <TouchableWithoutFeedback onPress={handleContentPress}>
+                            <View style={styles.modalContent}>
+                                <View style={styles.modalHeader}>
+                                    <Text style={styles.modalTitle}>Actualizar Estado</Text>
+                                    <Text style={styles.currentStatus}>
+                                        Estado actual: <Text style={[styles.statusValue, { color: getStatusColor(currentStatus) }]}>{currentStatus}</Text>
                                     </Text>
                                 </View>
-                            )}
-
-                            {/* Campo de nota para estados específicos */}
-                            {requiresNote && (
-                                <View style={styles.noteContainer}>
-                                    <Text style={styles.noteLabel}>
-                                        Nota (Obligatorio):
-                                    </Text>
-                                    <TextInput
-                                        style={styles.noteInput}
-                                        placeholder="Escribe una nota explicando el motivo..."
-                                        placeholderTextColor={CustomColors.divider}
-                                        value={note}
-                                        onChangeText={setNote}
-                                        multiline={true}
-                                        numberOfLines={3}
-                                        textAlignVertical="top"
-                                        maxLength={500}
+                                {availableStatuses.length > 0 ? (
+                                    <FlatList
+                                        data={availableStatuses}
+                                        renderItem={renderStatusItem}
+                                        keyExtractor={(item) => item.id.toString()}
+                                        style={styles.statusList}
                                     />
-                                    <Text style={styles.characterCount}>
-                                        {note.length}/500 caracteres
-                                    </Text>
-                                </View>
-                            )}
+                                ) : (
+                                    <View style={styles.noStatusesContainer}>
+                                        <Text style={styles.noStatusesText}>
+                                            No hay estados disponibles para progresión.
+                                            Este es un estado final.
+                                        </Text>
+                                    </View>
+                                )}
 
-                            {/* Campo de foto para estados específicos */}
-                            {allowsPhoto && (
-                                <View style={styles.photoContainer}>
-                                    <Text style={styles.photoLabel}>
-                                        Tomar Foto {requiresEvidence ? '(obligatorio)' : '(opcional)'}:
-                                    </Text>
-                                    {photoUri ? (
-                                        <View style={styles.photoPreviewContainer}>
-                                            <Image source={{ uri: photoUri }} style={styles.photoPreview} />
-                                            <TouchableOpacity
-                                                style={styles.removePhotoButton}
-                                                onPress={removePhoto}
-                                            >
-                                                <Text style={styles.removePhotoText}>✕</Text>
-                                            </TouchableOpacity>
-                                        </View>
-                                    ) : (
-                                        <TouchableOpacity
-                                            style={styles.photoButton}
-                                            onPress={takePhoto}
-                                        >
-                                            <Text style={styles.photoButtonText}>
-                                                📷 Tomar Foto {requiresEvidence ? '(obligatorio)' : '(opcional)'}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    )}
-                                </View>
-                            )}
-
-                            {/* Campo de imagen para estados específicos */}
-                            {allowsImage && (
-                                <View style={styles.photoContainer}>
-                                    <Text style={styles.photoLabel}>
-                                        Seleccionar Imagen {requiresEvidence ? '(obligatorio)' : '(opcional)'}:
-                                    </Text>
-                                    {imageUri ? (
-                                        <View style={styles.photoPreviewContainer}>
-                                            <Image source={{ uri: imageUri }} style={styles.photoPreview} />
-                                            <TouchableOpacity
-                                                style={styles.removePhotoButton}
-                                                onPress={removeImage}
-                                            >
-                                                <Text style={styles.removePhotoText}>✕</Text>
-                                            </TouchableOpacity>
-                                        </View>
-                                    ) : (
-                                        <TouchableOpacity
-                                            style={styles.photoButton}
-                                            onPress={selectImageFromGallery}
-                                        >
-                                            <Text style={styles.photoButtonText}>
-                                                🖼️ Seleccionar Imagen {requiresEvidence ? '(obligatorio)' : '(opcional)'}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    )}
-                                </View>
-                            )}
-
-                            {/* Campos de información de pago para DELIVERED */}
-                            {requiresPaymentInfo && (
-                                <>
-                                    <View style={styles.paymentContainer}>
-                                        <Text style={styles.paymentLabel}>
-                                            Monto Pagado (Obligatorio):
+                                {/* Campo de nota para estados específicos */}
+                                {requiresNote && (
+                                    <View style={styles.noteContainer}>
+                                        <Text style={styles.noteLabel}>
+                                            Nota (Obligatorio):
                                         </Text>
                                         <TextInput
-                                            style={styles.paymentInput}
-                                            placeholder="Ingrese el monto pagado..."
+                                            style={styles.noteInput}
+                                            placeholder="Escribe una nota explicando el motivo..."
                                             placeholderTextColor={CustomColors.divider}
-                                            value={amountPaid}
-                                            onChangeText={setAmountPaid}
-                                            keyboardType="numeric"
+                                            value={note}
+                                            onChangeText={setNote}
+                                            multiline={true}
+                                            numberOfLines={3}
+                                            textAlignVertical="top"
+                                            maxLength={500}
                                         />
-                                    </View>
-
-                                    <View style={styles.paymentContainer}>
-                                        <Text style={styles.paymentLabel}>
-                                            Método de Pago (Obligatorio):
+                                        <Text style={styles.characterCount}>
+                                            {note.length}/500 caracteres
                                         </Text>
-                                        <TouchableOpacity
-                                            style={styles.paymentMethodButton}
-                                            onPress={() => setShowPaymentMethodPicker(true)}
-                                        >
-                                            <Text style={styles.paymentMethodButtonText}>
-                                                {selectedPaymentMethod 
-                                                    ? paymentMethods.find(pm => pm.id === selectedPaymentMethod)?.title 
-                                                    : 'Seleccionar método de pago...'
-                                                }
-                                            </Text>
-                                            <Text style={styles.dropdownArrow}>▼</Text>
-                                        </TouchableOpacity>
                                     </View>
-                                </>
-                            )}
+                                )}
 
-                            <View style={styles.buttonContainer}>
+                                {/* Campos de evidencia (foto e imagen) */}
+                                {(allowsPhoto || allowsImage) && (
+                                    <View style={styles.photoContainer}>
+                                        <Text style={styles.photoLabel}>
+                                            Evidencia {requiresEvidence ? '(obligatorio)' : '(opcional)'}:
+                                        </Text>
+                                        
+                                        {/* Mostrar layout lado a lado cuando ambas opciones están disponibles */}
+                                        {allowsPhoto && allowsImage ? (
+                                            <View style={styles.imagesRowContainer}>
+                                                {/* Foto de cámara */}
+                                                <View style={styles.imageHalfContainer}>
+                                                    <Text style={styles.imageTypeLabel}>Foto de cámara:</Text>
+                                                    {photoUri ? (
+                                                        <View style={styles.photoPreviewContainer}>
+                                                            <Image source={{ uri: photoUri }} style={styles.photoPreviewHalf} />
+                                                            <TouchableOpacity
+                                                                style={styles.removePhotoButton}
+                                                                onPress={removePhoto}
+                                                            >
+                                                                <Text style={styles.removePhotoText}>✕</Text>
+                                                            </TouchableOpacity>
+                                                        </View>
+                                                    ) : (
+                                                        <View style={styles.imagePlaceholderContainer}>
+                                                            <View style={styles.imagePlaceholder}>
+                                                                <Text style={styles.placeholderIcon}>📷</Text>
+                                                                <Text style={styles.placeholderText}>No image selected</Text>
+                                                            </View>
+                                                            <TouchableOpacity
+                                                                style={styles.placeholderButton}
+                                                                onPress={takePhoto}
+                                                            >
+                                                                <Text style={styles.placeholderButtonText}>
+                                                                    📷 Foto {requiresEvidence ? '(*)' : ''}
+                                                                </Text>
+                                                            </TouchableOpacity>
+                                                        </View>
+                                                    )}
+                                                </View>
+                                                
+                                                {/* Imagen de galería */}
+                                                <View style={styles.imageHalfContainer}>
+                                                    <Text style={styles.imageTypeLabel}>Imagen de galería:</Text>
+                                                    {imageUri ? (
+                                                        <View style={styles.photoPreviewContainer}>
+                                                            <Image source={{ uri: imageUri }} style={styles.photoPreviewHalf} />
+                                                            <TouchableOpacity
+                                                                style={styles.removePhotoButton}
+                                                                onPress={removeImage}
+                                                            >
+                                                                <Text style={styles.removePhotoText}>✕</Text>
+                                                            </TouchableOpacity>
+                                                        </View>
+                                                    ) : (
+                                                        <View style={styles.imagePlaceholderContainer}>
+                                                            <View style={styles.imagePlaceholder}>
+                                                                <Text style={styles.placeholderIcon}>🖼️</Text>
+                                                                <Text style={styles.placeholderText}>No image selected</Text>
+                                                            </View>
+                                                            <TouchableOpacity
+                                                                style={styles.placeholderButton}
+                                                                onPress={selectImageFromGallery}
+                                                            >
+                                                                <Text style={styles.placeholderButtonText}>
+                                                                    🖼️ Imagen {requiresEvidence ? '(*)' : ''}
+                                                                </Text>
+                                                            </TouchableOpacity>
+                                                        </View>
+                                                    )}
+                                                </View>
+                                            </View>
+                                        ) : (
+                                            /* Layout vertical cuando solo una opción está disponible */
+                                            <>
+                                                {/* Campo de foto */}
+                                                {allowsPhoto && (
+                                                    <View style={styles.singleImageContainer}>
+                                                        {photoUri ? (
+                                                            <View>
+                                                                <Text style={styles.imageTypeLabel}>Foto de cámara:</Text>
+                                                                <View style={styles.photoPreviewContainer}>
+                                                                    <Image source={{ uri: photoUri }} style={styles.photoPreview} />
+                                                                    <TouchableOpacity
+                                                                        style={styles.removePhotoButton}
+                                                                        onPress={removePhoto}
+                                                                    >
+                                                                        <Text style={styles.removePhotoText}>✕</Text>
+                                                                    </TouchableOpacity>
+                                                                </View>
+                                                            </View>
+                                                        ) : (
+                                                            <TouchableOpacity
+                                                                style={styles.photoButton}
+                                                                onPress={takePhoto}
+                                                            >
+                                                                <Text style={styles.photoButtonText}>
+                                                                    📷 Foto {requiresEvidence ? '(obligatorio)' : '(opcional)'}
+                                                                </Text>
+                                                            </TouchableOpacity>
+                                                        )}
+                                                    </View>
+                                                )}
+
+                                                {/* Campo de imagen */}
+                                                {allowsImage && (
+                                                    <View style={styles.singleImageContainer}>
+                                                        {imageUri ? (
+                                                            <View>
+                                                                <Text style={styles.imageTypeLabel}>Imagen de galería:</Text>
+                                                                <View style={styles.photoPreviewContainer}>
+                                                                    <Image source={{ uri: imageUri }} style={styles.photoPreview} />
+                                                                    <TouchableOpacity
+                                                                        style={styles.removePhotoButton}
+                                                                        onPress={removeImage}
+                                                                    >
+                                                                        <Text style={styles.removePhotoText}>✕</Text>
+                                                                    </TouchableOpacity>
+                                                                </View>
+                                                            </View>
+                                                        ) : (
+                                                            <TouchableOpacity
+                                                                style={styles.photoButton}
+                                                                onPress={selectImageFromGallery}
+                                                            >
+                                                                <Text style={styles.photoButtonText}>
+                                                                    🖼️ Imagen {requiresEvidence ? '(obligatorio)' : '(opcional)'}
+                                                                </Text>
+                                                            </TouchableOpacity>
+                                                        )}
+                                                    </View>
+                                                )}
+                                            </>
+                                        )}
+                                    </View>
+                                )}
+
+                                {/* Campos de información de pago para DELIVERED */}
+                                {requiresPaymentInfo && (
+                                    <>
+                                        <View style={styles.paymentContainer}>
+                                            <Text style={styles.paymentLabel}>
+                                                Monto Pagado (Obligatorio):
+                                            </Text>
+                                            <TextInput
+                                                style={styles.paymentInput}
+                                                placeholder="Ingrese el monto pagado..."
+                                                placeholderTextColor={CustomColors.divider}
+                                                value={amountPaid}
+                                                onChangeText={text => {
+                                                    // Solo permite números y punto decimal
+                                                    const filtered = text.replace(/[^0-9.]/g, '');
+                                                    setAmountPaid(filtered);
+                                                }}
+                                                keyboardType="numeric"
+                                            />
+                                        </View>
+
+                                        <View style={styles.paymentContainer}>
+                                            <Text style={styles.paymentLabel}>
+                                                Método de Pago (Obligatorio):
+                                            </Text>
+                                            <TouchableOpacity
+                                                style={styles.paymentMethodButton}
+                                                onPress={() => setShowPaymentMethodPicker(true)}
+                                            >
+                                                <Text style={styles.paymentMethodButtonText}>
+                                                    {selectedPaymentMethod
+                                                        ? paymentMethods.find(pm => pm.id === selectedPaymentMethod)?.title
+                                                        : 'Seleccionar método de pago...'
+                                                    }
+                                                </Text>
+                                                <Text style={styles.dropdownArrow}>▼</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    </>
+                                )}
+
+                                <View style={styles.buttonContainer}>
+                                    <TouchableOpacity
+                                        style={[styles.button, styles.cancelButton]}
+                                        onPress={onClose}
+                                    >
+                                        <Text style={styles.buttonText}>Cancelar</Text>
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.button,
+                                            styles.confirmButton,
+                                            !isFormValid && styles.disabledButton
+                                        ]}
+                                        onPress={handleConfirm}
+                                        disabled={!isFormValid || loading}
+                                    >
+                                        {loading ? (
+                                            <ActivityIndicator size="small" color="#fff" />
+                                        ) : (
+                                            <Text style={styles.buttonText}>Confirmar</Text>
+                                        )}
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </TouchableWithoutFeedback>
+                    </View>
+                </TouchableWithoutFeedback>
+            </Modal>
+
+            {/* Modal para seleccionar método de pago */}
+            <Modal
+                visible={showPaymentMethodPicker}
+                transparent={true}
+                animationType="slide"
+                onRequestClose={() => setShowPaymentMethodPicker(false)}
+            >
+                <TouchableWithoutFeedback onPress={() => setShowPaymentMethodPicker(false)}>
+                    <View style={styles.modalOverlay}>
+                        <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
+                            <View style={[styles.modalContent, { maxHeight: '60%' }]}>
+                                <Text style={styles.modalTitle}>Seleccionar Método de Pago</Text>
+                                <FlatList
+                                    data={paymentMethods}
+                                    keyExtractor={(item) => item.id.toString()}
+                                    renderItem={({ item }) => (
+                                        <TouchableOpacity
+                                            style={[
+                                                styles.statusItem,
+                                                selectedPaymentMethod === item.id && {
+                                                    borderColor: CustomColors.secondary,
+                                                    borderWidth: 2
+                                                }
+                                            ]}
+                                            onPress={() => {
+                                                setSelectedPaymentMethod(item.id);
+                                                setShowPaymentMethodPicker(false);
+                                            }}
+                                        >
+                                            <View style={[
+                                                styles.radioButton,
+                                                selectedPaymentMethod === item.id && {
+                                                    borderColor: CustomColors.secondary
+                                                }
+                                            ]}>
+                                                {selectedPaymentMethod === item.id && (
+                                                    <View style={[
+                                                        styles.radioButtonSelected,
+                                                        { backgroundColor: CustomColors.secondary }
+                                                    ]} />
+                                                )}
+                                            </View>
+                                            <Text style={[
+                                                styles.statusText,
+                                                {
+                                                    color: selectedPaymentMethod === item.id
+                                                        ? CustomColors.secondary
+                                                        : CustomColors.textLight
+                                                }
+                                            ]}>
+                                                {item.title}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    )}
+                                />
                                 <TouchableOpacity
-                                    style={[styles.button, styles.cancelButton]}
-                                    onPress={onClose}
+                                    style={[styles.button, styles.cancelButton, { width: '100%', marginTop: 10 }]}
+                                    onPress={() => setShowPaymentMethodPicker(false)}
                                 >
                                     <Text style={styles.buttonText}>Cancelar</Text>
                                 </TouchableOpacity>
-
-                                <TouchableOpacity
-                                    style={[
-                                        styles.button,
-                                        styles.confirmButton,
-                                        !isFormValid && styles.disabledButton
-                                    ]}
-                                    onPress={handleConfirm}
-                                    disabled={!isFormValid || loading}
-                                >
-                                    {loading ? (
-                                        <ActivityIndicator size="small" color="#fff" />
-                                    ) : (
-                                        <Text style={styles.buttonText}>Confirmar</Text>
-                                    )}
-                                </TouchableOpacity>
                             </View>
-                        </View>
-                    </TouchableWithoutFeedback>
-                </View>
-            </TouchableWithoutFeedback>
-        </Modal>
-
-        {/* Modal para seleccionar método de pago */}
-        <Modal
-            visible={showPaymentMethodPicker}
-            transparent={true}
-            animationType="slide"
-            onRequestClose={() => setShowPaymentMethodPicker(false)}
-        >
-            <TouchableWithoutFeedback onPress={() => setShowPaymentMethodPicker(false)}>
-                <View style={styles.modalOverlay}>
-                    <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
-                        <View style={[styles.modalContent, { maxHeight: '60%' }]}>
-                            <Text style={styles.modalTitle}>Seleccionar Método de Pago</Text>
-                            <FlatList
-                                data={paymentMethods}
-                                keyExtractor={(item) => item.id.toString()}
-                                renderItem={({ item }) => (
-                                    <TouchableOpacity
-                                        style={[
-                                            styles.statusItem,
-                                            selectedPaymentMethod === item.id && { 
-                                                borderColor: CustomColors.secondary, 
-                                                borderWidth: 2 
-                                            }
-                                        ]}
-                                        onPress={() => {
-                                            setSelectedPaymentMethod(item.id);
-                                            setShowPaymentMethodPicker(false);
-                                        }}
-                                    >
-                                        <View style={[
-                                            styles.radioButton, 
-                                            selectedPaymentMethod === item.id && { 
-                                                borderColor: CustomColors.secondary 
-                                            }
-                                        ]}>
-                                            {selectedPaymentMethod === item.id && (
-                                                <View style={[
-                                                    styles.radioButtonSelected, 
-                                                    { backgroundColor: CustomColors.secondary }
-                                                ]} />
-                                            )}
-                                        </View>
-                                        <Text style={[
-                                            styles.statusText, 
-                                            { 
-                                                color: selectedPaymentMethod === item.id 
-                                                    ? CustomColors.secondary 
-                                                    : CustomColors.textLight 
-                                            }
-                                        ]}>
-                                            {item.title}
-                                        </Text>
-                                    </TouchableOpacity>
-                                )}
-                            />
-                            <TouchableOpacity
-                                style={[styles.button, styles.cancelButton, { width: '100%', marginTop: 10 }]}
-                                onPress={() => setShowPaymentMethodPicker(false)}
-                            >
-                                <Text style={styles.buttonText}>Cancelar</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </TouchableWithoutFeedback>
-                </View>
-            </TouchableWithoutFeedback>
-        </Modal>
-    </>
+                        </TouchableWithoutFeedback>
+                    </View>
+                </TouchableWithoutFeedback>
+            </Modal>
+        </>
     );
 };
 
@@ -828,6 +911,16 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
     },
+    // Estilos para botones lado a lado
+    buttonsRowContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 10,
+    },
+    photoButtonHalf: {
+        flex: 0.48, // Un poco menos de la mitad para dejar espacio entre los botones
+        marginVertical: 0, // Remover margen vertical para botones lado a lado
+    },
     photoPreviewContainer: {
         position: 'relative',
         alignItems: 'center',
@@ -852,6 +945,71 @@ const styles = StyleSheet.create({
     removePhotoText: {
         color: 'white',
         fontSize: 16,
+        fontWeight: 'bold',
+    },
+    // Estilos para layout de imágenes lado a lado
+    imagesRowContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 10,
+    },
+    imageHalfContainer: {
+        flex: 0.48, // Un poco menos de la mitad para dejar espacio entre las imágenes
+    },
+    singleImageContainer: {
+        marginTop: 10,
+    },
+    imageTypeLabel: {
+        fontSize: 14,
+        color: CustomColors.textLight,
+        marginBottom: 5,
+        fontWeight: '600',
+    },
+    photoPreviewHalf: {
+        width: '100%',
+        height: 100,
+        borderRadius: 8,
+        resizeMode: 'cover',
+    },
+    // Estilos para placeholders de imágenes
+    imagePlaceholderContainer: {
+        alignItems: 'center',
+    },
+    imagePlaceholder: {
+        width: '100%',
+        height: 100,
+        borderRadius: 8,
+        backgroundColor: CustomColors.backgroundDarkest,
+        borderWidth: 2,
+        borderColor: CustomColors.divider,
+        borderStyle: 'dashed',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    placeholderIcon: {
+        fontSize: 24,
+        color: CustomColors.textLight,
+        opacity: 0.6,
+        marginBottom: 4,
+    },
+    placeholderText: {
+        fontSize: 12,
+        color: CustomColors.textLight,
+        opacity: 0.6,
+        textAlign: 'center',
+    },
+    placeholderButton: {
+        backgroundColor: CustomColors.secondary,
+        borderRadius: 6,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        width: '100%',
+        alignItems: 'center',
+    },
+    placeholderButtonText: {
+        color: CustomColors.textLight,
+        fontSize: 12,
         fontWeight: 'bold',
     },
     paymentContainer: {
