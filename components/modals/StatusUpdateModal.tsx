@@ -17,7 +17,9 @@ import { getStatusColor, IDeliveryStatus, getStatusIdFromTitle, setDeliveryStatu
 import { CustomColors } from '@/constants/CustomColors';
 import { deliveryService } from '@/services/deliveryService';
 import { deliveryStatusService } from '@/services/deliveryStatusService';
-import { IDeliveryStatusEntity } from '@/interfaces/delivery/delivery';
+import { paymentMethodService } from '@/services/paymentMethodService';
+import { IDeliveryStatusEntity, IUpdateDeliveryStatusData } from '@/interfaces/delivery/delivery';
+import { IPaymentMethodEntity } from '@/interfaces/payment/payment';
 import { useDelivery } from '@/context/DeliveryContext';
 
 interface StatusUpdateModalProps {
@@ -42,6 +44,10 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
     const [note, setNote] = useState<string>('');
     const [photoUri, setPhotoUri] = useState<string | null>(null);
     const [imageUri, setImageUri] = useState<string | null>(null);
+    const [amountPaid, setAmountPaid] = useState<string>('');
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<number | null>(null);
+    const [paymentMethods, setPaymentMethods] = useState<IPaymentMethodEntity[]>([]);
+    const [showPaymentMethodPicker, setShowPaymentMethodPicker] = useState<boolean>(false);
 
     // Estados que requieren nota obligatoria
     const statusesRequiringNote = [
@@ -78,6 +84,14 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
     const allowsPhoto = selectedStatus && statusesAllowingPhoto.includes(selectedStatus as IDeliveryStatus);
     const allowsImage = selectedStatus && statusesAllowingImage.includes(selectedStatus as IDeliveryStatus);
     const requiresEvidence = selectedStatus && statusesRequiringEvidence.includes(selectedStatus as IDeliveryStatus);
+    const requiresPaymentInfo = selectedStatus === IDeliveryStatus.DELIVERED;
+
+    // Estado para validar si el formulario está completo
+    const isFormValid = selectedStatus && 
+        availableStatuses.length > 0 && 
+        (!requiresNote || note.trim() !== '') && 
+        (!requiresEvidence || photoUri || imageUri) && 
+        (!requiresPaymentInfo || (amountPaid.trim() !== '' && selectedPaymentMethod));
 
     useEffect(() => {
         const loadStatuses = async () => {
@@ -100,15 +114,34 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
             }
         };
 
+        const loadPaymentMethods = async () => {
+            try {
+                const response = await paymentMethodService.getPaymentMethods();
+                console.log('Payment methods response:', response);
+                
+                if (response.success && response.data) {
+                    setPaymentMethods(response.data);
+                } else {
+                    console.error('Error al cargar métodos de pago:', response.error);
+                    Alert.alert('Error', 'No se pudieron cargar los métodos de pago');
+                }
+            } catch (error) {
+                console.error('Error al cargar métodos de pago:', error);
+                Alert.alert('Error', 'Error de conexión al cargar los métodos de pago');
+            }
+        };
+
         if (isVisible) {
-            // Reset selected status, note, photo and image when modal opens
+            // Reset selected status, note, photo, image, amount and payment method when modal opens
             setSelectedStatus(null);
             setNote('');
             setPhotoUri(null);
             setImageUri(null);
+            setAmountPaid('');
+            setSelectedPaymentMethod(null);
 
-            // Cargar estados si es necesario
-            loadStatuses().then(() => {
+            // Cargar estados y métodos de pago si es necesario
+            Promise.all([loadStatuses(), loadPaymentMethods()]).then(() => {
                 // Obtener todos los estados cargados del backend
                 const allStatuses = getDeliveryStatuses();
                 
@@ -242,6 +275,26 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                 return;
             }
 
+            // Validar que se haya ingresado la información de pago si es requerida (solo para DELIVERED)
+            if (requiresPaymentInfo) {
+                if (!amountPaid.trim()) {
+                    Alert.alert(
+                        "Monto requerido",
+                        "Debes ingresar el monto pagado para el estado DELIVERED.",
+                        [{ text: "OK" }]
+                    );
+                    return;
+                }
+                if (!selectedPaymentMethod) {
+                    Alert.alert(
+                        "Método de pago requerido",
+                        "Debes seleccionar un método de pago para el estado DELIVERED.",
+                        [{ text: "OK" }]
+                    );
+                    return;
+                }
+            }
+
             // Obtener el ID del estado seleccionado
             const statusId = getStatusIdFromTitle(selectedStatus);
             if (!statusId) {
@@ -256,7 +309,7 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
             setLoading(true);
             
             try {
-                console.log('Actualizando estado a:', selectedStatus, 'con nota:', note, 'con foto:', !!photoUri, 'con imagen:', !!imageUri);
+                console.log('Actualizando estado a:', selectedStatus, 'con nota:', note, 'con foto:', !!photoUri, 'con imagen:', !!imageUri, 'con monto:', amountPaid, 'con método de pago:', selectedPaymentMethod);
                 
                 let result;
                 
@@ -266,19 +319,26 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                 if (imageUri) evidenceUris.push(imageUri);
                 
                 if (evidenceUris.length > 0) {
-                    // Enviar imágenes (una o múltiples)
-                    result = await deliveryService.updateDeliveryStatusWithImages(
-                        itemId,
-                        statusId,
-                        requiresNote ? note.trim() : undefined,
-                        evidenceUris
-                    );
+                    // Preparar los datos para enviar al servicio
+                    const updateData: IUpdateDeliveryStatusData = {
+                        id: itemId,
+                        status: statusId,
+                        note: requiresNote ? note.trim() : undefined,
+                        imageUris: evidenceUris,
+                        amountPaid: requiresPaymentInfo && amountPaid.trim() ? parseFloat(amountPaid) : undefined,
+                        paymentMethodId: requiresPaymentInfo && selectedPaymentMethod ? selectedPaymentMethod : undefined,
+                    };
+                    
+                    // Enviar imágenes (una o múltiples) con toda la información
+                    result = await deliveryService.updateDeliveryStatusWithImages(updateData);
                 } else {
-                    // Sin evidencia
+                    // Sin evidencia - usar método normal (sin imágenes)
                     result = await deliveryService.updateDeliveryStatus(
                         itemId,
                         statusId,
-                        requiresNote ? note.trim() : undefined
+                        requiresNote ? note.trim() : undefined,
+                        requiresPaymentInfo && amountPaid.trim() ? parseFloat(amountPaid) : undefined,
+                        requiresPaymentInfo && selectedPaymentMethod ? selectedPaymentMethod : undefined
                     );
                 }
 
@@ -346,12 +406,13 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
     };
 
     return (
-        <Modal
-            visible={isVisible}
-            transparent={true}
-            animationType="fade"
-            onRequestClose={onClose}
-        >
+        <>
+            <Modal
+                visible={isVisible}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={onClose}
+            >
             <TouchableWithoutFeedback onPress={handleOutsidePress}>
                 <View style={styles.modalOverlay}>
                     <TouchableWithoutFeedback onPress={handleContentPress}>
@@ -459,6 +520,43 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                                 </View>
                             )}
 
+                            {/* Campos de información de pago para DELIVERED */}
+                            {requiresPaymentInfo && (
+                                <>
+                                    <View style={styles.paymentContainer}>
+                                        <Text style={styles.paymentLabel}>
+                                            Monto Pagado (Obligatorio):
+                                        </Text>
+                                        <TextInput
+                                            style={styles.paymentInput}
+                                            placeholder="Ingrese el monto pagado..."
+                                            placeholderTextColor={CustomColors.divider}
+                                            value={amountPaid}
+                                            onChangeText={setAmountPaid}
+                                            keyboardType="numeric"
+                                        />
+                                    </View>
+
+                                    <View style={styles.paymentContainer}>
+                                        <Text style={styles.paymentLabel}>
+                                            Método de Pago (Obligatorio):
+                                        </Text>
+                                        <TouchableOpacity
+                                            style={styles.paymentMethodButton}
+                                            onPress={() => setShowPaymentMethodPicker(true)}
+                                        >
+                                            <Text style={styles.paymentMethodButtonText}>
+                                                {selectedPaymentMethod 
+                                                    ? paymentMethods.find(pm => pm.id === selectedPaymentMethod)?.title 
+                                                    : 'Seleccionar método de pago...'
+                                                }
+                                            </Text>
+                                            <Text style={styles.dropdownArrow}>▼</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </>
+                            )}
+
                             <View style={styles.buttonContainer}>
                                 <TouchableOpacity
                                     style={[styles.button, styles.cancelButton]}
@@ -471,10 +569,10 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                                     style={[
                                         styles.button,
                                         styles.confirmButton,
-                                        (!selectedStatus || availableStatuses.length === 0 || (requiresNote && note.trim() === '') || (requiresEvidence && !photoUri && !imageUri)) && styles.disabledButton
+                                        !isFormValid && styles.disabledButton
                                     ]}
                                     onPress={handleConfirm}
-                                    disabled={!selectedStatus || availableStatuses.length === 0 || loading || (!!requiresNote && note.trim() === '') || (!!requiresEvidence && !photoUri && !imageUri)}
+                                    disabled={!isFormValid || loading}
                                 >
                                     {loading ? (
                                         <ActivityIndicator size="small" color="#fff" />
@@ -488,6 +586,74 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                 </View>
             </TouchableWithoutFeedback>
         </Modal>
+
+        {/* Modal para seleccionar método de pago */}
+        <Modal
+            visible={showPaymentMethodPicker}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={() => setShowPaymentMethodPicker(false)}
+        >
+            <TouchableWithoutFeedback onPress={() => setShowPaymentMethodPicker(false)}>
+                <View style={styles.modalOverlay}>
+                    <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
+                        <View style={[styles.modalContent, { maxHeight: '60%' }]}>
+                            <Text style={styles.modalTitle}>Seleccionar Método de Pago</Text>
+                            <FlatList
+                                data={paymentMethods}
+                                keyExtractor={(item) => item.id.toString()}
+                                renderItem={({ item }) => (
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.statusItem,
+                                            selectedPaymentMethod === item.id && { 
+                                                borderColor: CustomColors.secondary, 
+                                                borderWidth: 2 
+                                            }
+                                        ]}
+                                        onPress={() => {
+                                            setSelectedPaymentMethod(item.id);
+                                            setShowPaymentMethodPicker(false);
+                                        }}
+                                    >
+                                        <View style={[
+                                            styles.radioButton, 
+                                            selectedPaymentMethod === item.id && { 
+                                                borderColor: CustomColors.secondary 
+                                            }
+                                        ]}>
+                                            {selectedPaymentMethod === item.id && (
+                                                <View style={[
+                                                    styles.radioButtonSelected, 
+                                                    { backgroundColor: CustomColors.secondary }
+                                                ]} />
+                                            )}
+                                        </View>
+                                        <Text style={[
+                                            styles.statusText, 
+                                            { 
+                                                color: selectedPaymentMethod === item.id 
+                                                    ? CustomColors.secondary 
+                                                    : CustomColors.textLight 
+                                            }
+                                        ]}>
+                                            {item.title}
+                                        </Text>
+                                    </TouchableOpacity>
+                                )}
+                            />
+                            <TouchableOpacity
+                                style={[styles.button, styles.cancelButton, { width: '100%', marginTop: 10 }]}
+                                onPress={() => setShowPaymentMethodPicker(false)}
+                            >
+                                <Text style={styles.buttonText}>Cancelar</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </TouchableWithoutFeedback>
+                </View>
+            </TouchableWithoutFeedback>
+        </Modal>
+    </>
     );
 };
 
@@ -504,7 +670,6 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         padding: 20,
         width: '100%',
-        maxHeight: '90%',
     },
     modalHeader: {
         marginBottom: 20,
@@ -688,5 +853,44 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: 16,
         fontWeight: 'bold',
+    },
+    paymentContainer: {
+        marginBottom: 20,
+    },
+    paymentLabel: {
+        fontSize: 16,
+        color: CustomColors.textLight,
+        marginBottom: 8,
+        fontWeight: 'bold',
+    },
+    paymentInput: {
+        backgroundColor: CustomColors.backgroundDarkest,
+        borderRadius: 8,
+        padding: 12,
+        color: CustomColors.textLight,
+        fontSize: 16,
+        borderWidth: 1,
+        borderColor: CustomColors.divider,
+        height: 50,
+    },
+    paymentMethodButton: {
+        backgroundColor: CustomColors.backgroundDarkest,
+        borderRadius: 8,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: CustomColors.divider,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        height: 50,
+    },
+    paymentMethodButtonText: {
+        color: CustomColors.textLight,
+        fontSize: 16,
+        flex: 1,
+    },
+    dropdownArrow: {
+        color: CustomColors.textLight,
+        fontSize: 12,
     },
 });

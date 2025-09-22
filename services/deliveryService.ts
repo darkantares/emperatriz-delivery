@@ -1,4 +1,4 @@
-import { IDeliveryAssignmentEntity, IUpdateDelivery, ICreateDeliveryAssigment, IDeliveryStatusEntity } from '@/interfaces/delivery/delivery';
+import { IDeliveryAssignmentEntity, IUpdateDelivery, ICreateDeliveryAssigment, IDeliveryStatusEntity, IUpdateDeliveryStatusData } from '@/interfaces/delivery/delivery';
 import { api, extractDataFromResponse } from './api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ResponseDataAPI } from '@/interfaces/response';
@@ -270,9 +270,11 @@ export const deliveryService = {
      * @param id ID de la entrega a actualizar
      * @param status ID del nuevo estado de la entrega
      * @param note Nota opcional para ciertos estados
+     * @param amountPaid Monto pagado (opcional)
+     * @param paymentMethodId ID del método de pago (opcional)
      * @returns Entrega actualizada
      */
-    updateDeliveryStatus: async (id: string, status: number, note?: string): Promise<{
+    updateDeliveryStatus: async (id: string, status: number, note?: string, amountPaid?: number, paymentMethodId?: number): Promise<{
         success: boolean;
         data?: IDeliveryAssignmentEntity;
         error?: string;
@@ -287,9 +289,21 @@ export const deliveryService = {
             };
         }
         try {
-            const payload: { status: number; note?: string } = { status };
+            const payload: { 
+                status: number; 
+                note?: string; 
+                amountPaid?: number; 
+                paymentMethodId?: number; 
+            } = { status };
+            
             if (note) {
                 payload.note = note;
+            }
+            if (amountPaid !== undefined) {
+                payload.amountPaid = amountPaid;
+            }
+            if (paymentMethodId !== undefined) {
+                payload.paymentMethodId = paymentMethodId;
             }
             
             const response = await api.patch<ResponseDataAPI<IDeliveryAssignmentEntity>>(`${BackendUrls.DeliveryAssignments}/${id}/status`, payload);
@@ -329,18 +343,17 @@ export const deliveryService = {
 
     /**
      * Actualiza el estado de una entrega con múltiples evidencias fotográficas
-     * @param id ID de la entrega a actualizar
-     * @param status ID del nuevo estado de la entrega
-     * @param note Nota opcional para ciertos estados
-     * @param imageUris Array de URIs de las imágenes de evidencia
+     * @param updateData Objeto con toda la información para actualizar el estado
      * @returns Entrega actualizada
      */
-    updateDeliveryStatusWithImages: async (id: string, status: number, note?: string, imageUris?: string[]): Promise<{
+    updateDeliveryStatusWithImages: async (updateData: IUpdateDeliveryStatusData): Promise<{
         success: boolean;
         data?: IDeliveryAssignmentEntity;
         error?: string;
         details?: any;
     }> => {
+        const { id, status, note, imageUris, amountPaid, paymentMethodId } = updateData;
+        
         // Verificar token antes de hacer la solicitud
         const token = await AsyncStorage.getItem('auth_token');
         if (!token) {
@@ -354,7 +367,7 @@ export const deliveryService = {
             // Si no hay imágenes, usar el método normal
             if (!imageUris || imageUris.length === 0) {
                 console.log('No images provided, using standard updateDeliveryStatus');                
-                return await deliveryService.updateDeliveryStatus(id, status, note);
+                return await deliveryService.updateDeliveryStatus(id, status, note, amountPaid, paymentMethodId);
             }
 
             // Crear FormData para envío con imágenes (una o múltiples)
@@ -363,6 +376,15 @@ export const deliveryService = {
             
             if (note) {
                 formData.append('note', note);
+            }
+
+            // Agregar información de pago si está presente
+            if (amountPaid !== undefined) {
+                formData.append('amountPaid', amountPaid.toString());
+            }
+            
+            if (paymentMethodId !== undefined) {
+                formData.append('paymentMethodId', paymentMethodId.toString());
             }
 
             // Agregar todas las imágenes

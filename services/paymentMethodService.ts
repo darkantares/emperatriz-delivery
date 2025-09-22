@@ -39,10 +39,7 @@ export const paymentMethodService = {
                 };
             }
 
-            // Extraer los datos del ResponseAPI
-            const paymentMethodsData = extractDataFromResponse<IPaymentMethodEntity[]>(response);
-
-            if (!paymentMethodsData) {
+            if (!response.data) {
                 console.error('Error processing payment methods response:', response);
                 return {
                     success: false,
@@ -53,7 +50,7 @@ export const paymentMethodService = {
 
             return {
                 success: true,
-                data: paymentMethodsData
+                data: response.data.data.data
             };
         } catch (error) {
             console.error('Error getting payment methods:', error);

@@ -8,6 +8,15 @@ import { IPaymentMethodEntity } from "../payment/payment";
 
 export interface IUpdateDelivery extends Partial<ICreateDeliveryAssigment>{}
 
+export interface IUpdateDeliveryStatusData {
+  id: string;
+  status: number;
+  note?: string;
+  imageUris?: string[];
+  amountPaid?: number;
+  paymentMethodId?: number;
+}
+
 export interface IDeliveryAssignmentSummaryEntity extends IGlobalEntity {
   id: number;
   order: number;
