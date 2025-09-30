@@ -34,6 +34,8 @@ export const ActiveDeliveryCard = ({ inProgressDelivery, onViewTask }: ActiveDel
     ? `${inProgressDelivery.provincia.nombre}, ${inProgressDelivery.municipio.nombre}, ${inProgressDelivery.destiny.nombre}, ${inProgressDelivery.deliveryAddress}`
     : '';
 
+    console.log('inProgressDelivery', inProgressDelivery);
+    
   return (
     <TouchableOpacity style={styles.container} onPress={onViewTask} activeOpacity={0.85}>
       <View style={styles.header} pointerEvents="none">
@@ -80,9 +82,7 @@ export const ActiveDeliveryCard = ({ inProgressDelivery, onViewTask }: ActiveDel
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <FontAwesome name="money" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
             <Text style={styles.statusText}>
-              RD$ {inProgressDelivery.type === AssignmentType.DELIVERY 
-                ? (inProgressDelivery.fee + inProgressDelivery.cost).toFixed(2) 
-                : "0.00"}
+              RD$ {((inProgressDelivery.fee || 0) + (inProgressDelivery.cost || 0)).toFixed(2) }
             </Text>
           </View>
           

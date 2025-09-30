@@ -67,7 +67,7 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item }) => {
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
                   <FontAwesome name="money" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
                   <Text style={styles.statusText}>
-                    RD$ {(item.fee + item.cost).toFixed(2)}
+                    RD$ {((item.fee || 0) + (item.cost || 0)).toFixed(2)}
                   </Text>
                 </View>
               ) :
