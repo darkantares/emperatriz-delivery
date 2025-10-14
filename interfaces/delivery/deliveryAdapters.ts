@@ -16,8 +16,9 @@ export interface DeliveryItemAdapter {
   observations?: string;
   provincia: IProvincia;
   municipio: IMunicipio;
-  origin: ISector;
-  destiny: ISector;
+  origin?: ISector;
+  destiny?: ISector;
+  isGroup: boolean;
   fee: number;
   cost: number;
   enterprise: string;
@@ -25,21 +26,28 @@ export interface DeliveryItemAdapter {
 
 // Convierte un array de IDeliveryAssignmentEntity a DeliveryItemAdapter
 export function adaptDeliveriesToAdapter(deliveries: IDeliveryAssignmentEntity[]): DeliveryItemAdapter[] {
-  return deliveries.map(delivery => ({
-    id: delivery.id.toString(),
-    title: `${Capitalize(delivery.provincia.nombre)}, ${Capitalize(delivery.municipio.nombre)}, ${Capitalize(delivery.origin.nombre)}`,
-    client: Capitalize(delivery.contact),
-    phone: delivery.phone,
-    type: delivery.type,
-    deliveryStatus: delivery.deliveryStatus,
-    deliveryAddress: delivery.deliveryAddress,
-    observations: delivery.observations,
-    provincia: delivery.provincia,
-    municipio: delivery.municipio,
-    origin: delivery.origin,
-    destiny: delivery.destiny,
-    fee: delivery.fee,
-    cost: delivery.cost,
-    enterprise: delivery.enterprise.title,
-  }));
+  try {
+    return deliveries.map(delivery => ({
+      id: delivery.id.toString(),
+      title: `${Capitalize(delivery.provincia.nombre)}, ${Capitalize(delivery.municipio.nombre)}, ${Capitalize(delivery.origin?.nombre || '')}`,
+      client: Capitalize(delivery.contact),
+      phone: delivery.phone,
+      type: delivery.type,
+      deliveryStatus: delivery.deliveryStatus,
+      deliveryAddress: delivery.deliveryAddress,
+      observations: delivery.observations,
+      provincia: delivery.provincia,
+      municipio: delivery.municipio,
+      origin: delivery.origin,
+      destiny: delivery.destiny,
+      isGroup: delivery.isGroup || false,
+      fee: delivery.fee,
+      cost: delivery.cost,
+      enterprise: delivery.enterprise.title,
+    }));    
+  } catch (error) {
+    console.log(deliveries);    
+    console.error('Error al adaptar entregas:', error);
+    return [];
+  }
 }

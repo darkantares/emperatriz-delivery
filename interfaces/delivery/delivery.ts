@@ -38,7 +38,7 @@ export interface IDeliveryAssignmentSummaryEntity extends IGlobalEntity {
   completedAt: Date;
   driver: IDeliveryPerson;
   paymentMethod?: IPaymentMethodEntity;
-  origin: ISector;
+  origin?: ISector;
   destiny?: ISector;
   enterprise:IEnterpriseEntity;
 }
@@ -64,8 +64,9 @@ export interface IDeliveryAssignmentEntity extends IGlobalEntity {
   acceptedAt: Date;
   completedAt: Date;
   driver: IDeliveryPerson;
-  origin: ISector;
-  destiny: ISector;
+  isGroup: boolean;
+  origin?: ISector;
+  destiny?: ISector;
   enterprise:IEnterpriseEntity;
 }
 

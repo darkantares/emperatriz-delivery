@@ -17,8 +17,8 @@ export interface Item {
   deliveryAddress: string;
   provincia: IProvincia;
   municipio: IMunicipio;
-  origin: ISector;
-  destiny: ISector;
+  origin?: ISector;
+  destiny?: ISector;
   deliveryStatus: IDeliveryStatusEntity;
   fee: number;
   cost: number;

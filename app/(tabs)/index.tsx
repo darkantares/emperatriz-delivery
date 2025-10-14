@@ -1,20 +1,20 @@
 import { StyleSheet, TouchableOpacity, ActivityIndicator, SafeAreaView, Alert } from 'react-native';
 import { Text, View } from '@/components/Themed';
 import { socketService, SocketEventType } from '@/services/websocketService';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useState, useRef, useEffect } from 'react';
-import { DeliveryItemList } from '@/components/delivery-items/DeliveryItemList';
 import { CustomColors } from '@/constants/CustomColors';
-import { SocketStatusIndicator } from '@/components/socketstatusindicator';
 import { StatusUpdateModal } from '@/components/modals/StatusUpdateModal';
-import { ProgressCard } from '@/components/dashboard/ProgressCard';
 import { Greeting } from '@/components/dashboard/Greeting';
-import { ActiveDeliveryCard } from '@/components/dashboard/ActiveDeliveryCard';
+import { AppHeader } from '@/components/header/AppHeader';
+import { AppStateScreen } from '@/components/states/AppStateScreen';
 import { useAuth } from '@/context/AuthContext';
 import { useActiveDelivery } from '@/context/ActiveDeliveryContext';
 import { useDelivery } from '@/context/DeliveryContext';
 import { DeliveryItemAdapter } from '@/interfaces/delivery/deliveryAdapters';
+import { ProgressCard } from '@/components/dashboard/ProgressCard';
+import { ActiveDeliveryCard } from '@/components/dashboard/ActiveDeliveryCard';
+import { DeliveryItemList } from '@/components/delivery-items/DeliveryItemList';
 
 export default function TabOneScreen() {
   const { user } = useAuth();
@@ -101,64 +101,32 @@ export default function TabOneScreen() {
   // Renderizar indicador de carga mientras se obtienen los datos
   if (loading && deliveries.length === 0 && !inProgressDelivery) {
     return (
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: CustomColors.backgroundDarkest }}>
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={CustomColors.secondary} />
-            <Text style={styles.loadingText}>Cargando entregas...</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.manualRefreshButton}
-            onPress={() => fetchDeliveries()}
-          >
-            <Text style={styles.manualRefreshButtonText}>Refrescar entregas</Text>
-          </TouchableOpacity>
-        </SafeAreaView>
-      </GestureHandlerRootView>
+      <AppStateScreen 
+        type="loading" 
+        onRetry={() => fetchDeliveries()} 
+      />
     );
   }
 
   // Renderizar mensaje de error si ocurrió alguno
   if (error && deliveries.length === 0 && !inProgressDelivery) {
     return (
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: CustomColors.backgroundDarkest }}>
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>Error: {error}</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={() => fetchDeliveries()}>
-              <Text style={styles.retryButtonText}>Reintentar</Text>
-            </TouchableOpacity>
-          </View>
-          <TouchableOpacity
-            style={styles.manualRefreshButton}
-            onPress={() => fetchDeliveries()}
-          >
-            <Text style={styles.manualRefreshButtonText}>Refrescar entregas</Text>
-          </TouchableOpacity>
-        </SafeAreaView>
-      </GestureHandlerRootView>
+      <AppStateScreen 
+        type="error" 
+        error={error}
+        onRetry={() => fetchDeliveries()} 
+      />
     );
   }
 
   // Si no hay entregas y no hay error ni loading, mostrar el saludo y mensaje central
   if (!loading && !error && deliveries.length === 0 && !inProgressDelivery) {
     return (
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: CustomColors.backgroundDarkest }}>
-          <View style={styles.container}>
-            <Greeting userName={user ? `${user.firstname} ${user.lastname}` : ""} />
-            <View style={styles.noDeliveriesContainer}>
-              <Text style={styles.noDeliveriesText}>No tienes envíos asignados actualmente</Text>
-            </View>
-          </View>
-          <TouchableOpacity
-            style={styles.manualRefreshButton}
-            onPress={() => fetchDeliveries()}
-          >
-            <Text style={styles.manualRefreshButtonText}>Refrescar entregas</Text>
-          </TouchableOpacity>
-        </SafeAreaView>
-      </GestureHandlerRootView>
+      <AppStateScreen 
+        type="noDeliveries" 
+        userName={user ? `${user.firstname} ${user.lastname}` : ""}
+        onRetry={() => fetchDeliveries()} 
+      />
     );
   }
 
@@ -166,18 +134,7 @@ export default function TabOneScreen() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1, backgroundColor: CustomColors.backgroundDarkest }}>
         <View style={styles.container}>
-          <View style={styles.headerContainer}>
-            <View style={styles.header}>
-              <TouchableOpacity 
-                style={styles.menuButton} 
-                onPress={() => console.log('Menú presionado')}
-                activeOpacity={0.7}
-              >
-                <FontAwesome name="bars" size={24} color={CustomColors.textLight} />
-              </TouchableOpacity>
-              <SocketStatusIndicator />
-            </View>
-          </View>
+          <AppHeader />
 
           {/* Mostrar indicador de carga si está refrescando datos y no es pull-to-refresh */}
           {loading && !refreshing && (
@@ -202,7 +159,6 @@ export default function TabOneScreen() {
             inProgressDelivery={inProgressDelivery}
             onViewTask={() => {
               if (inProgressDelivery) {
-                // Seleccionar directamente el delivery en progreso para continuar
                 setSelectedDelivery(inProgressDelivery);
                 setIsStatusModalVisible(true);
               }
@@ -254,38 +210,7 @@ export default function TabOneScreen() {
 }
 
 const styles = StyleSheet.create({
-  noDeliveriesContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
-  },
-  noDeliveriesText: {
-    color: CustomColors.textLight,
-    fontSize: 18,
-    textAlign: 'center',
-    opacity: 0.7,
-    marginTop: 30,
-  },
-  headerContainer: {
-    width: '100%',
-    backgroundColor: CustomColors.backgroundMedium,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    zIndex: 10,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: 'transparent',
-  },
+
   deliveryInfoContainer: {
     width: '100%',
     paddingHorizontal: 16,
@@ -322,14 +247,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
-  menuButton: {
-    padding: 8,
-    zIndex: 10,
-    borderRadius: 5,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
+
   container: {
     flex: 1,
     alignItems: 'center',
@@ -397,42 +315,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: CustomColors.backgroundDarkest,
-  },
-  loadingText: {
-    color: CustomColors.textLight,
-    marginTop: 15,
-    fontSize: 16,
-  },
   refreshIndicator: {
     marginBottom: 15,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: CustomColors.backgroundDarkest,
-    padding: 20,
-  },
-  errorText: {
-    color: CustomColors.primary,
-    fontSize: 16,
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  retryButton: {
-    backgroundColor: CustomColors.secondary,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-  },
-  retryButtonText: {
-    color: CustomColors.textLight,
-    fontWeight: 'bold',
   },
     manualRefreshButton: {
       backgroundColor: CustomColors.primary,
