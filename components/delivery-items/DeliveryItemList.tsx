@@ -1,30 +1,67 @@
 import React from 'react';
 import { FlatList, StyleSheet, RefreshControl } from 'react-native';
 import { Item, DeliveryItem } from './DeliveryItem';
+import { DeliveryGroupItem } from './DeliveryGroupItem';
 import { CustomColors } from '@/constants/CustomColors';
+import { DeliveryItemAdapter, DeliveryGroupAdapter, groupDeliveriesByShipment } from '@/interfaces/delivery/deliveryAdapters';
 
 interface DeliveryItemListProps {
-  data: Item[];
+  data: DeliveryItemAdapter[];
   refreshing?: boolean;
   onRefresh?: () => void;
 }
+
+// Type guard para verificar si el item es un grupo
+const isDeliveryGroup = (item: DeliveryItemAdapter | DeliveryGroupAdapter): item is DeliveryGroupAdapter => {
+  return 'shipmentId' in item && 'pickups' in item && 'delivery' in item;
+};
 
 export const DeliveryItemList: React.FC<DeliveryItemListProps> = ({
   data,
   refreshing = false,
   onRefresh,
 }) => {
-  const renderItem = ({ item }: { item: Item }) => (
-    <DeliveryItem
-      item={item}
-    />
-  );
+  // Agrupar entregas antes de renderizar
+  const processedData = groupDeliveriesByShipment(data);
+
+  const renderItem = ({ item }: { item: DeliveryItemAdapter | DeliveryGroupAdapter }) => {
+    if (isDeliveryGroup(item)) {
+      return <DeliveryGroupItem group={item} />;
+    } else {
+      // Convertir DeliveryItemAdapter a Item para compatibilidad
+      const itemForComponent: Item = {
+        id: item.id,
+        title: item.title,
+        client: item.client,
+        phone: item.phone,
+        type: item.type,
+        deliveryAddress: item.deliveryAddress,
+        provincia: item.provincia,
+        municipio: item.municipio,
+        origin: item.origin,
+        destiny: item.destiny,
+        deliveryStatus: item.deliveryStatus,
+        fee: item.fee,
+        cost: item.cost,
+        enterprise: item.enterprise,
+      };
+      return <DeliveryItem item={itemForComponent} />;
+    }
+  };
+
+  const getKeyExtractor = (item: DeliveryItemAdapter | DeliveryGroupAdapter) => {
+    if (isDeliveryGroup(item)) {
+      return `group-${item.shipmentId}`;
+    } else {
+      return item.id;
+    }
+  };
 
   return (
     <FlatList
-      data={data}
+      data={processedData}
       renderItem={renderItem}
-      keyExtractor={item => item.id}
+      keyExtractor={getKeyExtractor}
       style={styles.list}
       refreshControl={
         <RefreshControl
