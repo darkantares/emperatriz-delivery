@@ -11,10 +11,12 @@ import { AppStateScreen } from '@/components/states/AppStateScreen';
 import { useAuth } from '@/context/AuthContext';
 import { useActiveDelivery } from '@/context/ActiveDeliveryContext';
 import { useDelivery } from '@/context/DeliveryContext';
-import { DeliveryItemAdapter } from '@/interfaces/delivery/deliveryAdapters';
+import { DeliveryItemAdapter, DeliveryGroupAdapter, groupDeliveriesByShipment } from '@/interfaces/delivery/deliveryAdapters';
 import { ProgressCard } from '@/components/dashboard/ProgressCard';
 import { ActiveDeliveryCard } from '@/components/dashboard/ActiveDeliveryCard';
 import { DeliveryItemList } from '@/components/delivery-items/DeliveryItemList';
+import { IDeliveryStatus } from '@/interfaces/delivery/deliveryStatus';
+import { AssignmentType } from '@/utils/enum';
 
 export default function TabOneScreen() {
   const { user } = useAuth();
@@ -53,28 +55,82 @@ export default function TabOneScreen() {
     };
   }, [handleDeliveryAssigned, handleDeliveryReordered, handleDeliveryUpdated]);
 
+  // Type guard para verificar si el item es un grupo
+  const isDeliveryGroup = (item: DeliveryItemAdapter | any): item is DeliveryGroupAdapter => {
+    return 'shipmentId' in item && 'pickups' in item && 'delivery' in item;
+  };
+
+  // Función para obtener el siguiente delivery a procesar (individual o de grupo)
+  const getDeliveryFromGroup = (deliveries: DeliveryItemAdapter[]): DeliveryItemAdapter | null => {
+    // Primero agrupar las entregas
+    const processedData = groupDeliveriesByShipment(deliveries);
+    
+    const completedStatuses = [
+      IDeliveryStatus.RETURNED,
+      IDeliveryStatus.CANCELLED,
+      IDeliveryStatus.DELIVERED
+    ];
+    
+    // Buscar el primer grupo o entrega individual que se pueda procesar
+    for (const item of processedData) {
+      if (isDeliveryGroup(item)) {
+        // Es un grupo - verificar el estado de progreso
+        const group = item as DeliveryGroupAdapter;
+        
+        // Verificar si hay pickups pendientes
+        const pendingPickups = group.pickups.filter(pickup => 
+          !completedStatuses.includes(pickup.deliveryStatus.title as IDeliveryStatus)
+        );
+        
+        // Si hay pickups pendientes, devolver el primero
+        if (pendingPickups.length > 0) {
+          return pendingPickups[0];
+        }
+        
+        // Si todos los pickups están completos, verificar el delivery
+        const allPickupsCompleted = group.pickups.every(pickup =>
+          pickup.deliveryStatus.title === IDeliveryStatus.DELIVERED ||
+          completedStatuses.includes(pickup.deliveryStatus.title as IDeliveryStatus)
+        );
+        
+        if (allPickupsCompleted && !completedStatuses.includes(group.delivery.deliveryStatus.title as IDeliveryStatus)) {
+          return group.delivery; // Retornar el delivery final del grupo
+        }
+      } else {
+        // Es una entrega individual
+        const delivery = item as DeliveryItemAdapter;
+        
+        if (!completedStatuses.includes(delivery.deliveryStatus.title as IDeliveryStatus)) {
+          return delivery;
+        }
+      }
+    }
+    
+    return null;
+  };
+
   const handlePressItem = () => {
     if (isNavigating.current) return;
     isNavigating.current = true;
     
-    // Obtener el siguiente delivery a procesar
-    const nextDelivery = getNextDeliveryToProcess(deliveries);
-    
-    if (!nextDelivery) {
-      Alert.alert(
-        "Sin entregas",
-        "No hay entregas disponibles para procesar.",
-        [{ text: "Entendido" }]
-      );
-      isNavigating.current = false;
-      return;
-    }
-
     // Verificar si se puede procesar un nuevo delivery
     if (!canProcessNewDelivery(deliveries)) {
       Alert.alert(
         "Entrega en Progreso",
         "Ya tienes una entrega en progreso. Debes completarla antes de iniciar otra.",
+        [{ text: "Entendido" }]
+      );
+      isNavigating.current = false;
+      return;
+    }
+    
+    // Obtener el siguiente delivery a procesar (considerando grupos)
+    const nextDelivery = getDeliveryFromGroup(deliveries);
+    
+    if (!nextDelivery) {
+      Alert.alert(
+        "Sin entregas",
+        "No hay entregas disponibles para procesar.",
         [{ text: "Entendido" }]
       );
       isNavigating.current = false;
@@ -157,6 +213,7 @@ export default function TabOneScreen() {
           {/* Tarjeta de entrega en progreso */}
           <ActiveDeliveryCard 
             inProgressDelivery={inProgressDelivery}
+            deliveries={deliveries}
             onViewTask={() => {
               if (inProgressDelivery) {
                 setSelectedDelivery(inProgressDelivery);
@@ -170,6 +227,10 @@ export default function TabOneScreen() {
             data={deliveries}
             refreshing={refreshing}
             onRefresh={onRefresh}
+            onItemPress={(item) => {
+              setSelectedDelivery(item);
+              setIsStatusModalVisible(true);
+            }}
           />
 
           <TouchableOpacity 
@@ -181,7 +242,7 @@ export default function TabOneScreen() {
             disabled={inProgressDelivery !== null || !canProcessNewDelivery(deliveries)}
           >
             <Text style={styles.progressButtonText}>
-              {inProgressDelivery !== null ? 'Completa entrega actual' : 'Progresar Envío'}
+              {inProgressDelivery !== null ? 'Completa entrega actual' : 'Continuar con Siguiente Entrega'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -197,13 +258,15 @@ export default function TabOneScreen() {
           />
         )}
 
-        {/* Botón manual para refrescar entregas, fuera del View principal */}
-        <TouchableOpacity
-          style={styles.manualRefreshButton}
-          onPress={() => fetchDeliveries()}
-        >
-          <Text style={styles.manualRefreshButtonText}>Refrescar entregas</Text>
-        </TouchableOpacity>
+        {/* Botón manual para refrescar entregas, fuera del View principal - Solo en desarrollo */}
+        {__DEV__ && (
+          <TouchableOpacity
+            style={styles.manualRefreshButton}
+            onPress={() => fetchDeliveries()}
+          >
+            <Text style={styles.manualRefreshButtonText}>Refrescar entregas</Text>
+          </TouchableOpacity>
+        )}
       </SafeAreaView>
     </GestureHandlerRootView>
   );

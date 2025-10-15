@@ -9,6 +9,7 @@ interface DeliveryItemListProps {
   data: DeliveryItemAdapter[];
   refreshing?: boolean;
   onRefresh?: () => void;
+  onItemPress?: (item: DeliveryItemAdapter) => void;
 }
 
 // Type guard para verificar si el item es un grupo
@@ -20,13 +21,19 @@ export const DeliveryItemList: React.FC<DeliveryItemListProps> = ({
   data,
   refreshing = false,
   onRefresh,
+  onItemPress,
 }) => {
   // Agrupar entregas antes de renderizar
   const processedData = groupDeliveriesByShipment(data);
 
   const renderItem = ({ item }: { item: DeliveryItemAdapter | DeliveryGroupAdapter }) => {
     if (isDeliveryGroup(item)) {
-      return <DeliveryGroupItem group={item} />;
+      return (
+        <DeliveryGroupItem 
+          group={item} 
+          onPress={undefined} // Las entregas agrupadas no pueden abrir modal directamente
+        />
+      );
     } else {
       // Convertir DeliveryItemAdapter a Item para compatibilidad
       const itemForComponent: Item = {
@@ -45,7 +52,12 @@ export const DeliveryItemList: React.FC<DeliveryItemListProps> = ({
         cost: item.cost,
         enterprise: item.enterprise,
       };
-      return <DeliveryItem item={itemForComponent} />;
+      return (
+        <DeliveryItem 
+          item={itemForComponent}
+          onPress={onItemPress ? () => onItemPress(item) : undefined}
+        />
+      );
     }
   };
 

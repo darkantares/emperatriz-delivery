@@ -117,7 +117,6 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
         const loadPaymentMethods = async () => {
             try {
                 const response = await paymentMethodService.getPaymentMethods();
-                console.log('Payment methods response:', response);
 
                 if (response.success && response.data) {
                     setPaymentMethods(response.data);

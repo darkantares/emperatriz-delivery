@@ -1,4 +1,4 @@
-import { StyleSheet, Dimensions, View } from 'react-native';
+import { StyleSheet, Dimensions, View, TouchableOpacity } from 'react-native';
 import { Text } from '@/components/Themed';
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
@@ -27,9 +27,10 @@ export interface Item {
 
 interface DeliveryItemProps {
   item: Item;
+  onPress?: () => void;
 }
 
-export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item }) => {
+export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item, onPress }) => {
   
   const formatPhone = (phone: string) => {
     if (!phone) return '';
@@ -40,8 +41,14 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item }) => {
     return phone;
   };
 
+  const ContainerComponent = onPress ? TouchableOpacity : View;
+
   return (
-    <View style={[styles.itemContainer, styles.deliveryContainer]}>
+    <ContainerComponent 
+      style={[styles.itemContainer, styles.deliveryContainer]}
+      onPress={onPress}
+      activeOpacity={onPress ? 0.7 : 1}
+    >
       <View style={styles.contentContainer}>
           {/* Cliente y Teléfono en la misma fila */}
           <View style={[styles.infoRow, { justifyContent: 'space-between' }]}>
@@ -91,9 +98,15 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item }) => {
               </View>
             </View>
           </View>
+
+          {/* Indicador visual de que es clickeable */}
+          {onPress && (
+            <View style={styles.clickIndicator}>
+              <FontAwesome name="chevron-right" size={12} color={CustomColors.secondary} />
+            </View>
+          )}
         </View>
-      </View>
-    // </View>
+    </ContainerComponent>
   );
 };
 
@@ -142,7 +155,8 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
-    paddingRight: 10,
+    paddingRight: 30, // Más espacio para el indicador
+    position: 'relative',
   },
   infoRow: {
     flexDirection: 'row',
@@ -184,5 +198,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginLeft: 2,
   },
-  // ...existing code...
+  clickIndicator: {
+    position: 'absolute',
+    right: 12,
+    top: '50%',
+    transform: [{ translateY: -6 }],
+  },
 });

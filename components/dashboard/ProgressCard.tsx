@@ -4,16 +4,22 @@ import { Text } from '@/components/Themed';
 import { CustomColors } from '@/constants/CustomColors';
 import { IDeliveryStatus } from '@/interfaces/delivery/deliveryStatus';
 import { IDeliveryStatusEntity } from '@/interfaces/delivery/delivery';
+import { DeliveryItemAdapter, DeliveryGroupAdapter, groupDeliveriesByShipment } from '@/interfaces/delivery/deliveryAdapters';
 
 interface ProgressCardProps {
   userName: string;
-  deliveries: Array<{ deliveryStatus: IDeliveryStatusEntity }>;
-  inProgressDelivery?: { deliveryStatus: IDeliveryStatusEntity } | null;
+  deliveries: DeliveryItemAdapter[];
+  inProgressDelivery?: DeliveryItemAdapter | null;
   onPressViewTask?: () => void;
 }
 
 export const ProgressCard = ({ userName, deliveries, inProgressDelivery, onPressViewTask }: ProgressCardProps) => {
-  // Calcular el porcentaje de entregas completadas
+  // Type guard para verificar si el item es un grupo
+  const isDeliveryGroup = (item: DeliveryItemAdapter | DeliveryGroupAdapter): item is DeliveryGroupAdapter => {
+    return 'shipmentId' in item && 'pickups' in item && 'delivery' in item;
+  };
+
+  // Calcular el porcentaje de entregas completadas (considerando grupos)
   const calculateProgress = () => {
     // Crear un array con todas las entregas (incluyendo la que está en progreso)
     const allDeliveries = [...deliveries];
@@ -23,17 +29,36 @@ export const ProgressCard = ({ userName, deliveries, inProgressDelivery, onPress
     
     if (allDeliveries.length === 0) return 100;
     
+    // Agrupar las entregas para obtener el total real de "unidades de trabajo"
+    const processedData = groupDeliveriesByShipment(allDeliveries);
+    
+    if (processedData.length === 0) return 100;
+    
     const completedStatuses = [
       IDeliveryStatus.DELIVERED,
       IDeliveryStatus.RETURNED,
       IDeliveryStatus.CANCELLED
     ];
     
-    const completedDeliveries = allDeliveries.filter(
-      delivery => completedStatuses.includes(delivery.deliveryStatus.title as IDeliveryStatus)
-    ).length;
+    let completedUnits = 0;
     
-    const progressPercentage = Math.round((completedDeliveries / allDeliveries.length) * 100);
+    processedData.forEach(item => {
+      if (isDeliveryGroup(item)) {
+        // Para grupos: está completado si el delivery final está completado
+        const group = item as DeliveryGroupAdapter;
+        if (completedStatuses.includes(group.delivery.deliveryStatus.title as IDeliveryStatus)) {
+          completedUnits++;
+        }
+      } else {
+        // Para entregas individuales: verificar directamente el estado
+        const delivery = item as DeliveryItemAdapter;
+        if (completedStatuses.includes(delivery.deliveryStatus.title as IDeliveryStatus)) {
+          completedUnits++;
+        }
+      }
+    });
+    
+    const progressPercentage = Math.round((completedUnits / processedData.length) * 100);
     
     return progressPercentage;
   };

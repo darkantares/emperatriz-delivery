@@ -8,9 +8,10 @@ import { DeliveryGroupAdapter } from '@/interfaces/delivery/deliveryAdapters';
 
 interface DeliveryGroupItemProps {
   group: DeliveryGroupAdapter;
+  onPress?: () => void;
 }
 
-export const DeliveryGroupItem: React.FC<DeliveryGroupItemProps> = ({ group }) => {
+export const DeliveryGroupItem: React.FC<DeliveryGroupItemProps> = ({ group, onPress }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   
   const formatPhone = (phone: string) => {
@@ -26,12 +27,19 @@ export const DeliveryGroupItem: React.FC<DeliveryGroupItemProps> = ({ group }) =
     setIsExpanded(!isExpanded);
   };
 
+  const handlePress = () => {
+    if (onPress) {
+      onPress();
+    }
+  };
+
   return (
     <View style={[styles.itemContainer, styles.groupContainer]}>
       {/* Header del grupo */}
-      <TouchableOpacity onPress={toggleExpanded} style={styles.groupHeader}>
-        <View style={styles.contentContainer}>
-          <View style={[styles.infoRow, { justifyContent: 'space-between' }]}>
+      <View style={styles.groupHeader}>
+        {/* Botón para expandir/contraer */}
+        <TouchableOpacity onPress={toggleExpanded} style={styles.expandButton}>
+          <View style={[styles.infoRow, { justifyContent: 'space-between', marginBottom: 0 }]}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <MaterialIcons name="group-work" size={20} color={CustomColors.secondary} style={{ marginRight: 8 }} />
               <Text style={styles.groupTitle}>Entrega Agrupada ({group.pickups.length} recogidas)</Text>
@@ -42,36 +50,74 @@ export const DeliveryGroupItem: React.FC<DeliveryGroupItemProps> = ({ group }) =
               color={CustomColors.textLight} 
             />
           </View>
+        </TouchableOpacity>
 
-          {/* Información del destino */}
-          <View style={[styles.infoRow, { justifyContent: 'space-between' }]}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-              <FontAwesome name="user" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
-              <Text style={styles.statusText}>{group.delivery.client}</Text>
+        {/* Información del destino */}
+        {onPress ? (
+          <TouchableOpacity onPress={handlePress} style={styles.deliveryInfoSection}>
+            <View style={[styles.infoRow, { justifyContent: 'space-between' }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                <FontAwesome name="user" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
+                <Text style={styles.statusText}>{group.delivery.client}</Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <FontAwesome name="phone" size={16} color={CustomColors.textLight} style={{ marginLeft: 16, marginRight: 6 }} />
+                <Text style={styles.statusText}>{formatPhone(group.delivery.phone)}</Text>
+              </View>
             </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <FontAwesome name="phone" size={16} color={CustomColors.textLight} style={{ marginLeft: 16, marginRight: 6 }} />
-              <Text style={styles.statusText}>{formatPhone(group.delivery.phone)}</Text>
-            </View>
-          </View>
 
-          {/* Monto total y estado */}
-          <View style={[styles.infoRow, { justifyContent: 'space-between' }]}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <FontAwesome name="money" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
-              <Text style={styles.statusText}>
-                Total: RD$ {(group.totalFee + group.totalCost).toFixed(2)}
-              </Text>
+            {/* Monto total y estado */}
+            <View style={[styles.infoRow, { justifyContent: 'space-between' }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <FontAwesome name="money" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
+                <Text style={styles.statusText}>
+                  Total: RD$ {(group.totalFee + group.totalCost).toFixed(2)}
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <MaterialIcons name="assignment" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
+                <View style={[styles.typeIndicator, styles.groupIndicator]}>
+                  <Text style={styles.typeText}>Grupo</Text>
+                </View>
+              </View>
             </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <MaterialIcons name="assignment" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
-              <View style={[styles.typeIndicator, styles.groupIndicator]}>
-                <Text style={styles.typeText}>Grupo</Text>
+
+            {/* Indicador visual de que es clickeable */}
+            <View style={styles.clickIndicator}>
+              <FontAwesome name="chevron-right" size={12} color={CustomColors.secondary} />
+            </View>
+          </TouchableOpacity>
+        ) : (
+          <View style={[styles.deliveryInfoSection, styles.nonClickableSection]}>
+            <View style={[styles.infoRow, { justifyContent: 'space-between' }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                <FontAwesome name="user" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
+                <Text style={styles.statusText}>{group.delivery.client}</Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <FontAwesome name="phone" size={16} color={CustomColors.textLight} style={{ marginLeft: 16, marginRight: 6 }} />
+                <Text style={styles.statusText}>{formatPhone(group.delivery.phone)}</Text>
+              </View>
+            </View>
+
+            {/* Monto total y estado */}
+            <View style={[styles.infoRow, { justifyContent: 'space-between' }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <FontAwesome name="money" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
+                <Text style={styles.statusText}>
+                  Total: RD$ {(group.totalFee + group.totalCost).toFixed(2)}
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <MaterialIcons name="assignment" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
+                <View style={[styles.typeIndicator, styles.groupIndicator]}>
+                  <Text style={styles.typeText}>Grupo</Text>
+                </View>
               </View>
             </View>
           </View>
-        </View>
-      </TouchableOpacity>
+        )}
+      </View>
 
       {/* Lista expandible de recogidas */}
       {isExpanded && (
@@ -134,6 +180,25 @@ const styles = StyleSheet.create({
   },
   groupHeader: {
     padding: 16,
+  },
+  expandButton: {
+    marginBottom: 8,
+  },
+  deliveryInfoSection: {
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    borderRadius: 8,
+    padding: 12,
+    position: 'relative',
+  },
+  nonClickableSection: {
+    backgroundColor: 'rgba(255, 255, 255, 0.01)',
+    opacity: 0.9,
+  },
+  clickIndicator: {
+    position: 'absolute',
+    right: 8,
+    top: '50%',
+    transform: [{ translateY: -6 }],
   },
   contentContainer: {
     flex: 1,

@@ -2,19 +2,51 @@ import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Text } from '@/components/Themed';
 import { CustomColors } from '@/constants/CustomColors';
-import { Item } from '@/components/delivery-items/DeliveryItem';
+import { DeliveryItemAdapter, groupDeliveriesByShipment, DeliveryGroupAdapter } from '@/interfaces/delivery/deliveryAdapters';
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import { AssignmentType } from '@/utils/enum';
 
 interface ActiveDeliveryCardProps {
-  inProgressDelivery: Item | null;
+  inProgressDelivery: DeliveryItemAdapter | null;
+  deliveries: DeliveryItemAdapter[]; // Para detectar si pertenece a un grupo
   onViewTask?: () => void;
 }
 
-export const ActiveDeliveryCard = ({ inProgressDelivery, onViewTask }: ActiveDeliveryCardProps) => {
+export const ActiveDeliveryCard = ({ inProgressDelivery, deliveries, onViewTask }: ActiveDeliveryCardProps) => {
   if (!inProgressDelivery) {
     return null;
   }
+
+  // Type guard para verificar si el item es un grupo
+  const isDeliveryGroup = (item: DeliveryItemAdapter | DeliveryGroupAdapter): item is DeliveryGroupAdapter => {
+    return 'shipmentId' in item && 'pickups' in item && 'delivery' in item;
+  };
+
+  // Detectar si el delivery activo pertenece a un grupo
+  const getGroupInfo = () => {
+    if (!inProgressDelivery.isGroup || !inProgressDelivery.shipmentId) {
+      return null;
+    }
+
+    // Crear un array temporal que incluya el delivery en progreso para el agrupamiento
+    const allDeliveries = [...deliveries, inProgressDelivery];
+    const processedData = groupDeliveriesByShipment(allDeliveries);
+    
+    // Buscar el grupo al que pertenece el delivery activo
+    const group = processedData.find(item => {
+      if (isDeliveryGroup(item)) {
+        const groupItem = item as DeliveryGroupAdapter;
+        // Verificar si el delivery activo es el delivery del grupo o uno de los pickups
+        return groupItem.delivery.id === inProgressDelivery.id ||
+               groupItem.pickups.some(pickup => pickup.id === inProgressDelivery.id);
+      }
+      return false;
+    }) as DeliveryGroupAdapter | undefined;
+
+    return group || null;
+  };
+
+  const groupInfo = getGroupInfo();
 
   // Formatear teléfono a xxx-xxx-xxxx
   const formatPhone = (phone: string) => {
@@ -76,13 +108,38 @@ export const ActiveDeliveryCard = ({ inProgressDelivery, onViewTask }: ActiveDel
           </View>
         )}
 
+        {/* Información del grupo si aplica */}
+        {groupInfo && (
+          <View style={styles.groupInfoContainer}>
+            <View style={styles.infoRow}>
+              <MaterialIcons name="group-work" size={16} color={CustomColors.secondary} style={{ marginRight: 6 }} />
+              <Text style={styles.groupInfoText}>
+                Parte de un grupo: {groupInfo.pickups.length} recogida{groupInfo.pickups.length > 1 ? 's' : ''} → 1 entrega
+              </Text>
+            </View>
+            <View style={styles.infoRow}>
+              <FontAwesome name="info-circle" size={16} color={CustomColors.secondary} style={{ marginRight: 6 }} />
+              <Text style={styles.groupProgressText}>
+                {inProgressDelivery.type === AssignmentType.PICKUP
+                  ? `Recogiendo ${groupInfo.pickups.findIndex(p => p.id === inProgressDelivery.id) + 1} de ${groupInfo.pickups.length}`
+                  : 'Entregando al destino final'
+                }
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* Monto y tipo */}
         <View style={[styles.infoRow, { justifyContent: 'space-between' }]}>
           {/* Monto a cobrar */}
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <FontAwesome name="money" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
             <Text style={styles.statusText}>
-              RD$ {((inProgressDelivery.fee || 0) + (inProgressDelivery.cost || 0)).toFixed(2) }
+              {groupInfo ? (
+                <>RD$ {groupInfo.totalFee.toFixed(2)} <Text style={styles.subtitleText}>(total grupo)</Text></>
+              ) : (
+                <>RD$ {((inProgressDelivery.fee || 0) + (inProgressDelivery.cost || 0)).toFixed(2)}</>
+              )}
             </Text>
           </View>
           
@@ -91,10 +148,15 @@ export const ActiveDeliveryCard = ({ inProgressDelivery, onViewTask }: ActiveDel
             <MaterialIcons name="assignment" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
             <View style={[
               styles.typeIndicator,
-              inProgressDelivery.type === AssignmentType.PICKUP ? styles.pickupIndicator : styles.deliveryIndicator
+              groupInfo ? styles.groupIndicator : (
+                inProgressDelivery.type === AssignmentType.PICKUP ? styles.pickupIndicator : styles.deliveryIndicator
+              )
             ]}>
               <Text style={styles.typeText}>
-                {inProgressDelivery.type === AssignmentType.PICKUP ? 'Recogida' : 'Entrega'}
+                {groupInfo 
+                  ? 'Grupo' 
+                  : (inProgressDelivery.type === AssignmentType.PICKUP ? 'Recogida' : 'Entrega')
+                }
               </Text>
             </View>
           </View>
@@ -112,11 +174,30 @@ export const ActiveDeliveryCard = ({ inProgressDelivery, onViewTask }: ActiveDel
 };
 
 const styles = StyleSheet.create({
-    subtitleText: {
+  subtitleText: {
     fontSize: 13,
     color: CustomColors.textLight,
     opacity: 0.6,
     fontWeight: 'normal',
+  },
+  groupInfoContainer: {
+    backgroundColor: 'rgba(108, 79, 234, 0.1)', // Color morado tenue
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: CustomColors.secondary,
+  },
+  groupInfoText: {
+    fontSize: 14,
+    color: CustomColors.secondary,
+    fontWeight: 'bold',
+    flex: 1,
+  },
+  groupProgressText: {
+    fontSize: 13,
+    color: CustomColors.secondary,
+    flex: 1,
   },
   container: {
     width: '100%',
@@ -176,6 +257,9 @@ const styles = StyleSheet.create({
     backgroundColor: CustomColors.quaternary,
   },
   deliveryIndicator: {
+    backgroundColor: CustomColors.secondary,
+  },
+  groupIndicator: {
     backgroundColor: CustomColors.secondary,
   },
   typeText: {
