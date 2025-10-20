@@ -18,14 +18,14 @@ export const getBaseUrl = () => {
         if (__DEV__) {
             url = Platform.OS === 'ios'
                 ? apiUrls?.['development_ios']
-                : apiUrls?.['development'] || 'http://192.168.100.135:3000';
+                : apiUrls?.['development'] || 'http://192.168.100.6:3000';
         } else {
-            url = apiUrls?.['production'] || 'http://192.168.100.135:3000';
+            url = apiUrls?.['production'] || 'http://192.168.100.6:3000';
         }
         return url.endsWith('/') ? url.slice(0, -1) : url;
     } catch (error) {
         console.error('Error al obtener URL base:', error);
-        return 'http://192.168.100.135:3000';
+        return 'http://192.168.100.6:3000';
     }
 };
 
