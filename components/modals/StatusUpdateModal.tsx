@@ -21,6 +21,7 @@ import { paymentMethodService } from '@/services/paymentMethodService';
 import { IDeliveryStatusEntity, IUpdateDeliveryStatusData } from '@/interfaces/delivery/delivery';
 import { IPaymentMethodEntity } from '@/interfaces/payment/payment';
 import { useDelivery } from '@/context/DeliveryContext';
+import { AssignmentType } from '@/utils/enum';
 
 interface StatusUpdateModalProps {
     isVisible: boolean;
@@ -37,7 +38,7 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
     onStatusSelected,
     itemId
 }) => {
-    const { fetchDeliveries } = useDelivery();
+    const { fetchDeliveries, deliveries, inProgressDelivery } = useDelivery();
     const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
     const [availableStatuses, setAvailableStatuses] = useState<IDeliveryStatusEntity[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
@@ -80,17 +81,37 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
         IDeliveryStatus.DELIVERED
     ];
 
+    // Determinar si el delivery actual es de tipo PICKUP (en cuyo caso no se requieren ni deben mostrarse evidencias)
+    const currentDelivery = (() => {
+        const found = deliveries.find(d => d.id === itemId);
+        if (found) return found;
+        if (inProgressDelivery && inProgressDelivery.id === itemId) return inProgressDelivery;
+        return undefined;
+    })();
+
+    const isPickupType = currentDelivery?.type === AssignmentType.PICKUP;
+
     const requiresNote = selectedStatus && statusesRequiringNote.includes(selectedStatus as IDeliveryStatus);
-    const allowsPhoto = selectedStatus && statusesAllowingPhoto.includes(selectedStatus as IDeliveryStatus);
-    const allowsImage = selectedStatus && statusesAllowingImage.includes(selectedStatus as IDeliveryStatus);
-    const requiresEvidence = selectedStatus && statusesRequiringEvidence.includes(selectedStatus as IDeliveryStatus);
-    const requiresPaymentInfo = selectedStatus === IDeliveryStatus.DELIVERED;
+    const allowsPhoto = selectedStatus && statusesAllowingPhoto.includes(selectedStatus as IDeliveryStatus) && !isPickupType;
+    const allowsImage = selectedStatus && statusesAllowingImage.includes(selectedStatus as IDeliveryStatus) && !isPickupType;
+    // Si es PICKUP, la evidencia no debe ser obligatoria
+    const requiresEvidence = selectedStatus && statusesRequiringEvidence.includes(selectedStatus as IDeliveryStatus) && !isPickupType;
+    const requiresPaymentInfo = selectedStatus === IDeliveryStatus.DELIVERED && !isPickupType;
+
+    // Para PICKUP, establecer monto pagado en 0 automáticamente
+    useEffect(() => {
+        if (isPickupType && selectedStatus === IDeliveryStatus.DELIVERED) {
+            setAmountPaid('0');
+        }
+    }, [isPickupType, selectedStatus]);
 
     // Estado para validar si el formulario está completo
     const isFormValid = selectedStatus &&
         availableStatuses.length > 0 &&
         (!requiresNote || note.trim() !== '') &&
+        // Si es pickup, evidencias no son requeridas ni mostradas
         (!requiresEvidence || photoUri || imageUri) &&
+        // Si es pickup, el monto se establece automáticamente en 0
         (!requiresPaymentInfo || (amountPaid.trim() !== '' && selectedPaymentMethod));
 
     useEffect(() => {
@@ -598,8 +619,17 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                                     </View>
                                 )}
 
-                                {/* Campos de información de pago para DELIVERED */}
-                                {requiresPaymentInfo && (
+                                {/* Nota informativa para PICKUP: no se requieren evidencias */}
+                                {isPickupType && (
+                                    <View style={styles.pickupNoteContainer}>
+                                        <Text style={styles.pickupNoteText}>
+                                            Para recogidas (PICKUP) no se requiere evidencia fotográfica.
+                                        </Text>
+                                    </View>
+                                )}
+
+                                {/* Para PICKUP el monto se establece automáticamente en 0 */}
+                                {selectedStatus === IDeliveryStatus.DELIVERED && !isPickupType && (
                                     <>
                                         <View style={styles.paymentContainer}>
                                             <Text style={styles.paymentLabel}>
@@ -1049,5 +1079,18 @@ const styles = StyleSheet.create({
     dropdownArrow: {
         color: CustomColors.textLight,
         fontSize: 12,
+    },
+    pickupNoteContainer: {
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        borderRadius: 8,
+        padding: 10,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.04)'
+    },
+    pickupNoteText: {
+        color: CustomColors.textLight,
+        fontSize: 14,
+        opacity: 0.9,
     },
 });

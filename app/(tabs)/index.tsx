@@ -236,7 +236,7 @@ export default function TabOneScreen() {
           <TouchableOpacity 
             style={[
               styles.progressButton,
-              (inProgressDelivery !== null || !canProcessNewDelivery(deliveries)) && styles.progressButtonDisabled
+              // (inProgressDelivery !== null || !canProcessNewDelivery(deliveries)) && styles.progressButtonDisabled
             ]} 
             onPress={handlePressItem}
             disabled={inProgressDelivery !== null || !canProcessNewDelivery(deliveries)}
