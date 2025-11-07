@@ -3,7 +3,6 @@ import { StyleSheet, Dimensions, View, TouchableOpacity } from 'react-native';
 import { Text } from '@/components/Themed';
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import { CustomColors } from '@/constants/CustomColors';
-import { AssignmentType } from '@/utils/enum';
 import { DeliveryGroupAdapter } from '@/interfaces/delivery/deliveryAdapters';
 
 interface DeliveryGroupItemProps {
@@ -13,7 +12,7 @@ interface DeliveryGroupItemProps {
 
 export const DeliveryGroupItem: React.FC<DeliveryGroupItemProps> = ({ group, onPress }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  
+  console.log(group);
   const formatPhone = (phone: string) => {
     if (!phone) return '';
     const cleaned = phone.replace(/\D/g, '');

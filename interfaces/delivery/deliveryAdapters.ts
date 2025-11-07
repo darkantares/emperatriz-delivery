@@ -94,8 +94,8 @@ export function groupDeliveriesByShipment(deliveries: DeliveryItemAdapter[]): (D
         shipmentId,
         pickups,
         delivery: deliveryItem,
-        totalFee: groupItems.reduce((sum, item) => sum + item.fee, 0),
-        totalCost: groupItems.reduce((sum, item) => sum + item.cost, 0),
+        totalFee: groupItems.reduce((sum, item) => sum + Number(item.fee), 0),
+        totalCost: groupItems.reduce((sum, item) => sum + Number(item.cost), 0),
       };
       result.push(group);
     }

@@ -39,6 +39,7 @@ export enum SocketEventType {
   DELIVERY_STATUS_CHANGED = 'delivery-status-changed',
   DELIVERY_REORDERED = 'delivery-reordered',
   DELIVERY_ASSIGNMENT_UPDATED = 'delivery-assignment-updated',
+  DRIVERS_GROUP_ASSIGNED = 'drivers-group-assigned'
 }
 
 class SocketService {
@@ -102,10 +103,11 @@ class SocketService {
 
       this.socket.onAny((event) => {
         if (
-          event === SocketEventType.DRIVER_ASSIGNED &&
-          event === SocketEventType.DELIVERY_UPDATED &&
-          event === SocketEventType.DELIVERY_STATUS_CHANGED &&
-          event === SocketEventType.DELIVERY_REORDERED
+          event === SocketEventType.DRIVER_ASSIGNED ||
+          event === SocketEventType.DELIVERY_UPDATED ||
+          event === SocketEventType.DELIVERY_STATUS_CHANGED ||
+          event === SocketEventType.DELIVERY_REORDERED ||
+          event === SocketEventType.DRIVERS_GROUP_ASSIGNED
         ) {
           console.log('Evento recibido:', event);
           queueNotificationSound();
@@ -142,6 +144,19 @@ class SocketService {
       this.notifyListeners(SocketEventType.DRIVER_ASSIGNED, data);
     });
 
+    this.socket.on(SocketEventType.DRIVERS_GROUP_ASSIGNED, ({data,message}: SocketParam<IDeliveryAssignmentEntity[]>) => {
+      console.log('Evento recibido - Conductor asignado');
+
+      // Encolar una notificación
+      queueNotification(
+        NotificationType.SUCCESS,
+        message,
+        `Se te ha asignado un grupo de entregas`,
+        true
+      );
+
+      this.notifyListeners(SocketEventType.DRIVERS_GROUP_ASSIGNED, data);
+    });
 
     this.socket.on(SocketEventType.DELIVERY_UPDATED, ({data,message}: SocketParam<IDeliveryAssignmentEntity>) => {
       console.log('Evento recibido - Entrega actualizada:', data);

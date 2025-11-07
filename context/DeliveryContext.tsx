@@ -17,6 +17,7 @@ interface DeliveryContextType {
     handleDeliveryAssigned: (data: IDeliveryAssignmentEntity) => void;
     handleDeliveryReordered: (data: IDeliveryAssignmentEntity[]) => void;
     updateLocalDeliveryStatus: (deliveryId: string, newStatus: string) => void;
+    handleDriversGroupAssigned: (data: IDeliveryAssignmentEntity[]) => void;
 }
 
 const DeliveryContext = createContext<DeliveryContextType | undefined>(undefined);
@@ -142,13 +143,16 @@ export const DeliveryProvider: React.FC<DeliveryProviderProps> = ({ children }) 
 
     const handleDeliveryAssigned = (data: IDeliveryAssignmentEntity) => {
         console.log(data);
-        // Agregar la data recibida directamente al array de entregas
         setDeliveries(currentDeliveries => [...currentDeliveries, adaptDeliveriesToAdapter([data])[0]]);
+    };
+
+    const handleDriversGroupAssigned = (data: IDeliveryAssignmentEntity[]) => {
+        console.log(data);
+        setDeliveries(currentDeliveries => [...currentDeliveries, ...adaptDeliveriesToAdapter(data)]);
     };
 
     const handleDeliveryReordered = (data: IDeliveryAssignmentEntity[]) => {
         console.log(data);
-        // Agregar la data recibida directamente al array de entregas
         setDeliveries(adaptDeliveriesToAdapter(data));
     };
 
@@ -218,6 +222,7 @@ export const DeliveryProvider: React.FC<DeliveryProviderProps> = ({ children }) 
         handleDeliveryUpdated,
         handleDeliveryAssigned,
         handleDeliveryReordered,
+        handleDriversGroupAssigned,
         updateLocalDeliveryStatus
     };
 

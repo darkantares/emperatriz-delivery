@@ -23,6 +23,8 @@ export interface Item {
   fee: number;
   cost: number;
   enterprise: string;
+  isGroup?: boolean;
+  shipmentId?: string;
 }
 
 interface DeliveryItemProps {
@@ -74,7 +76,7 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item, onPress }) => 
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
                   <FontAwesome name="money" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
                   <Text style={styles.statusText}>
-                    RD$ {((item.fee || 0) + (item.cost || 0)).toFixed(2)}
+                    RD$ {((Number(item.fee) || 0) + (Number(item.cost) || 0)).toFixed(2)}
                   </Text>
                 </View>
               ) :
@@ -86,7 +88,7 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item, onPress }) => 
                 </View>
             }
             {/* Tipo y estado */}
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <MaterialIcons name="assignment" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
               <View style={[
                 styles.typeIndicator,
@@ -96,6 +98,12 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item, onPress }) => 
                   {item.type === AssignmentType.PICKUP ? 'Recogida' : 'Entrega'}
                 </Text>
               </View>
+              {/* Tag GRUPO si pertenece a un grupo */}
+              {item.isGroup && (
+                <View style={[styles.typeIndicator, styles.groupIndicator]}>
+                  <Text style={styles.typeText}>GRUPO</Text>
+                </View>
+              )}
             </View>
           </View>
 
@@ -187,6 +195,9 @@ const styles = StyleSheet.create({
   },
   deliveryIndicator: {
     backgroundColor: CustomColors.secondary,
+  },
+  groupIndicator: {
+    backgroundColor: CustomColors.tertiary,
   },
   typeText: {
     color: CustomColors.textLight,

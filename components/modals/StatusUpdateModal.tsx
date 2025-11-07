@@ -273,6 +273,11 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
         setImageUri(null);
     };
 
+    const handleClose = async () =>{
+        onClose();
+        setLoading(false);
+    }
+    
     const handleConfirm = async () => {
         if (selectedStatus) {
             // Validar que se haya escrito una nota si es requerida
@@ -672,7 +677,7 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                                 <View style={styles.buttonContainer}>
                                     <TouchableOpacity
                                         style={[styles.button, styles.cancelButton]}
-                                        onPress={onClose}
+                                        onPress={handleClose}
                                     >
                                         <Text style={styles.buttonText}>Cancelar</Text>
                                     </TouchableOpacity>

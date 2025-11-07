@@ -31,11 +31,12 @@ export default function TabOneScreen() {
     fetchDeliveries,
     handleDeliveryUpdated,
     handleDeliveryAssigned,
-    handleDeliveryReordered
+    handleDeliveryReordered,
+    handleDriversGroupAssigned
   } = useDelivery();
   
-  const [isStatusModalVisible, setIsStatusModalVisible] = useState<boolean>(false);
   const [selectedDelivery, setSelectedDelivery] = useState<DeliveryItemAdapter | null>(null);
+  const [isStatusModalVisible, setIsStatusModalVisible] = useState<boolean>(false);
 
   const isNavigating = useRef(false);
 
@@ -46,14 +47,16 @@ export default function TabOneScreen() {
     socketService.on(SocketEventType.DRIVER_ASSIGNED, handleDeliveryAssigned);
     socketService.on(SocketEventType.DELIVERY_REORDERED, handleDeliveryReordered); 
     socketService.on(SocketEventType.DELIVERY_ASSIGNMENT_UPDATED, handleDeliveryUpdated);
+    socketService.on(SocketEventType.DRIVERS_GROUP_ASSIGNED, handleDriversGroupAssigned);
 
     return () => {
       console.log('Componente desmontado, limpiando listeners y desconectando socket');
       socketService.off(SocketEventType.DRIVER_ASSIGNED, handleDeliveryAssigned);
       socketService.off(SocketEventType.DELIVERY_REORDERED, handleDeliveryReordered);
       socketService.off(SocketEventType.DELIVERY_ASSIGNMENT_UPDATED, handleDeliveryUpdated);  
+      socketService.off(SocketEventType.DRIVERS_GROUP_ASSIGNED, handleDriversGroupAssigned);
     };
-  }, [handleDeliveryAssigned, handleDeliveryReordered, handleDeliveryUpdated]);
+  }, [handleDeliveryAssigned, handleDeliveryReordered, handleDeliveryUpdated, handleDriversGroupAssigned]);
 
   // Type guard para verificar si el item es un grupo
   const isDeliveryGroup = (item: DeliveryItemAdapter | any): item is DeliveryGroupAdapter => {
