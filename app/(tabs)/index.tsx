@@ -216,7 +216,6 @@ export default function TabOneScreen() {
           {/* Tarjeta de entrega en progreso */}
           <ActiveDeliveryCard 
             inProgressDelivery={inProgressDelivery}
-            deliveries={deliveries}
             onViewTask={() => {
               if (inProgressDelivery) {
                 setSelectedDelivery(inProgressDelivery);

@@ -52,8 +52,8 @@ export function adaptDeliveriesToAdapter(deliveries: IDeliveryAssignmentEntity[]
       destiny: delivery.destiny,
       isGroup: delivery.isGroup || false,
       shipmentId: delivery.shipmentId,
-      fee: delivery.fee,
-      cost: delivery.cost,
+      fee: Number(delivery.fee),
+      cost: Number(delivery.cost),
       enterprise: delivery.enterprise.title,
     }));    
   } catch (error) {

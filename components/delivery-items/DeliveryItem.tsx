@@ -54,7 +54,6 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item, onPress }) => 
       <View style={styles.contentContainer}>
           {/* Cliente y Teléfono en la misma fila */}
           <View style={[styles.infoRow, { justifyContent: 'space-between' }]}>
-
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
               <FontAwesome name="user" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
               <Text style={styles.statusText}>{item.client}</Text>
@@ -64,29 +63,17 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item, onPress }) => 
               <FontAwesome name="phone" size={16} color={CustomColors.textLight} style={{ marginLeft: 16, marginRight: 6 }} />
               <Text style={styles.statusText}>{formatPhone(item.phone)}</Text>
             </View>
-
           </View>
-
 
           {/* Monto solo si es DELIVERY, tipo y estado siempre */}
           <View style={[styles.infoRow, { justifyContent: 'space-between' }]}>
             {/* Monto a cobrar solo si es DELIVERY */}
-            {
-              item.type === AssignmentType.DELIVERY ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
-                  <FontAwesome name="money" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
-                  <Text style={styles.statusText}>
-                    RD$ {((Number(item.fee) || 0) + (Number(item.cost) || 0)).toFixed(2)}
-                  </Text>
-                </View>
-              ) :
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
-                  <FontAwesome name="money" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
-                  <Text style={styles.statusText}>
-                    RD$ 0.00
-                  </Text>
-                </View>
-            }
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
+              <FontAwesome name="money" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
+              <Text style={styles.statusText}>
+                RD$ {((item.fee || 0) + (item.cost || 0)).toFixed(2)}
+              </Text>
+            </View>
             {/* Tipo y estado */}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <MaterialIcons name="assignment" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
