@@ -5,6 +5,7 @@ import React from 'react';
 import { CustomColors } from '@/constants/CustomColors';
 import { AssignmentType } from '@/utils/enum';
 import { IProvincia, IMunicipio, ISector } from '@/interfaces/location';
+import { openWhatsAppMessage } from '@/utils/whatsapp';
 
 import { IDeliveryStatusEntity } from '@/interfaces/delivery/delivery';
 
@@ -59,10 +60,14 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item, onPress }) => 
               <Text style={styles.statusText}>{item.client}</Text>
             </View>
 
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
-              <FontAwesome name="phone" size={16} color={CustomColors.textLight} style={{ marginLeft: 16, marginRight: 6 }} />
+            <TouchableOpacity
+              style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}
+              onPress={() => openWhatsAppMessage(item.phone, `Hola ${item.client}`)}
+              activeOpacity={0.7}
+            >
+              <FontAwesome name="whatsapp" size={16} color={CustomColors.textLight} style={{ marginLeft: 16, marginRight: 6 }} />
               <Text style={styles.statusText}>{formatPhone(item.phone)}</Text>
-            </View>
+            </TouchableOpacity>
           </View>
 
           {/* Monto solo si es DELIVERY, tipo y estado siempre */}
