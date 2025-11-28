@@ -1,4 +1,4 @@
-import { StyleSheet, Dimensions, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, Dimensions, View, TouchableOpacity, Linking, Alert } from 'react-native';
 import { Text } from '@/components/Themed';
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
@@ -44,6 +44,26 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item, onPress }) => 
     return phone;
   };
 
+  const maskPhoneNumber = (phone: string) => {
+    if (!phone) return '●●● ●●● ●●●●';
+    const cleaned = phone.replace(/\D/g, '');
+    if (cleaned.length >= 4) {
+      return `●●● ●●● ${cleaned.slice(-4)}`;
+    }
+    return '●●● ●●● ●●●●';
+  };
+
+  const handleCall = (phone: string) => {
+    const cleaned = phone.replace(/\D/g, '');
+    if (cleaned.length === 0) {
+      Alert.alert('Error', 'Número de teléfono no disponible');
+      return;
+    }
+    Linking.openURL(`tel:${cleaned}`).catch(() => {
+      Alert.alert('Error', 'No se puede realizar la llamada');
+    });
+  };
+
   const ContainerComponent = onPress ? TouchableOpacity : View;
 
   return (
@@ -60,14 +80,28 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item, onPress }) => 
               <Text style={styles.statusText}>{item.client}</Text>
             </View>
 
-            <TouchableOpacity
-              style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}
-              onPress={() => openWhatsAppMessage(item.phone, `Hola ${item.client}`)}
-              activeOpacity={0.7}
-            >
-              <FontAwesome name="whatsapp" size={16} color={CustomColors.textLight} style={{ marginLeft: 16, marginRight: 6 }} />
-              <Text style={styles.statusText}>{formatPhone(item.phone)}</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              {/* Icono de Llamada */}
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center' }}
+                onPress={() => handleCall(item.phone)}
+                activeOpacity={0.7}
+                accessibilityLabel="Llamar por teléfono"
+              >
+                <FontAwesome name="phone" size={32} color={CustomColors.textLight} style={{ marginRight: 6 }} />
+                {/* <Text style={styles.statusText}>{maskPhoneNumber(item.phone)}</Text> */}
+              </TouchableOpacity>
+
+              {/* Icono de WhatsApp */}
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center' }}
+                onPress={() => openWhatsAppMessage(item.phone, `Hola ${item.client}`)}
+                activeOpacity={0.7}
+                accessibilityLabel="Enviar mensaje por WhatsApp"
+              >
+                <FontAwesome name="whatsapp" size={32} color={CustomColors.textLight} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Monto solo si es DELIVERY, tipo y estado siempre */}
@@ -81,7 +115,7 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item, onPress }) => 
             </View>
             {/* Tipo y estado */}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <MaterialIcons name="assignment" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
+              {/* <MaterialIcons name="assignment" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} /> */}
               <View style={[
                 styles.typeIndicator,
                 item.type === AssignmentType.PICKUP ? styles.pickupIndicator : styles.deliveryIndicator
@@ -98,19 +132,10 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item, onPress }) => 
               )}
             </View>
           </View>
-
-          {/* Indicador visual de que es clickeable */}
-          {onPress && (
-            <View style={styles.clickIndicator}>
-              <FontAwesome name="chevron-right" size={12} color={CustomColors.secondary} />
-            </View>
-          )}
         </View>
     </ContainerComponent>
   );
 };
-
-const { width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   itemContainer: {

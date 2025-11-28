@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "extra": {
       "apiUrl": {
-        "development": "http://192.168.100.22:5000",
+        "development": "http://192.168.100.24:5000",
         "production": "https://api.emperatrizdelivery.com"
       },
       "socketUrl": {

@@ -3,7 +3,6 @@ import { View, TouchableOpacity, ActivityIndicator, SafeAreaView, StyleSheet } f
 import { Text } from '@/components/Themed';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { CustomColors } from '@/constants/CustomColors';
-import { Greeting } from '@/components/dashboard/Greeting';
 
 interface AppStateScreenProps {
   type: 'loading' | 'error' | 'noDeliveries';
@@ -41,7 +40,6 @@ export const AppStateScreen: React.FC<AppStateScreenProps> = ({
       case 'noDeliveries':
         return (
           <View style={styles.container}>
-            <Greeting userName={userName} />
             <View style={styles.noDeliveriesContainer}>
               <Text style={styles.noDeliveriesText}>No tienes envíos asignados actualmente</Text>
             </View>

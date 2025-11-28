@@ -5,7 +5,6 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useState, useRef, useEffect } from 'react';
 import { CustomColors } from '@/constants/CustomColors';
 import { StatusUpdateModal } from '@/components/modals/StatusUpdateModal';
-import { Greeting } from '@/components/dashboard/Greeting';
 import { AppHeader } from '@/components/header/AppHeader';
 import { AppStateScreen } from '@/components/states/AppStateScreen';
 import { useAuth } from '@/context/AuthContext';
@@ -16,7 +15,6 @@ import { ProgressCard } from '@/components/dashboard/ProgressCard';
 import { ActiveDeliveryCard } from '@/components/dashboard/ActiveDeliveryCard';
 import { DeliveryItemList } from '@/components/delivery-items/DeliveryItemList';
 import { IDeliveryStatus } from '@/interfaces/delivery/deliveryStatus';
-import { AssignmentType } from '@/utils/enum';
 
 export default function TabOneScreen() {
   const { user } = useAuth();
@@ -204,8 +202,6 @@ export default function TabOneScreen() {
             />
           )}
           
-          {/* Saludo */}
-          <Greeting userName={user ? `${user.firstname} ${user.lastname}` : ""} />
           {/* Tarjeta de progreso de entregas */}
           <ProgressCard 
             userName={user ? `${user.firstname} ${user.lastname}` : ""}
@@ -244,7 +240,7 @@ export default function TabOneScreen() {
             disabled={inProgressDelivery !== null || !canProcessNewDelivery(deliveries)}
           >
             <Text style={styles.progressButtonText}>
-              {inProgressDelivery !== null ? 'Completa entrega actual' : 'Continuar con Siguiente Entrega'}
+              Progresar Envio
             </Text>
           </TouchableOpacity>
         </View>
