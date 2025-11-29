@@ -181,9 +181,7 @@ export default function TabOneScreen() {
   };
 
   // Manejar la actualización de estado
-  const handleStatusUpdate = async (newStatus: string) => {
-    // El modal ya se encarga de llamar al backend y actualizar el contexto
-    // Solo necesitamos cerrar el modal aquí
+  const handleStatusUpdate = async () => {
     setIsStatusModalVisible(false);
     setSelectedDelivery(null);
   };
@@ -213,13 +211,12 @@ export default function TabOneScreen() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaView
+      <View
         style={{ flex: 1, backgroundColor: CustomColors.backgroundDarkest }}
       >
         <View style={styles.container}>
           <AppHeader />
 
-          {/* Mostrar indicador de carga si está refrescando datos y no es pull-to-refresh */}
           {loading && !refreshing && (
             <ActivityIndicator
               size="small"
@@ -228,14 +225,12 @@ export default function TabOneScreen() {
             />
           )}
 
-          {/* Tarjeta de progreso de entregas */}
           <ProgressCard
             userName={user ? `${user.firstname} ${user.lastname}` : ""}
             deliveries={deliveries}
             inProgressDelivery={inProgressDelivery}
           />
 
-          {/* Tarjeta de entrega en progreso */}
           <ActiveDeliveryCard
             inProgressDelivery={inProgressDelivery}
             onViewTask={() => {
@@ -246,7 +241,6 @@ export default function TabOneScreen() {
             }}
           />
 
-          {/* Lista de entregas */}
           <DeliveryItemList
             data={deliveries}
             refreshing={refreshing}
@@ -254,8 +248,7 @@ export default function TabOneScreen() {
             contentContainerStyle={{ paddingBottom: 180 }}
           />
 
-          {/* Botón manual para refrescar entregas, fuera del View principal - Solo en desarrollo */}
-          {__DEV__ && (
+          {/* {__DEV__ && (
             <TouchableOpacity
               style={styles.manualRefreshButton}
               onPress={() => fetchDeliveries()}
@@ -264,7 +257,7 @@ export default function TabOneScreen() {
                 Refrescar entregas
               </Text>
             </TouchableOpacity>
-          )}
+          )} */}
 
           <TouchableOpacity
             style={[
@@ -282,7 +275,6 @@ export default function TabOneScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Modal de Actualización de Estado */}
         {selectedDelivery && (
           <StatusUpdateModal
             isVisible={isStatusModalVisible}
@@ -292,7 +284,7 @@ export default function TabOneScreen() {
             itemId={selectedDelivery.id}
           />
         )}
-      </SafeAreaView>
+      </View>
     </GestureHandlerRootView>
   );
 }
