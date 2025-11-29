@@ -181,7 +181,6 @@ export default function TabOneScreen() {
     return (
       <AppStateScreen 
         type="noDeliveries" 
-        userName={user ? `${user.firstname} ${user.lastname}` : ""}
         onRetry={() => fetchDeliveries()} 
       />
     );
@@ -225,10 +224,7 @@ export default function TabOneScreen() {
             data={deliveries}
             refreshing={refreshing}
             onRefresh={onRefresh}
-            onItemPress={(item) => {
-              setSelectedDelivery(item);
-              setIsStatusModalVisible(true);
-            }}
+
           />
 
           <TouchableOpacity 

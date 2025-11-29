@@ -8,7 +8,7 @@ interface DeliveryItemListProps {
   data: DeliveryItemAdapter[];
   refreshing?: boolean;
   onRefresh?: () => void;
-  onItemPress?: (item: DeliveryItemAdapter) => void;
+
 }
 
 
@@ -16,7 +16,6 @@ export const DeliveryItemList: React.FC<DeliveryItemListProps> = ({
   data,
   refreshing = false,
   onRefresh,
-  onItemPress,
 }) => {
   const renderItem = ({ item }: { item: DeliveryItemAdapter }) => {
     console.log(item);
@@ -42,7 +41,6 @@ export const DeliveryItemList: React.FC<DeliveryItemListProps> = ({
     return (
       <DeliveryItem 
         item={itemForComponent}
-        onPress={onItemPress ? () => onItemPress(item) : undefined}
       />
     );
   };

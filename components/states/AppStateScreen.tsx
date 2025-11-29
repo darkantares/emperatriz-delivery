@@ -6,14 +6,12 @@ import { CustomColors } from '@/constants/CustomColors';
 
 interface AppStateScreenProps {
   type: 'loading' | 'error' | 'noDeliveries';
-  userName?: string;
   error?: string;
   onRetry: () => void;
 }
 
 export const AppStateScreen: React.FC<AppStateScreenProps> = ({
   type,
-  userName = '',
   error,
   onRetry
 }) => {
