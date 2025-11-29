@@ -14,7 +14,7 @@ import { useColorScheme } from '@/components/useColorScheme';
 import { CustomColors } from '@/constants/CustomColors';
 import LoadingScreen from '@/components/LoadingScreen';
 import { NotificationHandler } from '@/components/NotificationHandler';
-import Toast from 'react-native-toast-message';
+import * as NavigationBar from 'expo-navigation-bar';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -45,6 +45,14 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [loaded]);
+
+  useEffect(() => {
+    // Oculta los botones de Android
+    NavigationBar.setVisibilityAsync('hidden');
+
+    // Los muestra solo si el usuario desliza desde abajo
+    NavigationBar.setBehaviorAsync('overlay-swipe');
+  }, []);
 
   if (!loaded) {
     return null;

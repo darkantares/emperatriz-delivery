@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
   progressButton: {
     backgroundColor: CustomColors.secondary,
     paddingVertical: 14,
-    // paddingHorizontal: 20,
+    paddingHorizontal: 20,
     borderRadius: 12,
     marginVertical: 10,
     elevation: 5,
@@ -412,6 +412,7 @@ const styles = StyleSheet.create({
     },
   manualRefreshButtonText: {
     color: CustomColors.textLight,
+    paddingHorizontal: 20,
     fontWeight: "bold",
     fontSize: 16,
   },
