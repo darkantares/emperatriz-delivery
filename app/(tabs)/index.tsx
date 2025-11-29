@@ -54,48 +54,20 @@ export default function TabOneScreen() {
   // Conectar socket y listeners
   useEffect(() => {
     socketService.connect();
-
+    
     socketService.on(SocketEventType.DRIVER_ASSIGNED, handleDeliveryAssigned);
-    socketService.on(
-      SocketEventType.DELIVERY_REORDERED,
-      handleDeliveryReordered
-    );
-    socketService.on(
-      SocketEventType.DELIVERY_ASSIGNMENT_UPDATED,
-      handleDeliveryUpdated
-    );
-    socketService.on(
-      SocketEventType.DRIVERS_GROUP_ASSIGNED,
-      handleDriversGroupAssigned
-    );
+    socketService.on(SocketEventType.DELIVERY_REORDERED, handleDeliveryReordered); 
+    socketService.on(SocketEventType.DELIVERY_ASSIGNMENT_UPDATED, handleDeliveryUpdated);
+    socketService.on(SocketEventType.DRIVERS_GROUP_ASSIGNED, handleDriversGroupAssigned);
 
     return () => {
-      console.log(
-        "Componente desmontado, limpiando listeners y desconectando socket"
-      );
-      socketService.off(
-        SocketEventType.DRIVER_ASSIGNED,
-        handleDeliveryAssigned
-      );
-      socketService.off(
-        SocketEventType.DELIVERY_REORDERED,
-        handleDeliveryReordered
-      );
-      socketService.off(
-        SocketEventType.DELIVERY_ASSIGNMENT_UPDATED,
-        handleDeliveryUpdated
-      );
-      socketService.off(
-        SocketEventType.DRIVERS_GROUP_ASSIGNED,
-        handleDriversGroupAssigned
-      );
+      console.log('Componente desmontado, limpiando listeners y desconectando socket');
+      socketService.off(SocketEventType.DRIVER_ASSIGNED, handleDeliveryAssigned);
+      socketService.off(SocketEventType.DELIVERY_REORDERED, handleDeliveryReordered);
+      socketService.off(SocketEventType.DELIVERY_ASSIGNMENT_UPDATED, handleDeliveryUpdated);  
+      socketService.off(SocketEventType.DRIVERS_GROUP_ASSIGNED, handleDriversGroupAssigned);
     };
-  }, [
-    handleDeliveryAssigned,
-    handleDeliveryReordered,
-    handleDeliveryUpdated,
-    handleDriversGroupAssigned,
-  ]);
+  }, [handleDeliveryAssigned, handleDeliveryReordered, handleDeliveryUpdated, handleDriversGroupAssigned]);
 
   // Type guard para verificar si el item es un grupo
   const isDeliveryGroup = (
@@ -279,6 +251,7 @@ export default function TabOneScreen() {
             data={deliveries}
             refreshing={refreshing}
             onRefresh={onRefresh}
+            contentContainerStyle={{ paddingBottom: 180 }}
           />
 
           {/* Botón manual para refrescar entregas, fuera del View principal - Solo en desarrollo */}
@@ -292,7 +265,7 @@ export default function TabOneScreen() {
               </Text>
             </TouchableOpacity>
           )}
-          
+
           <TouchableOpacity
             style={[
               styles.progressButton,
@@ -414,10 +387,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
     shadowRadius: 3,
-    position: "absolute",
-    bottom: 10, // antes 20, ahora más abajo
-    right: 20,
-    left: 20,
+    marginHorizontal: 20, // Añadir para centrar y dar espacio
   },
   progressButtonDisabled: {
     backgroundColor: CustomColors.divider,
@@ -433,18 +403,13 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   manualRefreshButton: {
-    backgroundColor: CustomColors.primary,
-    paddingVertical: 12,
-    borderRadius: 12,
-    marginVertical: 10,
-    marginHorizontal: 20,
-    alignItems: "center",
-    position: "absolute",
-    left: 20,
-    right: 20,
-    bottom: 70,
-    zIndex: 99,
-  },
+      backgroundColor: CustomColors.primary,
+      paddingVertical: 12,
+      borderRadius: 12,
+      marginVertical: 10,
+      marginHorizontal: 20,
+      alignItems: 'center',
+    },
   manualRefreshButtonText: {
     color: CustomColors.textLight,
     fontWeight: "bold",

@@ -1,5 +1,5 @@
 import React from 'react';
-import { FlatList, StyleSheet, RefreshControl } from 'react-native';
+import { FlatList, StyleSheet, RefreshControl, StyleProp, ViewStyle } from 'react-native';
 import { Item, DeliveryItem } from './DeliveryItem';
 import { CustomColors } from '@/constants/CustomColors';
 import { DeliveryItemAdapter } from '@/interfaces/delivery/deliveryAdapters';
@@ -8,6 +8,7 @@ interface DeliveryItemListProps {
   data: DeliveryItemAdapter[];
   refreshing?: boolean;
   onRefresh?: () => void;
+  contentContainerStyle?: StyleProp<ViewStyle>;
 
 }
 
@@ -16,6 +17,7 @@ export const DeliveryItemList: React.FC<DeliveryItemListProps> = ({
   data,
   refreshing = false,
   onRefresh,
+  contentContainerStyle,
 }) => {
   const renderItem = ({ item }: { item: DeliveryItemAdapter }) => {
     console.log(item);
@@ -53,6 +55,7 @@ export const DeliveryItemList: React.FC<DeliveryItemListProps> = ({
       renderItem={renderItem}
       keyExtractor={getKeyExtractor}
       style={styles.list}
+      contentContainerStyle={contentContainerStyle}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
