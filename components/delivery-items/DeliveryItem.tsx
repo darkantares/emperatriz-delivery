@@ -1,13 +1,20 @@
-import { StyleSheet, Dimensions, View, TouchableOpacity, Linking, Alert } from 'react-native';
-import { Text } from '@/components/Themed';
-import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
-import React from 'react';
-import { CustomColors } from '@/constants/CustomColors';
-import { AssignmentType } from '@/utils/enum';
-import { IProvincia, IMunicipio, ISector } from '@/interfaces/location';
-import { openWhatsAppMessage } from '@/utils/whatsapp';
+import {
+  StyleSheet,
+  Dimensions,
+  View,
+  TouchableOpacity,
+  Linking,
+  Alert,
+} from "react-native";
+import { Text } from "@/components/Themed";
+import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
+import React from "react";
+import { CustomColors } from "@/constants/CustomColors";
+import { AssignmentType } from "@/utils/enum";
+import { IProvincia, IMunicipio, ISector } from "@/interfaces/location";
+import { openWhatsAppMessage } from "@/utils/whatsapp";
 
-import { IDeliveryStatusEntity } from '@/interfaces/delivery/delivery';
+import { IDeliveryStatusEntity } from "@/interfaces/delivery/delivery";
 
 export interface Item {
   id: string;
@@ -33,106 +40,125 @@ interface DeliveryItemProps {
   onPress?: () => void;
 }
 
-export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item, onPress }) => {
-  
-  const formatPhone = (phone: string) => {
-    if (!phone) return '';
-    const cleaned = phone.replace(/\D/g, '');
-    if (cleaned.length === 10) {
-      return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
-    }
-    return phone;
-  };
-
-  const maskPhoneNumber = (phone: string) => {
-    if (!phone) return '●●● ●●● ●●●●';
-    const cleaned = phone.replace(/\D/g, '');
-    if (cleaned.length >= 4) {
-      return `●●● ●●● ${cleaned.slice(-4)}`;
-    }
-    return '●●● ●●● ●●●●';
-  };
-
+export const DeliveryItem: React.FC<DeliveryItemProps> = ({
+  item,
+  onPress,
+}) => {
   const handleCall = (phone: string) => {
-    const cleaned = phone.replace(/\D/g, '');
+    const cleaned = phone.replace(/\D/g, "");
     if (cleaned.length === 0) {
-      Alert.alert('Error', 'Número de teléfono no disponible');
+      Alert.alert("Error", "Número de teléfono no disponible");
       return;
     }
     Linking.openURL(`tel:${cleaned}`).catch(() => {
-      Alert.alert('Error', 'No se puede realizar la llamada');
+      Alert.alert("Error", "No se puede realizar la llamada");
     });
   };
 
   const ContainerComponent = onPress ? TouchableOpacity : View;
 
   return (
-    <ContainerComponent 
+    <ContainerComponent
       style={[styles.itemContainer, styles.deliveryContainer]}
       onPress={onPress}
       activeOpacity={onPress ? 0.7 : 1}
     >
       <View style={styles.contentContainer}>
-          {/* Cliente y Teléfono en la misma fila */}
-          <View style={[styles.infoRow, { justifyContent: 'space-between' }]}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
-              <FontAwesome name="user" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
-              <Text style={styles.statusText}>{item.client}</Text>
-            </View>
-
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              {/* Icono de Llamada */}
-              <TouchableOpacity
-                style={{ flexDirection: 'row', alignItems: 'center' }}
-                onPress={() => handleCall(item.phone)}
-                activeOpacity={0.7}
-                accessibilityLabel="Llamar por teléfono"
-              >
-                <FontAwesome name="phone" size={32} color={CustomColors.textLight} style={{ marginRight: 6 }} />
-                {/* <Text style={styles.statusText}>{maskPhoneNumber(item.phone)}</Text> */}
-              </TouchableOpacity>
-
-              {/* Icono de WhatsApp */}
-              <TouchableOpacity
-                style={{ flexDirection: 'row', alignItems: 'center' }}
-                onPress={() => openWhatsAppMessage(item.phone, `Hola ${item.client}`)}
-                activeOpacity={0.7}
-                accessibilityLabel="Enviar mensaje por WhatsApp"
-              >
-                <FontAwesome name="whatsapp" size={32} color={CustomColors.textLight} />
-              </TouchableOpacity>
-            </View>
+        {/* Cliente y Teléfono en la misma fila */}
+        <View style={[styles.infoRow, { justifyContent: "space-between" }]}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "flex-end",
+            }}
+          >
+            <FontAwesome
+              name="user"
+              size={16}
+              color={CustomColors.textLight}
+              style={{ marginRight: 6 }}
+            />
+            <Text style={styles.statusText}>{item.client}</Text>
           </View>
 
-          {/* Monto solo si es DELIVERY, tipo y estado siempre */}
-          <View style={[styles.infoRow, { justifyContent: 'space-between' }]}>
-            {/* Monto a cobrar solo si es DELIVERY */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
-              <FontAwesome name="money" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
-              <Text style={styles.statusText}>
-                RD$ {((item.fee || 0) + (item.cost || 0)).toFixed(2)}
-              </Text>
-            </View>
-            {/* Tipo y estado */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              {/* <MaterialIcons name="assignment" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} /> */}
-              <View style={[
-                styles.typeIndicator,
-                item.type === AssignmentType.PICKUP ? styles.pickupIndicator : styles.deliveryIndicator
-              ]}>
-                <Text style={styles.typeText}>
-                  {item.type === AssignmentType.PICKUP ? 'Recogida' : 'Entrega'}
-                </Text>
-              </View>
-              {/* Tag GRUPO si pertenece a un grupo */}
-              {item.isGroup && (
-                <View style={[styles.typeIndicator, styles.groupIndicator]}>
-                  <Text style={styles.typeText}>GRUPO</Text>
-                </View>
-              )}
-            </View>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 18 }}>
+            {/* Icono de Llamada */}
+            <TouchableOpacity
+              style={{ flexDirection: "row", alignItems: "center" }}
+              onPress={() => handleCall(item.phone)}
+              activeOpacity={0.7}
+              accessibilityLabel="Llamar por teléfono"
+            >
+              <FontAwesome
+                name="phone"
+                size={40}
+                color={CustomColors.textLight}
+                style={{ marginRight: 6 }}
+              />
+            </TouchableOpacity>
+
+            {/* Icono de WhatsApp */}
+            <TouchableOpacity
+              style={{ flexDirection: "row", alignItems: "center" }}
+              onPress={() =>
+                openWhatsAppMessage(item.phone, `Hola ${item.client}`)
+              }
+              activeOpacity={0.7}
+              accessibilityLabel="Enviar mensaje por WhatsApp"
+            >
+              <FontAwesome
+                name="whatsapp"
+                size={40}
+                color={CustomColors.textLight}
+              />
+            </TouchableOpacity>
           </View>
         </View>
+
+        {/* Monto solo si es DELIVERY, tipo y estado siempre */}
+        <View style={[styles.infoRow, { justifyContent: "space-between" }]}>
+          {/* Monto a cobrar solo si es DELIVERY */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "flex-end",
+            }}
+          >
+            <FontAwesome
+              name="money"
+              size={16}
+              color={CustomColors.textLight}
+              style={{ marginRight: 6 }}
+            />
+            <Text style={styles.statusText}>
+              RD$ {((item.fee || 0) + (item.cost || 0)).toFixed(2)}
+            </Text>
+          </View>
+          {/* Tipo y estado */}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <View
+              style={[
+                styles.typeIndicator,
+                item.type === AssignmentType.PICKUP
+                  ? styles.pickupIndicator
+                  : styles.deliveryIndicator,
+              ]}
+            >
+              <Text style={styles.typeText}>
+                {item.type === AssignmentType.PICKUP ? "Recogida" : "Entrega"}
+              </Text>
+            </View>
+            {/* Tag GRUPO si pertenece a un grupo */}
+            {item.isGroup && (
+              <View style={[styles.typeIndicator, styles.groupIndicator]}>
+                <Text style={styles.typeText}>GRUPO</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </View>
     </ContainerComponent>
   );
 };
@@ -145,10 +171,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     backgroundColor: CustomColors.backgroundDark,
     borderBottomWidth: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     // Sombra sutil para destacar la tarjeta
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
@@ -169,28 +195,27 @@ const styles = StyleSheet.create({
     height: 30,
     borderRadius: 20,
     backgroundColor: CustomColors.backgroundDark,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 10,
   },
   numberText: {
     color: CustomColors.secondary,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   contentContainer: {
     flex: 1,
-    paddingRight: 30, // Más espacio para el indicador
-    position: 'relative',
+    position: "relative",
   },
   infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 8,
   },
   itemTitle: {
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: CustomColors.textLight,
     width: 80, // Ancho fijo para alinear todos los valores
   },
@@ -204,8 +229,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   pickupIndicator: {
     backgroundColor: CustomColors.quaternary,
@@ -218,18 +241,18 @@ const styles = StyleSheet.create({
   },
   typeText: {
     color: CustomColors.textLight,
-    fontSize: 12,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: "bold",
   },
   statusText: {
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginLeft: 2,
   },
   clickIndicator: {
-    position: 'absolute',
+    position: "absolute",
     right: 12,
-    top: '50%',
+    top: "50%",
     transform: [{ translateY: -6 }],
   },
 });
