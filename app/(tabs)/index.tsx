@@ -1,119 +1,179 @@
-import { StyleSheet, TouchableOpacity, ActivityIndicator, SafeAreaView, Alert } from 'react-native';
-import { Text, View } from '@/components/Themed';
-import { socketService, SocketEventType } from '@/services/websocketService';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useState, useRef, useEffect } from 'react';
-import { CustomColors } from '@/constants/CustomColors';
-import { StatusUpdateModal } from '@/components/modals/StatusUpdateModal';
-import { AppHeader } from '@/components/header/AppHeader';
-import { AppStateScreen } from '@/components/states/AppStateScreen';
-import { useAuth } from '@/context/AuthContext';
-import { useActiveDelivery } from '@/context/ActiveDeliveryContext';
-import { useDelivery } from '@/context/DeliveryContext';
-import { DeliveryItemAdapter, DeliveryGroupAdapter, groupDeliveriesByShipment } from '@/interfaces/delivery/deliveryAdapters';
-import { ProgressCard } from '@/components/dashboard/ProgressCard';
-import { ActiveDeliveryCard } from '@/components/dashboard/ActiveDeliveryCard';
-import { DeliveryItemList } from '@/components/delivery-items/DeliveryItemList';
-import { IDeliveryStatus } from '@/interfaces/delivery/deliveryStatus';
+import {
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+  SafeAreaView,
+  Alert,
+} from "react-native";
+import { Text, View } from "@/components/Themed";
+import { socketService, SocketEventType } from "@/services/websocketService";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { useState, useRef, useEffect } from "react";
+import { CustomColors } from "@/constants/CustomColors";
+import { StatusUpdateModal } from "@/components/modals/StatusUpdateModal";
+import { AppHeader } from "@/components/header/AppHeader";
+import { AppStateScreen } from "@/components/states/AppStateScreen";
+import { useAuth } from "@/context/AuthContext";
+import { useActiveDelivery } from "@/context/ActiveDeliveryContext";
+import { useDelivery } from "@/context/DeliveryContext";
+import {
+  DeliveryItemAdapter,
+  DeliveryGroupAdapter,
+  groupDeliveriesByShipment,
+} from "@/interfaces/delivery/deliveryAdapters";
+import { ProgressCard } from "@/components/dashboard/ProgressCard";
+import { ActiveDeliveryCard } from "@/components/dashboard/ActiveDeliveryCard";
+import { DeliveryItemList } from "@/components/delivery-items/DeliveryItemList";
+import { IDeliveryStatus } from "@/interfaces/delivery/deliveryStatus";
 
 export default function TabOneScreen() {
   const { user } = useAuth();
-  const { getNextDeliveryToProcess, canProcessNewDelivery } = useActiveDelivery();
-  const { 
-    deliveries, 
-    inProgressDelivery, 
-    loading, 
-    refreshing, 
-    error, 
+  const { getNextDeliveryToProcess, canProcessNewDelivery } =
+    useActiveDelivery();
+  const {
+    deliveries,
+    inProgressDelivery,
+    loading,
+    refreshing,
+    error,
     onRefresh,
     fetchDeliveries,
     handleDeliveryUpdated,
     handleDeliveryAssigned,
     handleDeliveryReordered,
-    handleDriversGroupAssigned
+    handleDriversGroupAssigned,
   } = useDelivery();
-  
-  const [selectedDelivery, setSelectedDelivery] = useState<DeliveryItemAdapter | null>(null);
-  const [isStatusModalVisible, setIsStatusModalVisible] = useState<boolean>(false);
+
+  const [selectedDelivery, setSelectedDelivery] =
+    useState<DeliveryItemAdapter | null>(null);
+  const [isStatusModalVisible, setIsStatusModalVisible] =
+    useState<boolean>(false);
 
   const isNavigating = useRef(false);
 
   // Conectar socket y listeners
   useEffect(() => {
     socketService.connect();
-    
+
     socketService.on(SocketEventType.DRIVER_ASSIGNED, handleDeliveryAssigned);
-    socketService.on(SocketEventType.DELIVERY_REORDERED, handleDeliveryReordered); 
-    socketService.on(SocketEventType.DELIVERY_ASSIGNMENT_UPDATED, handleDeliveryUpdated);
-    socketService.on(SocketEventType.DRIVERS_GROUP_ASSIGNED, handleDriversGroupAssigned);
+    socketService.on(
+      SocketEventType.DELIVERY_REORDERED,
+      handleDeliveryReordered
+    );
+    socketService.on(
+      SocketEventType.DELIVERY_ASSIGNMENT_UPDATED,
+      handleDeliveryUpdated
+    );
+    socketService.on(
+      SocketEventType.DRIVERS_GROUP_ASSIGNED,
+      handleDriversGroupAssigned
+    );
 
     return () => {
-      console.log('Componente desmontado, limpiando listeners y desconectando socket');
-      socketService.off(SocketEventType.DRIVER_ASSIGNED, handleDeliveryAssigned);
-      socketService.off(SocketEventType.DELIVERY_REORDERED, handleDeliveryReordered);
-      socketService.off(SocketEventType.DELIVERY_ASSIGNMENT_UPDATED, handleDeliveryUpdated);  
-      socketService.off(SocketEventType.DRIVERS_GROUP_ASSIGNED, handleDriversGroupAssigned);
+      console.log(
+        "Componente desmontado, limpiando listeners y desconectando socket"
+      );
+      socketService.off(
+        SocketEventType.DRIVER_ASSIGNED,
+        handleDeliveryAssigned
+      );
+      socketService.off(
+        SocketEventType.DELIVERY_REORDERED,
+        handleDeliveryReordered
+      );
+      socketService.off(
+        SocketEventType.DELIVERY_ASSIGNMENT_UPDATED,
+        handleDeliveryUpdated
+      );
+      socketService.off(
+        SocketEventType.DRIVERS_GROUP_ASSIGNED,
+        handleDriversGroupAssigned
+      );
     };
-  }, [handleDeliveryAssigned, handleDeliveryReordered, handleDeliveryUpdated, handleDriversGroupAssigned]);
+  }, [
+    handleDeliveryAssigned,
+    handleDeliveryReordered,
+    handleDeliveryUpdated,
+    handleDriversGroupAssigned,
+  ]);
 
   // Type guard para verificar si el item es un grupo
-  const isDeliveryGroup = (item: DeliveryItemAdapter | any): item is DeliveryGroupAdapter => {
-    return 'shipmentId' in item && 'pickups' in item && 'delivery' in item;
+  const isDeliveryGroup = (
+    item: DeliveryItemAdapter | any
+  ): item is DeliveryGroupAdapter => {
+    return "shipmentId" in item && "pickups" in item && "delivery" in item;
   };
 
   // Función para obtener el siguiente delivery a procesar (individual o de grupo)
-  const getDeliveryFromGroup = (deliveries: DeliveryItemAdapter[]): DeliveryItemAdapter | null => {
+  const getDeliveryFromGroup = (
+    deliveries: DeliveryItemAdapter[]
+  ): DeliveryItemAdapter | null => {
     // Primero agrupar las entregas
     const processedData = groupDeliveriesByShipment(deliveries);
-    
+
     const completedStatuses = [
       IDeliveryStatus.RETURNED,
       IDeliveryStatus.CANCELLED,
-      IDeliveryStatus.DELIVERED
+      IDeliveryStatus.DELIVERED,
     ];
-    
+
     // Buscar el primer grupo o entrega individual que se pueda procesar
     for (const item of processedData) {
       if (isDeliveryGroup(item)) {
         // Es un grupo - verificar el estado de progreso
         const group = item as DeliveryGroupAdapter;
-        
+
         // Verificar si hay pickups pendientes
-        const pendingPickups = group.pickups.filter(pickup => 
-          !completedStatuses.includes(pickup.deliveryStatus.title as IDeliveryStatus)
+        const pendingPickups = group.pickups.filter(
+          (pickup) =>
+            !completedStatuses.includes(
+              pickup.deliveryStatus.title as IDeliveryStatus
+            )
         );
-        
+
         // Si hay pickups pendientes, devolver el primero
         if (pendingPickups.length > 0) {
           return pendingPickups[0];
         }
-        
+
         // Si todos los pickups están completos, verificar el delivery
-        const allPickupsCompleted = group.pickups.every(pickup =>
-          pickup.deliveryStatus.title === IDeliveryStatus.DELIVERED ||
-          completedStatuses.includes(pickup.deliveryStatus.title as IDeliveryStatus)
+        const allPickupsCompleted = group.pickups.every(
+          (pickup) =>
+            pickup.deliveryStatus.title === IDeliveryStatus.DELIVERED ||
+            completedStatuses.includes(
+              pickup.deliveryStatus.title as IDeliveryStatus
+            )
         );
-        
-        if (allPickupsCompleted && !completedStatuses.includes(group.delivery.deliveryStatus.title as IDeliveryStatus)) {
+
+        if (
+          allPickupsCompleted &&
+          !completedStatuses.includes(
+            group.delivery.deliveryStatus.title as IDeliveryStatus
+          )
+        ) {
           return group.delivery; // Retornar el delivery final del grupo
         }
       } else {
         // Es una entrega individual
         const delivery = item as DeliveryItemAdapter;
-        
-        if (!completedStatuses.includes(delivery.deliveryStatus.title as IDeliveryStatus)) {
+
+        if (
+          !completedStatuses.includes(
+            delivery.deliveryStatus.title as IDeliveryStatus
+          )
+        ) {
           return delivery;
         }
       }
     }
-    
+
     return null;
   };
 
   const handlePressItem = () => {
     if (isNavigating.current) return;
     isNavigating.current = true;
-    
+
     // Verificar si se puede procesar un nuevo delivery
     if (!canProcessNewDelivery(deliveries)) {
       Alert.alert(
@@ -124,10 +184,10 @@ export default function TabOneScreen() {
       isNavigating.current = false;
       return;
     }
-    
+
     // Obtener el siguiente delivery a procesar (considerando grupos)
     const nextDelivery = getDeliveryFromGroup(deliveries);
-    
+
     if (!nextDelivery) {
       Alert.alert(
         "Sin entregas",
@@ -137,13 +197,15 @@ export default function TabOneScreen() {
       isNavigating.current = false;
       return;
     }
-    
+
     // Guardar el delivery seleccionado y mostrar el modal de actualización de estado
     setSelectedDelivery(nextDelivery);
     setIsStatusModalVisible(true);
-    
+
     // Restablecer la bandera de navegación
-    setTimeout(() => { isNavigating.current = false; }, 500);
+    setTimeout(() => {
+      isNavigating.current = false;
+    }, 500);
   };
 
   // Manejar la actualización de estado
@@ -154,24 +216,18 @@ export default function TabOneScreen() {
     setSelectedDelivery(null);
   };
 
-
   // Renderizar indicador de carga mientras se obtienen los datos
   if (loading && deliveries.length === 0 && !inProgressDelivery) {
-    return (
-      <AppStateScreen 
-        type="loading" 
-        onRetry={() => fetchDeliveries()} 
-      />
-    );
+    return <AppStateScreen type="loading" onRetry={() => fetchDeliveries()} />;
   }
 
   // Renderizar mensaje de error si ocurrió alguno
   if (error && deliveries.length === 0 && !inProgressDelivery) {
     return (
-      <AppStateScreen 
-        type="error" 
+      <AppStateScreen
+        type="error"
         error={error}
-        onRetry={() => fetchDeliveries()} 
+        onRetry={() => fetchDeliveries()}
       />
     );
   }
@@ -179,16 +235,15 @@ export default function TabOneScreen() {
   // Si no hay entregas y no hay error ni loading, mostrar el saludo y mensaje central
   if (!loading && !error && deliveries.length === 0 && !inProgressDelivery) {
     return (
-      <AppStateScreen 
-        type="noDeliveries" 
-        onRetry={() => fetchDeliveries()} 
-      />
+      <AppStateScreen type="noDeliveries" onRetry={() => fetchDeliveries()} />
     );
   }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: CustomColors.backgroundDarkest }}>
+      <SafeAreaView
+        style={{ flex: 1, backgroundColor: CustomColors.backgroundDarkest }}
+      >
         <View style={styles.container}>
           <AppHeader />
 
@@ -200,16 +255,16 @@ export default function TabOneScreen() {
               style={styles.refreshIndicator}
             />
           )}
-          
+
           {/* Tarjeta de progreso de entregas */}
-          <ProgressCard 
+          <ProgressCard
             userName={user ? `${user.firstname} ${user.lastname}` : ""}
             deliveries={deliveries}
             inProgressDelivery={inProgressDelivery}
           />
-          
+
           {/* Tarjeta de entrega en progreso */}
-          <ActiveDeliveryCard 
+          <ActiveDeliveryCard
             inProgressDelivery={inProgressDelivery}
             onViewTask={() => {
               if (inProgressDelivery) {
@@ -224,20 +279,33 @@ export default function TabOneScreen() {
             data={deliveries}
             refreshing={refreshing}
             onRefresh={onRefresh}
-
           />
 
-          <TouchableOpacity 
+          {/* Botón manual para refrescar entregas, fuera del View principal - Solo en desarrollo */}
+          {__DEV__ && (
+            <TouchableOpacity
+              style={styles.manualRefreshButton}
+              onPress={() => fetchDeliveries()}
+            >
+              <Text style={styles.manualRefreshButtonText}>
+                Refrescar entregas
+              </Text>
+            </TouchableOpacity>
+          )}
+          
+          <TouchableOpacity
             style={[
               styles.progressButton,
-              // (inProgressDelivery !== null || !canProcessNewDelivery(deliveries)) && styles.progressButtonDisabled
-            ]} 
+              (inProgressDelivery !== null ||
+                !canProcessNewDelivery(deliveries)) &&
+                styles.progressButtonDisabled,
+            ]}
             onPress={handlePressItem}
-            disabled={inProgressDelivery !== null || !canProcessNewDelivery(deliveries)}
+            disabled={
+              inProgressDelivery !== null || !canProcessNewDelivery(deliveries)
+            }
           >
-            <Text style={styles.progressButtonText}>
-              Progresar Envio
-            </Text>
+            <Text style={styles.progressButtonText}>Progresar Envio</Text>
           </TouchableOpacity>
         </View>
 
@@ -251,37 +319,26 @@ export default function TabOneScreen() {
             itemId={selectedDelivery.id}
           />
         )}
-
-        {/* Botón manual para refrescar entregas, fuera del View principal - Solo en desarrollo */}
-        {__DEV__ && (
-          <TouchableOpacity
-            style={styles.manualRefreshButton}
-            onPress={() => fetchDeliveries()}
-          >
-            <Text style={styles.manualRefreshButtonText}>Refrescar entregas</Text>
-          </TouchableOpacity>
-        )}
       </SafeAreaView>
     </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
-
   deliveryInfoContainer: {
-    width: '100%',
+    width: "100%",
     paddingHorizontal: 16,
     paddingBottom: 12,
     backgroundColor: CustomColors.backgroundDark,
   },
   infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginVertical: 4,
   },
   infoLabel: {
     color: CustomColors.textLight,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     fontSize: 14,
     marginRight: 8,
   },
@@ -295,36 +352,36 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     backgroundColor: CustomColors.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 8,
   },
   clientInitial: {
     color: CustomColors.textLight,
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
 
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
+    alignItems: "center",
+    justifyContent: "flex-start",
     backgroundColor: CustomColors.backgroundDarkest,
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 20,
     color: CustomColors.textLight,
-    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowColor: "rgba(0,0,0,0.5)",
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
-    textAlign: 'center',
+    textAlign: "center",
     paddingHorizontal: 20,
     paddingVertical: 10,
     backgroundColor: CustomColors.backgroundDark,
     borderRadius: 10,
-    width: '90%',
+    width: "90%",
   },
   addButton: {
     backgroundColor: CustomColors.secondary,
@@ -337,13 +394,13 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
     shadowRadius: 3,
-    position: 'absolute',
+    position: "absolute",
     bottom: 20,
     right: 20,
   },
   addButtonText: {
     color: CustomColors.textLight,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     fontSize: 16,
   },
   progressButton: {
@@ -357,7 +414,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
     shadowRadius: 3,
-    position: 'absolute',
+    position: "absolute",
     bottom: 10, // antes 20, ahora más abajo
     right: 20,
     left: 20,
@@ -368,29 +425,29 @@ const styles = StyleSheet.create({
   },
   progressButtonText: {
     color: CustomColors.textLight,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
   refreshIndicator: {
     marginBottom: 15,
   },
-    manualRefreshButton: {
-      backgroundColor: CustomColors.primary,
-      paddingVertical: 12,
-      borderRadius: 12,
-      marginVertical: 10,
-      marginHorizontal: 20,
-      alignItems: 'center',
-      position: 'absolute',
-      left: 20,
-      right: 20,
-      bottom: 70,
-      zIndex: 99,
-    },
-    manualRefreshButtonText: {
-      color: CustomColors.textLight,
-      fontWeight: 'bold',
-      fontSize: 16,
-    },
+  manualRefreshButton: {
+    backgroundColor: CustomColors.primary,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginVertical: 10,
+    marginHorizontal: 20,
+    alignItems: "center",
+    position: "absolute",
+    left: 20,
+    right: 20,
+    bottom: 70,
+    zIndex: 99,
+  },
+  manualRefreshButtonText: {
+    color: CustomColors.textLight,
+    fontWeight: "bold",
+    fontSize: 16,
+  },
 });
