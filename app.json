@@ -11,11 +11,15 @@
     "extra": {
       "apiUrl": {
         "development": "http://192.168.100.24:5000",
-        "production": "https://api.emperatrizdelivery.com"
+        "production": "https://api.tiendasdominicanas.com.do",
+        "EXPO_PUBLIC_API_URL_PROD": "https://api.tiendasdominicanas.com.do",
+        "EXPO_PUBLIC_API_URL_DEV_IOS": "http://localhost:3000",
+        "EXPO_PUBLIC_API_URL_DEV_ANDROID": "http://192.168.100.24:5000",
+        "EXPO_PUBLIC_API_URL_DEFAULT": "http://192.168.100.24:5000"
       },
       "socketUrl": {
         "development": "http://192.168.100.22:5000",
-        "production": "https://api.emperatrizdelivery.com"
+        "production": "https://api.tiendasdominicanas.com.do"
       }
     },
     "splash": {
@@ -38,11 +42,7 @@
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
-    "plugins": [
-      "expo-router",
-      "expo-audio",
-      "expo-asset"
-    ],
+    "plugins": ["expo-router", "expo-audio", "expo-asset"],
     "experiments": {
       "typedRoutes": true
     }

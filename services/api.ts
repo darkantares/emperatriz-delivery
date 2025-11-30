@@ -1,4 +1,4 @@
-import Constants from 'expo-constants';
+import { API_URLS } from '@/utils/constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ResponseAPI, FetchResponse } from '@/interfaces/global';
 import { Platform } from 'react-native';
@@ -6,26 +6,23 @@ import { Platform } from 'react-native';
 // Keys para almacenamiento
 export const AUTH_TOKEN_KEY = 'auth_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
-const USER_DATA_KEY = 'user_data';
-const USER_ROLES_KEY = 'user_roles';
 
 // Obtener la URL del API según el entorno (development o production)
 // Obtiene la URL base sin /api
 export const getBaseUrl = () => {
     try {
-        const apiUrls = Constants.expoConfig?.extra?.apiUrl;
         let url;
         if (__DEV__) {
             url = Platform.OS === 'ios'
-                ? apiUrls?.['development_ios']
-                : apiUrls?.['development'] || 'http://192.168.100.24:5000';
+                ? API_URLS.DEV_IOS
+                : API_URLS.DEV_ANDROID;
         } else {
-            url = apiUrls?.['production'] || 'http://192.168.100.24:5000';
+            url = API_URLS.PROD;
         }
         return url.endsWith('/') ? url.slice(0, -1) : url;
     } catch (error) {
         console.error('Error al obtener URL base:', error);
-        return 'http://192.168.100.24:5000';
+        return API_URLS.DEFAULT;
     }
 };
 

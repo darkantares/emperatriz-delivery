@@ -3,7 +3,6 @@ export enum AssignmentType {
   DELIVERY = 'DELIVERY',
 }
 
-
 export enum BackendUrls {
     DeliveryAssignments = 'delivery-assignments',
     DeliveryOriginAddress = 'delivery-origin-address',
