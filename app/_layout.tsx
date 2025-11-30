@@ -81,6 +81,14 @@ function ProtectedRouteGuard({ children }: { children: React.ReactNode }) {
     }
   }, [segments, isAuthenticated, isLoading, navigationState?.key]);
 
+  useEffect(() => {
+      // Oculta los botones de Android
+      NavigationBar.setVisibilityAsync('hidden');
+
+      // Los muestra solo si el usuario desliza desde abajo
+      NavigationBar.setBehaviorAsync('overlay-swipe');
+  }, []);
+  
   if (isLoading) {
     return <LoadingScreen />;
   }
