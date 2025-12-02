@@ -30,7 +30,7 @@ export const AppStateScreen: React.FC<AppStateScreenProps> = ({
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>Error: {error}</Text>
             <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
-              <Text style={styles.retryButtonText}>Reintentar</Text>
+              <Text style={styles.retryButtonText}>Reintentard</Text>
             </TouchableOpacity>
           </View>
         );

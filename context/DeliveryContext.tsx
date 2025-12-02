@@ -4,6 +4,7 @@ import { DeliveryItemAdapter, adaptDeliveriesToAdapter } from '@/interfaces/deli
 import { deliveryService } from '@/services/deliveryService';
 import { IDeliveryStatus } from '@/interfaces/delivery/deliveryStatus';
 import { useActiveDelivery } from './ActiveDeliveryContext';
+import { useAuth } from '@/context/AuthContext';
 
 interface DeliveryContextType {
     deliveries: DeliveryItemAdapter[];
@@ -36,17 +37,25 @@ interface DeliveryProviderProps {
 
 export const DeliveryProvider: React.FC<DeliveryProviderProps> = ({ children }) => {
     const { setActiveDelivery } = useActiveDelivery();
+    const { isAuthenticated, isLoading } = useAuth();
     const [deliveries, setDeliveries] = useState<DeliveryItemAdapter[]>([]);
     const [inProgressDelivery, setInProgressDelivery] = useState<DeliveryItemAdapter | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [refreshing, setRefreshing] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Cargar entregas al montar el contexto
     useEffect(() => {
-        console.log('Montando DeliveryProvider, cargando entregas...');
-        fetchDeliveries();
-    }, []);
+        const init = async () => {
+            if (isLoading) return;
+            if (!isAuthenticated) {
+                setLoading(false);
+                setRefreshing(false);
+                return;
+            }
+            fetchDeliveries();
+        };
+        init();
+    }, [isAuthenticated, isLoading]);
 
     const fetchDeliveries = async (isRefreshing = false) => {
         if (!isRefreshing) {

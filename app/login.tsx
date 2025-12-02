@@ -72,7 +72,8 @@ export default function LoginScreen() {
             Alert.alert('Error', 'Por favor ingresa tu email y contraseña');
             return;
         }
-
+        console.log(API_URL);
+        
         // Primero verificamos la conexión
         setIsLoading(true);
         const isConnected = await checkServerConnection();
@@ -124,8 +125,7 @@ export default function LoginScreen() {
             setIsLoading(false);
         }
     };
-
-    const currentApiUrl = API_URL;
+    
     return (
         <SafeAreaView style={styles.safeArea}>
             <StatusBar style="light" />
@@ -142,7 +142,7 @@ export default function LoginScreen() {
                         />
                         <Text style={styles.title}>Emperatriz Delivery</Text>
                         <Text style={styles.apiUrl}>
-                            <Text>API: {currentApiUrl} {' '}</Text>
+                            <Text>API: {API_URL} {' '}</Text>
                             <Text style={{
                                 color: apiStatus.connected ? CustomColors.success : CustomColors.error,
                                 fontWeight: 'bold'
