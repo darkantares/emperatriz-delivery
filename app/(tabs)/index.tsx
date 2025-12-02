@@ -146,6 +146,16 @@ export default function TabOneScreen() {
     if (isNavigating.current) return;
     isNavigating.current = true;
 
+    // Si hay un envío en progreso, abrir modal para continuar ese envío
+    if (inProgressDelivery) {
+      setSelectedDelivery(inProgressDelivery);
+      setIsStatusModalVisible(true);
+      setTimeout(() => {
+        isNavigating.current = false;
+      }, 500);
+      return;
+    }
+
     // Verificar si se puede procesar un nuevo delivery
     if (!canProcessNewDelivery(deliveries)) {
       Alert.alert(
@@ -226,7 +236,6 @@ export default function TabOneScreen() {
           )}
 
           <ProgressCard
-            userName={user ? `${user.firstname} ${user.lastname}` : ""}
             deliveries={deliveries}
             inProgressDelivery={inProgressDelivery}
           />
@@ -262,14 +271,11 @@ export default function TabOneScreen() {
           <TouchableOpacity
             style={[
               styles.progressButton,
-              (inProgressDelivery !== null ||
-                !canProcessNewDelivery(deliveries)) &&
+              (!inProgressDelivery && !canProcessNewDelivery(deliveries)) &&
                 styles.progressButtonDisabled,
             ]}
             onPress={handlePressItem}
-            disabled={
-              inProgressDelivery !== null || !canProcessNewDelivery(deliveries)
-            }
+            disabled={!inProgressDelivery && !canProcessNewDelivery(deliveries)}
           >
             <Text style={styles.progressButtonText}>Progresar Envio</Text>
           </TouchableOpacity>

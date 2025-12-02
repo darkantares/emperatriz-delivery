@@ -1,18 +1,23 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text } from '@/components/Themed';
 import { IDeliveryStatus } from '@/interfaces/delivery/deliveryStatus';
-import { DeliveryItemAdapter, DeliveryGroupAdapter, groupDeliveriesByShipment } from '@/interfaces/delivery/deliveryAdapters';
+import { DeliveryItemAdapter, DeliveryGroupAdapter } from '@/interfaces/delivery/deliveryAdapters';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface ProgressCardProps {
-  userName: string;
   deliveries: DeliveryItemAdapter[];
   inProgressDelivery?: DeliveryItemAdapter | null;
-  onPressViewTask?: () => void;
 }
 
 export const ProgressCard = ({ deliveries, inProgressDelivery }: ProgressCardProps) => {
-  // Type guard para verificar si el item es un grupo
+  const [maxTotal, setMaxTotal] = useState<number>(0);
+  const [completedCount, setCompletedCount] = useState<number>(0);
+  
+  const dateKey = new Date().toISOString().slice(0, 10);
+  const STORAGE_KEY_TOTAL = `delivery_progress_total_${dateKey}`;
+  const STORAGE_KEY_COMPLETED = `delivery_progress_completed_${dateKey}`;
+
   const isDeliveryGroup = (item: DeliveryItemAdapter | DeliveryGroupAdapter): item is DeliveryGroupAdapter => {
     return 'shipmentId' in item && 'pickups' in item && 'delivery' in item;
   };
@@ -23,9 +28,6 @@ export const ProgressCard = ({ deliveries, inProgressDelivery }: ProgressCardPro
       allDeliveries.push(inProgressDelivery);
     }
 
-    const processedData = groupDeliveriesByShipment(allDeliveries);
-    const totalUnits = processedData.length;
-
     const completedStatuses = [
       IDeliveryStatus.DELIVERED,
       IDeliveryStatus.RETURNED,
@@ -33,26 +35,80 @@ export const ProgressCard = ({ deliveries, inProgressDelivery }: ProgressCardPro
     ];
 
     let pendingUnits = 0;
+    let completedUnits = 0;
 
-    processedData.forEach(item => {
+    allDeliveries.forEach(item => {
+      let status: IDeliveryStatus;
+      
       if (isDeliveryGroup(item)) {
-        const status = (item as DeliveryGroupAdapter).delivery.deliveryStatus.title as IDeliveryStatus;
-        if (!completedStatuses.includes(status)) {
-          pendingUnits++;
-        }
+        status = item.delivery.deliveryStatus.title as IDeliveryStatus;
       } else {
-        const status = (item as DeliveryItemAdapter).deliveryStatus.title as IDeliveryStatus;
-        if (!completedStatuses.includes(status)) {
-          pendingUnits++;
-        }
+        status = item.deliveryStatus.title as IDeliveryStatus;
+      }
+
+      if (completedStatuses.includes(status)) {
+        completedUnits++;
+      } else {
+        pendingUnits++;
       }
     });
 
-    return { pending: pendingUnits, total: totalUnits };
+    return { 
+      pending: pendingUnits, 
+      current: allDeliveries.length, 
+      completed: completedUnits 
+    };
   };
 
-  const { pending, total } = calculateCounts();
-  const completed = Math.max(0, total - pending);
+  useEffect(() => {
+    let isMounted = true;
+
+    const syncProgress = async () => {
+      try {
+        const { current, pending } = calculateCounts();
+
+        // Obtener valores almacenados
+        const storedTotal = await AsyncStorage.getItem(STORAGE_KEY_TOTAL);
+        const storedCompleted = await AsyncStorage.getItem(STORAGE_KEY_COMPLETED);
+        
+        const previousTotal = storedTotal ? Number(storedTotal) : 0;
+        const previousCompleted = storedCompleted ? Number(storedCompleted) : 0;
+
+        // El total SOLO puede aumentar, nunca disminuir
+        const newTotal = Math.max(current, previousTotal);
+
+        // Calcular completados: si el total actual es menor que el máximo,
+        // significa que se completaron entregas
+        const deliveriesDifference = previousTotal - current;
+        const newCompleted = deliveriesDifference > 0 
+          ? previousCompleted + deliveriesDifference 
+          : previousCompleted;
+
+        if (isMounted) {
+          setMaxTotal(newTotal);
+          setCompletedCount(newCompleted);
+
+          // Guardar en AsyncStorage
+          if (newTotal !== previousTotal) {
+            await AsyncStorage.setItem(STORAGE_KEY_TOTAL, String(newTotal));
+          }
+          if (newCompleted !== previousCompleted) {
+            await AsyncStorage.setItem(STORAGE_KEY_COMPLETED, String(newCompleted));
+          }
+        }
+      } catch (error) {
+        console.error('Error syncing progress:', error);
+      }
+    };
+
+    syncProgress();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [deliveries, inProgressDelivery]);
+
+  const pendingCount = maxTotal - completedCount;
 
   return (
     <View style={styles.container}>
@@ -63,7 +119,9 @@ export const ProgressCard = ({ deliveries, inProgressDelivery }: ProgressCardPro
           </Text>
           <View style={styles.progressCircleContainer}>
             <View style={styles.progressCircle}>
-              <Text style={styles.progressPercentage}>{completed}/{total}</Text>
+              <Text style={styles.progressPercentage}>
+                {completedCount}/{maxTotal}
+              </Text>
             </View>
           </View>
         </View>
@@ -78,9 +136,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginVertical: 16,
   },
-  // header, greeting, userName removidos porque ahora están en Greeting
   cardContainer: {
-    backgroundColor: '#6C4FEA', // Color morado como en la imagen
+    backgroundColor: '#6C4FEA',
     borderRadius: 16,
     padding: 16,
     shadowColor: '#000',
@@ -121,16 +178,4 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-  viewTaskButton: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    alignSelf: 'flex-start',
-    marginTop: 12,
-  },
-  viewTaskButtonText: {
-    color: '#6C4FEA',
-    fontWeight: 'bold',
-  }
 });
