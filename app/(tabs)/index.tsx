@@ -26,10 +26,8 @@ import { ActiveDeliveryCard } from "@/components/dashboard/ActiveDeliveryCard";
 import { DeliveryItemList } from "@/components/delivery-items/DeliveryItemList";
 import { IDeliveryStatus } from "@/interfaces/delivery/deliveryStatus";
 
-export default function TabOneScreen() {
-  const { user } = useAuth();
-  const { getNextDeliveryToProcess, canProcessNewDelivery } =
-    useActiveDelivery();
+export default function TabOneScreen() {  
+  const { canProcessNewDelivery } = useActiveDelivery();
   const {
     deliveries,
     inProgressDelivery,
@@ -169,7 +167,8 @@ export default function TabOneScreen() {
 
     // Obtener el siguiente delivery a procesar (considerando grupos)
     const nextDelivery = getDeliveryFromGroup(deliveries);
-
+    console.log('nextDelivery', nextDelivery);
+    
     if (!nextDelivery) {
       Alert.alert(
         "Sin entregas",
@@ -288,6 +287,8 @@ export default function TabOneScreen() {
             currentStatus={selectedDelivery.deliveryStatus.title}
             onStatusSelected={handleStatusUpdate}
             itemId={selectedDelivery.id}
+            itemTitle={selectedDelivery.client}
+            totalAmmount={(selectedDelivery.fee || 0) + (selectedDelivery.cost || 0)}
           />
         )}
       </View>

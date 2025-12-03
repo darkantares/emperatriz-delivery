@@ -29,6 +29,8 @@ interface StatusUpdateModalProps {
     currentStatus: string;
     onStatusSelected: (newStatus: string) => void;
     itemId: string;
+    itemTitle: string;
+    totalAmmount: number;
 }
 
 export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
@@ -36,7 +38,9 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
     onClose,
     currentStatus,
     onStatusSelected,
-    itemId
+    itemId,
+    itemTitle,
+    totalAmmount
 }) => {
     const { fetchDeliveries, deliveries, inProgressDelivery } = useDelivery();
     const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
@@ -444,6 +448,8 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                             <View style={styles.modalContent}>
                                 <View style={styles.modalHeader}>
                                     <Text style={styles.modalTitle}>Actualizar Estado</Text>
+                                    <Text style={styles.deliveryTitle}>Cliente: {itemTitle}</Text>
+                                    <Text style={styles.deliveryTitle}>Total: ${totalAmmount.toFixed(2)}</Text>
                                     <Text style={styles.currentStatus}>
                                         Estado actual: <Text style={[styles.statusValue, { color: getStatusColor(currentStatus) }]}>{currentStatus}</Text>
                                     </Text>
@@ -797,6 +803,12 @@ const styles = StyleSheet.create({
         color: CustomColors.textLight,
         marginBottom: 10,
         textAlign: 'center',
+    },
+    deliveryTitle: {
+        fontSize: 16,
+        color: CustomColors.textLight,
+        textAlign: 'center',
+        marginBottom: 5,
     },
     currentStatus: {
         fontSize: 16,
