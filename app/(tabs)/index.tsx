@@ -13,7 +13,6 @@ import { CustomColors } from "@/constants/CustomColors";
 import { StatusUpdateModal } from "@/components/modals/StatusUpdateModal";
 import { AppHeader } from "@/components/header/AppHeader";
 import { AppStateScreen } from "@/components/states/AppStateScreen";
-import { useAuth } from "@/context/AuthContext";
 import { useActiveDelivery } from "@/context/ActiveDeliveryContext";
 import { useDelivery } from "@/context/DeliveryContext";
 import {
@@ -21,7 +20,6 @@ import {
   DeliveryGroupAdapter,
   groupDeliveriesByShipment,
 } from "@/interfaces/delivery/deliveryAdapters";
-import { ProgressCard } from "@/components/dashboard/ProgressCard";
 import { ActiveDeliveryCard } from "@/components/dashboard/ActiveDeliveryCard";
 import { DeliveryItemList } from "@/components/delivery-items/DeliveryItemList";
 import { IDeliveryStatus } from "@/interfaces/delivery/deliveryStatus";
@@ -231,11 +229,6 @@ export default function TabOneScreen() {
               style={styles.refreshIndicator}
             />
           )}
-
-          <ProgressCard
-            deliveries={deliveries}
-            inProgressDelivery={inProgressDelivery}
-          />
 
           <ActiveDeliveryCard
             inProgressDelivery={inProgressDelivery}
