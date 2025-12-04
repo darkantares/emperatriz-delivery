@@ -152,7 +152,8 @@ export const DeliveryProvider: React.FC<DeliveryProviderProps> = ({ children }) 
     };
 
     const handleDeliveryReordered = (data: IDeliveryAssignmentEntity[]) => {
-        setDeliveries(adaptDeliveriesToAdapter(data));
+        // setDeliveries(adaptDeliveriesToAdapter(data));
+        fetchDeliveries()
     };
 
     // Función para actualizar el estado local de una entrega (para uso del modal)
