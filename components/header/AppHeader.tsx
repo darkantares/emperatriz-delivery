@@ -37,6 +37,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
     zIndex: 10,
+    marginBottom: 10,
   },
   header: {
     flexDirection: 'row',

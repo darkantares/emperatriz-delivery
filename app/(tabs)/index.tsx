@@ -247,17 +247,6 @@ export default function TabOneScreen() {
             contentContainerStyle={{ paddingBottom: 180 }}
           />
 
-          {/* {__DEV__ && (
-            <TouchableOpacity
-              style={styles.manualRefreshButton}
-              onPress={() => fetchDeliveries()}
-            >
-              <Text style={styles.manualRefreshButtonText}>
-                Refrescar entregas
-              </Text>
-            </TouchableOpacity>
-          )} */}
-
           <TouchableOpacity
             style={[
               styles.progressButton,
@@ -329,7 +318,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "flex-start",
-    backgroundColor: CustomColors.backgroundDarkest,
+    backgroundColor: CustomColors.backgroundDarkest
   },
   title: {
     fontSize: 24,
