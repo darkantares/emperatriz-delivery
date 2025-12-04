@@ -17,8 +17,7 @@ export const deliveryService = {
         details?: any;
     }> => {
         // Verificar token antes de hacer la solicitud
-        const token = await AsyncStorage.getItem('auth_token');
-        // console.log('Token obtenido en deliveryService.getDeliveries:', token);
+        const token = await AsyncStorage.getItem('auth_token');        
         
         if (!token) {
             return {
@@ -365,8 +364,7 @@ export const deliveryService = {
 
         try {
             // Si no hay imágenes, usar el método normal
-            if (!imageUris || imageUris.length === 0) {
-                console.log('No images provided, using standard updateDeliveryStatus');                
+            if (!imageUris || imageUris.length === 0) {                
                 return await deliveryService.updateDeliveryStatus(id, status, note, amountPaid, paymentMethodId);
             }
 
@@ -395,9 +393,7 @@ export const deliveryService = {
                     name: `delivery_evidence_${id}_${index}_${Date.now()}.jpg`,
                 } as any);
             });
-            console.log('FormData prepared for images:', formData);            
-            console.log('images to upload:', imageUris.length);
-            
+
             const response = await api.postFormData<ResponseDataAPI<IDeliveryAssignmentEntity>>(
                 `${BackendUrls.DeliveryAssignments}/${id}/status-with-images`,
                 formData

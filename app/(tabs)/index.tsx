@@ -59,7 +59,6 @@ export default function TabOneScreen() {
     socketService.on(SocketEventType.DRIVERS_GROUP_ASSIGNED, handleDriversGroupAssigned);
 
     return () => {
-      console.log('Componente desmontado, limpiando listeners y desconectando socket');
       socketService.off(SocketEventType.DRIVER_ASSIGNED, handleDeliveryAssigned);
       socketService.off(SocketEventType.DELIVERY_REORDERED, handleDeliveryReordered);
       socketService.off(SocketEventType.DELIVERY_ASSIGNMENT_UPDATED, handleDeliveryUpdated);  
@@ -167,7 +166,6 @@ export default function TabOneScreen() {
 
     // Obtener el siguiente delivery a procesar (considerando grupos)
     const nextDelivery = getDeliveryFromGroup(deliveries);
-    console.log('nextDelivery', nextDelivery);
     
     if (!nextDelivery) {
       Alert.alert(

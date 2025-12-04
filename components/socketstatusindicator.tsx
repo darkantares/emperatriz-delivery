@@ -23,7 +23,6 @@ export const SocketStatusIndicator: React.FC = () => {
 
   // const handleReconnect = async () => {
   //   // Intentar reconectar
-  //   console.log("Intentando reconexión manual...");
     
   //   // Desconectar primero para limpiar estado
   //   socketService.disconnect();

@@ -32,9 +32,7 @@ export const ActiveDeliveryCard = ({ inProgressDelivery, onViewTask }: ActiveDel
   // Construir dirección de entrega (solo para DELIVERY)
   const deliveryAddress = inProgressDelivery.type === AssignmentType.DELIVERY
     ? `${inProgressDelivery.provincia.nombre}, ${inProgressDelivery.municipio.nombre}, ${inProgressDelivery.destiny?.nombre || ''}, ${inProgressDelivery.deliveryAddress}`
-    : '';
-
-    console.log('inProgressDelivery', inProgressDelivery);
+    : '';    
     
   return (
     <TouchableOpacity style={styles.container} onPress={onViewTask} activeOpacity={0.85}>

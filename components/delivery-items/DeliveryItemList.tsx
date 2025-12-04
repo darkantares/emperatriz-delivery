@@ -20,7 +20,6 @@ export const DeliveryItemList: React.FC<DeliveryItemListProps> = ({
   contentContainerStyle,
 }) => {
   const renderItem = ({ item }: { item: DeliveryItemAdapter }) => {
-    console.log(item);
     // Convertir DeliveryItemAdapter a Item para compatibilidad
     const itemForComponent: Item = {
       id: item.id,

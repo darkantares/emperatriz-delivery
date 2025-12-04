@@ -338,8 +338,6 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
             setLoading(true);
 
             try {
-                console.log('Actualizando estado a:', selectedStatus, 'con nota:', note, 'con foto:', !!photoUri, 'con imagen:', !!imageUri, 'con monto:', amountPaid, 'con método de pago:', selectedPaymentMethod);
-
                 let result;
 
                 // Verificar si hay evidencias para enviar
@@ -372,9 +370,7 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                 }
 
                 if (result.success) {
-                    // Llamar a fetchDeliveries para actualizar la lista completa
-                    console.log('Estado actualizado con éxito, refrescando entregas...');
-
+                    
                     await fetchDeliveries();
 
                     // Llamar al callback del componente padre

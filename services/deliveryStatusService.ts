@@ -29,7 +29,6 @@ export const deliveryStatusService = {
         }
         try {
             const response = await api.get<IDeliveryStatusEntity[]>(`${BackendUrls.DeliveryStatus}`);
-            console.log(response);
             
             if (response.error || !response.data.data) {
                 return {

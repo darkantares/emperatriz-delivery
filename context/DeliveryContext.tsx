@@ -64,14 +64,11 @@ export const DeliveryProvider: React.FC<DeliveryProviderProps> = ({ children }) 
         setError(null);
 
         try {
-            console.log('Fetching deliveries from backend...');
-
             const response = await deliveryService.getDeliveries();
 
             if (response.success && response.data) {
                 const adaptedDeliveries = adaptDeliveriesToAdapter(response.data);
-                // console.log('adaptedDeliveries:', adaptedDeliveries[0]);
-                
+                                
                 // Verificar si hay algún envío en progreso (IN_PROGRESS)
                 const inProgressIndex = adaptedDeliveries.findIndex(delivery =>
                     delivery.deliveryStatus.title === IDeliveryStatus.IN_PROGRESS
@@ -80,13 +77,10 @@ export const DeliveryProvider: React.FC<DeliveryProviderProps> = ({ children }) 
                 if (inProgressIndex !== -1) {
                     // Si hay solo un elemento y está IN_PROGRESS, mostrarlo como inProgressDelivery y no eliminar el array principal
                     if (adaptedDeliveries.length === 1) {
-                        console.log('adaptedDeliveries 1:', adaptedDeliveries[0]);
-                        
                         setDeliveries([]);
                         setInProgressDelivery(adaptedDeliveries[0]);
                         setActiveDelivery(adaptedDeliveries[0]);
                     } else {
-                        console.log('adaptedDeliveries 2:', adaptedDeliveries[0]);
                         // Extraer el envío en progreso
                         const inProgress = adaptedDeliveries[inProgressIndex];
                         // Eliminar el envío en progreso del array principal
@@ -122,7 +116,6 @@ export const DeliveryProvider: React.FC<DeliveryProviderProps> = ({ children }) 
     };
 
     const handleDeliveryUpdated = (data: IDeliveryAssignmentEntity) => {
-        console.log('Entrega actualizada:', data);
         const updatedDelivery = adaptDeliveriesToAdapter([data])[0];
 
         // Verificar si la entrega actualizada está en progreso
@@ -150,18 +143,15 @@ export const DeliveryProvider: React.FC<DeliveryProviderProps> = ({ children }) 
         }
     };
 
-    const handleDeliveryAssigned = (data: IDeliveryAssignmentEntity) => {
-        console.log(data);
+    const handleDeliveryAssigned = (data: IDeliveryAssignmentEntity) => {        
         setDeliveries(currentDeliveries => [...currentDeliveries, adaptDeliveriesToAdapter([data])[0]]);
     };
 
     const handleDriversGroupAssigned = (data: IDeliveryAssignmentEntity[]) => {
-        console.log(data);
         setDeliveries(currentDeliveries => [...currentDeliveries, ...adaptDeliveriesToAdapter(data)]);
     };
 
     const handleDeliveryReordered = (data: IDeliveryAssignmentEntity[]) => {
-        console.log(data);
         setDeliveries(adaptDeliveriesToAdapter(data));
     };
 

@@ -35,9 +35,7 @@ export interface DeliveryGroupAdapter {
 }
 
 // Convierte un array de IDeliveryAssignmentEntity a DeliveryItemAdapter
-export function adaptDeliveriesToAdapter(deliveries: IDeliveryAssignmentEntity[]): DeliveryItemAdapter[] {
-  console.log(deliveries);
-  
+export function adaptDeliveriesToAdapter(deliveries: IDeliveryAssignmentEntity[]): DeliveryItemAdapter[] {  
   try {
     return deliveries.map(delivery => ({
       id: delivery.id.toString(),
@@ -59,7 +57,6 @@ export function adaptDeliveriesToAdapter(deliveries: IDeliveryAssignmentEntity[]
       enterprise: delivery.enterprise.title,
     }));    
   } catch (error) {
-    console.log(deliveries);    
     console.error('Error al adaptar entregas:', error);
     return [];
   }

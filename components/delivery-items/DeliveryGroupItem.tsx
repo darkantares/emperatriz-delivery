@@ -12,7 +12,6 @@ interface DeliveryGroupItemProps {
 
 export const DeliveryGroupItem: React.FC<DeliveryGroupItemProps> = ({ group, onPress }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  console.log(group);
   const formatPhone = (phone: string) => {
     if (!phone) return '';
     const cleaned = phone.replace(/\D/g, '');

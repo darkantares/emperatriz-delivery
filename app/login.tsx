@@ -72,7 +72,6 @@ export default function LoginScreen() {
             Alert.alert('Error', 'Por favor ingresa tu email y contraseña');
             return;
         }
-        console.log(API_URL);
         
         // Primero verificamos la conexión
         setIsLoading(true);

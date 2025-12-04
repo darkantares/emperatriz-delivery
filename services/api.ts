@@ -28,8 +28,7 @@ export const getBaseUrl = () => {
 
 // Obtiene la URL base de la API
 const getApiBaseUrl = () => {
-    const baseUrl = getBaseUrl();
-    console.log('Base URL:', baseUrl);    
+    const baseUrl = getBaseUrl();  
     return `${baseUrl}/api`;
 };
 
