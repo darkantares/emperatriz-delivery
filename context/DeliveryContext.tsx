@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { IDeliveryAssignmentEntity } from '@/interfaces/delivery/delivery';
 import { DeliveryItemAdapter, adaptDeliveriesToAdapter } from '@/interfaces/delivery/deliveryAdapters';
 import { deliveryService } from '@/services/deliveryService';
@@ -37,7 +37,7 @@ interface DeliveryProviderProps {
 
 export const DeliveryProvider: React.FC<DeliveryProviderProps> = ({ children }) => {
     const { setActiveDelivery } = useActiveDelivery();
-    const { isAuthenticated, isLoading } = useAuth();
+    const { isAuthenticated, isLoading, logout } = useAuth();
     const [deliveries, setDeliveries] = useState<DeliveryItemAdapter[]>([]);
     const [inProgressDelivery, setInProgressDelivery] = useState<DeliveryItemAdapter | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
@@ -97,6 +97,9 @@ export const DeliveryProvider: React.FC<DeliveryProviderProps> = ({ children }) 
                     setActiveDelivery(null);
                 }
             } else {
+                if (response.error === 'Unauthorized') {
+                    logout();
+                }
                 setError(response.error || 'Error al cargar las entregas');
                 console.error('Error al cargar entregas: 1', response.error);
             }
