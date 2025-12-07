@@ -119,7 +119,7 @@ export default function LoginScreen() {
                 'Error',
                 `No se pudo conectar con el servidor.\nError: ${errorMessage}`
             );
-            console.error('Login error:', error);
+            console.log('Login error:', error);
         } finally {
             setIsLoading(false);
         }

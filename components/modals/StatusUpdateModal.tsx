@@ -127,12 +127,12 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                     if (response.success && response.data) {
                         setDeliveryStatuses(response.data);
                     } else {
-                        console.error('Error al cargar estados:', response.error);
+                        console.log('Error al cargar estados:', response.error);
                         Alert.alert('Error', 'No se pudieron cargar los estados de entrega');
                         return;
                     }
                 } catch (error) {
-                    console.error('Error al cargar estados:', error);
+                    console.log('Error al cargar estados:', error);
                     Alert.alert('Error', 'Error de conexión al cargar los estados');
                     return;
                 }
@@ -146,11 +146,11 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                 if (response.success && response.data) {
                     setPaymentMethods(response.data);
                 } else {
-                    console.error('Error al cargar métodos de pago:', response.error);
+                    console.log('Error al cargar métodos de pago:', response.error);
                     Alert.alert('Error', 'No se pudieron cargar los métodos de pago');
                 }
             } catch (error) {
-                console.error('Error al cargar métodos de pago:', error);
+                console.log('Error al cargar métodos de pago:', error);
                 Alert.alert('Error', 'Error de conexión al cargar los métodos de pago');
             }
         };
@@ -222,7 +222,7 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                 setPhotoUri(result.assets[0].uri);
             }
         } catch (error) {
-            console.error('Error al tomar foto:', error);
+            console.log('Error al tomar foto:', error);
             Alert.alert(
                 "Error",
                 "No se pudo tomar la foto. Inténtalo de nuevo.",
@@ -258,7 +258,7 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                 setImageUri(result.assets[0].uri);
             }
         } catch (error) {
-            console.error('Error al seleccionar imagen:', error);
+            console.log('Error al seleccionar imagen:', error);
             Alert.alert(
                 "Error",
                 "No se pudo seleccionar la imagen. Inténtalo de nuevo.",
@@ -377,7 +377,7 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                     onStatusSelected(selectedStatus);
                     onClose();
                 } else {
-                    console.error('Error al actualizar el estado:', result.error);
+                    console.log('Error al actualizar el estado:', result.error);
                     Alert.alert(
                         "Error",
                         `No se pudo actualizar el estado: ${result.error}`,
@@ -385,7 +385,7 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                     );
                 }
             } catch (error) {
-                console.error('Error al actualizar el estado:', error);
+                console.log('Error al actualizar el estado:', error);
                 Alert.alert(
                     "Error",
                     `Ocurrió un error inesperado: ${error instanceof Error ? error.message : 'Error desconocido'}`,

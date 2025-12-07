@@ -40,7 +40,7 @@ export const paymentMethodService = {
             }
 
             if (!response.data) {
-                console.error('Error processing payment methods response:', response);
+                console.log('Error processing payment methods response:', response);
                 return {
                     success: false,
                     error: 'Error al procesar la respuesta del servidor',
@@ -53,7 +53,7 @@ export const paymentMethodService = {
                 data: response.data.data.data
             };
         } catch (error) {
-            console.error('Error getting payment methods:', error);
+            console.log('Error getting payment methods:', error);
             return {
                 success: false,
                 error: `Error de conexión: ${error instanceof Error ? error.message : String(error)}`

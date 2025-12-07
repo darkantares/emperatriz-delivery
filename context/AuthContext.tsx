@@ -47,7 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
       } catch (error) {
-        console.error('Error checking authentication:', error);
+        console.log('Error checking authentication:', error);
         setIsAuthenticated(false);
         setUser(null);
         setRoles(null);
@@ -84,7 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       return { success: true };
     } catch (error) {
-      console.error('Login error:', error);
+      console.log('Login error:', error);
       return { 
         success: false, 
         message: 'Error de conexión',

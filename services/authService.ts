@@ -31,7 +31,7 @@ export const authService = {
                 if (directResponse.ok) {
                     const loginData = await directResponse.json();                    
                     if (!loginData) {
-                        console.error('Error parsing login response data structure:', loginData);
+                        console.log('Error parsing login response data structure:', loginData);
                         return {
                             success: false,
                             error: 'Error al procesar la respuesta del servidor',
@@ -74,7 +74,7 @@ export const authService = {
             const loginData = extractDataFromResponse<LoginResponse>(response);
             
             if (!loginData) {
-                console.error('Error parsing login response data structure from API:', response);
+                console.log('Error parsing login response data structure from API:', response);
                 return {
                     success: false,
                     error: 'Error al procesar la respuesta del servidor',
@@ -98,7 +98,7 @@ export const authService = {
                 data: loginData
             };
         } catch (error) {
-            console.error('Login error:', error);
+            console.log('Login error:', error);
             return {
                 success: false,
                 error: 'Error en la conexión al servidor'
@@ -140,7 +140,7 @@ export const authService = {
                 token
             };
         } catch (error) {
-            console.error('Error getting auth data:', error);
+            console.log('Error getting auth data:', error);
             return { user: null, roles: null, token: null };
         }
     },
@@ -161,7 +161,7 @@ export const authService = {
             const tokenData = extractDataFromResponse<{ access_token: string; refresh_token?: string }>(response);
             
             if (!tokenData) {
-                console.error('Error parsing token refresh response:', response);
+                console.log('Error parsing token refresh response:', response);
                 return { success: false };
             }
 
@@ -175,7 +175,7 @@ export const authService = {
 
             return { success: true };
         } catch (error) {
-            console.error('Error refreshing token:', error);
+            console.log('Error refreshing token:', error);
             return { success: false };
         }
     }

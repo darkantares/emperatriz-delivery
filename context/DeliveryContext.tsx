@@ -101,12 +101,12 @@ export const DeliveryProvider: React.FC<DeliveryProviderProps> = ({ children }) 
                     logout();
                 }
                 setError(response.error || 'Error al cargar las entregas');
-                console.error('Error al cargar entregas: 1', response.error);
+                console.log('Error al cargar entregas: 1', response.error);
             }
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
             setError(errorMessage);
-            console.error('Error al cargar entregas 2:', err);
+            console.log('Error al cargar entregas 2:', err);
         } finally {
             setLoading(false);
             setRefreshing(false);

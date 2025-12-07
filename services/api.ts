@@ -21,7 +21,7 @@ export const getBaseUrl = () => {
         }
         return url.endsWith('/') ? url.slice(0, -1) : url;
     } catch (error) {
-        console.error('Error al obtener URL base:', error);
+        console.log('Error al obtener URL base:', error);
         return API_URLS.DEFAULT;
     }
 };
@@ -57,7 +57,7 @@ const getAuthOptions = async (options: Record<string, any> = {}): Promise<Reques
             },
         };
     } catch (error) {
-        console.error('Error al obtener token de autenticación:', error);
+        console.log('Error al obtener token de autenticación:', error);
         return options;
     }
 };
@@ -89,7 +89,7 @@ const handleSuccessResponse = async <T>(response: Response): Promise<FetchRespon
         const responseData = await response.json() as ResponseAPI<T>;
         return { data: responseData, status: response.status };
     } catch (parseError) {
-        console.error('Error parsing response as JSON:', parseError);
+        console.log('Error parsing response as JSON:', parseError);
         return {
             error: 'Error al procesar la respuesta del servidor',
             status: response.status,
@@ -134,7 +134,7 @@ const refreshToken = async (): Promise<{ success: boolean }> => {
         const newTokenData = extractDataFromResponse<{ access_token: string; refresh_token?: string }>(tokenData);
 
         if (!newTokenData || !newTokenData.access_token) {
-            console.error('La respuesta de refresh token no tiene el formato esperado');
+            console.log('La respuesta de refresh token no tiene el formato esperado');
             return { success: false };
         }
 
@@ -148,7 +148,7 @@ const refreshToken = async (): Promise<{ success: boolean }> => {
 
         return { success: true };
     } catch (error) {
-        console.error('Error al refrescar el token:', error);
+        console.log('Error al refrescar el token:', error);
         return { success: false };
     }
 };
@@ -238,7 +238,7 @@ export const apiRequest = async <T>(endpoint: string, options: ApiOptions = {}):
         // Procesar la respuesta exitosa
         return handleSuccessResponse<T>(response);
     } catch (error) {
-        console.error('API Request Error:', error);
+        console.log('API Request Error:', error);
         return {
             error: `Error de conexión: ${error instanceof Error ? error.message : String(error)}`,
             status: 0,
@@ -319,7 +319,7 @@ export const checkApiConnectivity = async () => {
             error: 'No se pudo conectar al servidor'
         };
     } catch (error) {
-        console.error('API connectivity check error:', error);
+        console.log('API connectivity check error:', error);
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Error al verificar la conectividad'

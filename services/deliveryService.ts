@@ -53,7 +53,7 @@ export const deliveryService = {
             // Verificamos la estructura de la respuesta directamente, sin usar extractDataFromResponse
             // Sabemos que la estructura es: response -> data -> data -> data (array) y total
             if (!response.data || !response.data.data) {
-                console.error('Error: Estructura de respuesta inesperada', response);
+                console.log('Error: Estructura de respuesta inesperada', response);
                 return {
                     success: false,
                     error: 'Estructura de respuesta inesperada del servidor',
@@ -67,7 +67,7 @@ export const deliveryService = {
 
             // Verificamos que realmente tengamos un array de entregas
             if (!Array.isArray(deliveriesArray)) {
-                console.error('Error: Los datos de entregas no son un array', deliveriesArray);
+                console.log('Error: Los datos de entregas no son un array', deliveriesArray);
                 return {
                     success: false,
                     error: 'Formato de datos de entregas incorrecto',
@@ -81,7 +81,7 @@ export const deliveryService = {
                 total: total
             };
         } catch (error) {
-            console.error('Error getting deliveries:', error);
+            console.log('Error getting deliveries:', error);
             return {
                 success: false,
                 error: `Error de conexión: ${error instanceof Error ? error.message : String(error)}`
@@ -120,7 +120,7 @@ export const deliveryService = {
             }
 
             if (!response.data) {
-                console.error('Error processing delivery response:', response);
+                console.log('Error processing delivery response:', response);
                 return {
                     success: false,
                     error: 'Error al procesar la respuesta del servidor',
@@ -132,7 +132,7 @@ export const deliveryService = {
             const deliveryData = extractDataFromResponse<IDeliveryAssignmentEntity>(response);
 
             if (!deliveryData) {
-                console.error('Error processing delivery response:', response);
+                console.log('Error processing delivery response:', response);
                 return {
                     success: false,
                     error: 'Error al procesar la respuesta del servidor',
@@ -145,7 +145,7 @@ export const deliveryService = {
                 data: deliveryData
             };
         } catch (error) {
-            console.error(`Error getting delivery with ID ${id}:`, error);
+            console.log(`Error getting delivery with ID ${id}:`, error);
             return {
                 success: false,
                 error: `Error de conexión: ${error instanceof Error ? error.message : String(error)}`
@@ -187,7 +187,7 @@ export const deliveryService = {
             const destiniesData = extractDataFromResponse<IDeliveryAssignmentEntity[]>(response);
 
             if (!destiniesData) {
-                console.error('Error processing destinies response:', response);
+                console.log('Error processing destinies response:', response);
                 return {
                     success: false,
                     error: 'Error al procesar la respuesta del servidor',
@@ -200,7 +200,7 @@ export const deliveryService = {
                 data: destiniesData
             };
         } catch (error) {
-            console.error(`Error getting destinies for delivery ${deliveryId}:`, error);
+            console.log(`Error getting destinies for delivery ${deliveryId}:`, error);
             return {
                 success: false,
                 error: `Error de conexión: ${error instanceof Error ? error.message : String(error)}`
@@ -243,7 +243,7 @@ export const deliveryService = {
             const updatedDeliveryData = extractDataFromResponse<IDeliveryAssignmentEntity>(response);
 
             if (!updatedDeliveryData) {
-                console.error('Error processing update delivery response:', response);
+                console.log('Error processing update delivery response:', response);
                 return {
                     success: false,
                     error: 'Error al procesar la respuesta del servidor',
@@ -256,7 +256,7 @@ export const deliveryService = {
                 data: updatedDeliveryData
             };
         } catch (error) {
-            console.error(`Error updating delivery with ID ${id}:`, error);
+            console.log(`Error updating delivery with ID ${id}:`, error);
             return {
                 success: false,
                 error: `Error de conexión: ${error instanceof Error ? error.message : String(error)}`
@@ -319,7 +319,7 @@ export const deliveryService = {
             const updatedDeliveryData = extractDataFromResponse<IDeliveryAssignmentEntity>(response);
 
             if (!updatedDeliveryData) {
-                console.error('Error processing update delivery status response:', response);
+                console.log('Error processing update delivery status response:', response);
                 return {
                     success: false,
                     error: 'Error al procesar la respuesta del servidor',
@@ -332,7 +332,7 @@ export const deliveryService = {
                 data: updatedDeliveryData
             };
         } catch (error) {
-            console.error(`Error updating delivery status with ID ${id}:`, error);
+            console.log(`Error updating delivery status with ID ${id}:`, error);
             return {
                 success: false,
                 error: `Error de conexión: ${error instanceof Error ? error.message : String(error)}`
@@ -411,7 +411,7 @@ export const deliveryService = {
             const updatedDeliveryData = extractDataFromResponse<IDeliveryAssignmentEntity>(response);
 
             if (!updatedDeliveryData) {
-                console.error('Error processing update delivery status with images response:', response);
+                console.log('Error processing update delivery status with images response:', response);
                 return {
                     success: false,
                     error: 'Error al procesar la respuesta del servidor',
@@ -424,7 +424,7 @@ export const deliveryService = {
                 data: updatedDeliveryData
             };
         } catch (error) {
-            console.error(`Error updating delivery status with image for ID ${id}:`, error);
+            console.log(`Error updating delivery status with image for ID ${id}:`, error);
             return {
                 success: false,
                 error: `Error de conexión: ${error instanceof Error ? error.message : String(error)}`

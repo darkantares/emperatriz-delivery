@@ -29,7 +29,7 @@ import { Linking, Platform, Alert } from 'react-native'
 //     await Linking.openURL(webUrl)
 //     return false
 //   } catch (error) {
-//     console.error('No se pudo abrir WhatsApp:', error)
+//     console.log('No se pudo abrir WhatsApp:', error)
 //     Alert.alert('Error', 'No se pudo abrir WhatsApp')
 //     return false
 //   }
@@ -62,7 +62,7 @@ export const openWhatsAppMessage = async (
         return true;
       }
     } catch (error) {
-      console.error('Error sending WhatsApp message:', error);
+      console.log('Error sending WhatsApp message:', error);
       return false;
     }
   };

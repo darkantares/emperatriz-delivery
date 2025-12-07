@@ -57,7 +57,7 @@ export function adaptDeliveriesToAdapter(deliveries: IDeliveryAssignmentEntity[]
       enterprise: delivery.enterprise.title,
     }));    
   } catch (error) {
-    console.error('Error al adaptar entregas:', error);
+    console.log('Error al adaptar entregas:', error);
     return [];
   }
 }

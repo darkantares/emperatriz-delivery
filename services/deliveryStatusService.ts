@@ -39,7 +39,7 @@ export const deliveryStatusService = {
             }
 
             if (!response.data.data) {
-                console.error('Error processing delivery statuses response:', response);
+                console.log('Error processing delivery statuses response:', response);
                 return {
                     success: false,
                     error: 'Error al procesar la respuesta del servidor',
@@ -52,7 +52,7 @@ export const deliveryStatusService = {
                 data: response.data.data
             };
         } catch (error) {
-            console.error('Error getting delivery statuses:', error);
+            console.log('Error getting delivery statuses:', error);
             return {
                 success: false,
                 error: `Error de conexión: ${error instanceof Error ? error.message : String(error)}`
@@ -92,7 +92,7 @@ export const deliveryStatusService = {
             const statusData = extractDataFromResponse<IDeliveryStatusEntity>(response);
 
             if (!statusData) {
-                console.error('Error processing delivery status response:', response);
+                console.log('Error processing delivery status response:', response);
                 return {
                     success: false,
                     error: 'Error al procesar la respuesta del servidor',
@@ -105,7 +105,7 @@ export const deliveryStatusService = {
                 data: statusData
             };
         } catch (error) {
-            console.error(`Error getting delivery status with ID ${id}:`, error);
+            console.log(`Error getting delivery status with ID ${id}:`, error);
             return {
                 success: false,
                 error: `Error de conexión: ${error instanceof Error ? error.message : String(error)}`
