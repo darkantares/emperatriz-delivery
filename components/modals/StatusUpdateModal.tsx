@@ -50,6 +50,7 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
     const [photoUri, setPhotoUri] = useState<string | null>(null);
     const [imageUri, setImageUri] = useState<string | null>(null);
     const [amountPaid, setAmountPaid] = useState<string>('');
+    const [amountPaidEdited, setAmountPaidEdited] = useState<boolean>(false);
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<number | null>(null);
     const [paymentMethods, setPaymentMethods] = useState<IPaymentMethodEntity[]>([]);
     const [showPaymentMethodPicker, setShowPaymentMethodPicker] = useState<boolean>(false);
@@ -64,10 +65,6 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
 
     // Estados que permiten tomar foto (cámara)
     const statusesAllowingPhoto = [
-        // IDeliveryStatus.CANCELLED,
-        // IDeliveryStatus.RETURNED,
-        // IDeliveryStatus.ON_HOLD,
-        // IDeliveryStatus.SCHEDULED,
         IDeliveryStatus.DELIVERED,
     ];
 
@@ -102,6 +99,13 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
     const requiresEvidence = selectedStatus && statusesRequiringEvidence.includes(selectedStatus as IDeliveryStatus) && !isPickupType;
     const requiresPaymentInfo = selectedStatus === IDeliveryStatus.DELIVERED && !isPickupType;
 
+    const selectedPaymentTitle = selectedPaymentMethod
+        ? paymentMethods.find(pm => pm.id === selectedPaymentMethod)?.title?.toLowerCase()
+        : null;
+    const requiresGalleryImage = !!(selectedStatus === IDeliveryStatus.DELIVERED && !isPickupType && selectedPaymentTitle && (selectedPaymentTitle === 'transferencia' || selectedPaymentTitle === 'transfer'));
+    const requiresCameraPhoto = selectedStatus === IDeliveryStatus.DELIVERED && !isPickupType;
+    const showEvidence = requiresCameraPhoto || requiresGalleryImage;
+
     // Para PICKUP, establecer monto pagado en 0 automáticamente
     useEffect(() => {
         if (isPickupType && selectedStatus === IDeliveryStatus.DELIVERED) {
@@ -109,12 +113,19 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
         }
     }, [isPickupType, selectedStatus]);
 
+    useEffect(() => {
+        if (selectedStatus === IDeliveryStatus.DELIVERED && !isPickupType && !amountPaidEdited) {
+            setAmountPaid(totalAmmount.toFixed(2));
+        }
+    }, [selectedStatus, isPickupType, totalAmmount, amountPaidEdited]);
+
     // Estado para validar si el formulario está completo
     const isFormValid = selectedStatus &&
         availableStatuses.length > 0 &&
         (!requiresNote || note.trim() !== '') &&
-        // Si es pickup, evidencias no son requeridas ni mostradas
-        (!requiresEvidence || photoUri || imageUri) &&
+        // Evidencias: cámara siempre obligatoria en DELIVERED, galería solo en transferencia
+        (!requiresCameraPhoto || photoUri) &&
+        (!requiresGalleryImage || imageUri) &&
         // Si es pickup, el monto se establece automáticamente en 0
         (!requiresPaymentInfo || (amountPaid.trim() !== '' && selectedPaymentMethod));
 
@@ -163,6 +174,7 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
             setImageUri(null);
             setAmountPaid('');
             setSelectedPaymentMethod(null);
+            setAmountPaidEdited(false);
 
             // Cargar estados y métodos de pago si es necesario
             Promise.all([loadStatuses(), loadPaymentMethods()]).then(() => {
@@ -340,10 +352,27 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
             try {
                 let result;
 
-                // Verificar si hay evidencias para enviar
-                const evidenceUris: string[] = [];
-                if (photoUri) evidenceUris.push(photoUri);
-                if (imageUri) evidenceUris.push(imageUri);
+            // Verificar si hay evidencias para enviar
+            const evidenceUris: string[] = [];
+            if (photoUri) evidenceUris.push(photoUri);
+            if (imageUri) evidenceUris.push(imageUri);
+
+                if (requiresCameraPhoto && !photoUri) {
+                    Alert.alert(
+                        "Evidencia requerida",
+                        "Debes tomar una foto con la cámara.",
+                        [{ text: "OK" }]
+                    );
+                    return;
+                }
+                if (requiresGalleryImage && !imageUri) {
+                    Alert.alert(
+                        "Evidencia requerida",
+                        "Debes seleccionar una imagen de galería para pagos por transferencia.",
+                        [{ text: "OK" }]
+                    );
+                    return;
+                }
 
                 if (evidenceUris.length > 0) {
                     // Preparar los datos para enviar al servicio
@@ -490,18 +519,18 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                                 )}
 
                                 {/* Campos de evidencia (foto e imagen) */}
-                                {(allowsPhoto || allowsImage) && (
+                                {showEvidence && (
                                     <View style={styles.photoContainer}>
                                         <Text style={styles.photoLabel}>
-                                            Evidencia {requiresEvidence ? '(obligatorio)' : '(opcional)'}:
+                                            Evidencia (obligatorio):
                                         </Text>
                                         
                                         {/* Mostrar layout lado a lado cuando ambas opciones están disponibles */}
-                                        {allowsPhoto && allowsImage ? (
+                                        {requiresCameraPhoto && requiresGalleryImage ? (
                                             <View style={styles.imagesRowContainer}>
                                                 {/* Foto de cámara */}
                                                 <View style={styles.imageHalfContainer}>
-                                                    <Text style={styles.imageTypeLabel}>Foto de cámara:</Text>
+                                                <Text style={styles.imageTypeLabel}>Foto de cámara:</Text>
                                                     {photoUri ? (
                                                         <View style={styles.photoPreviewContainer}>
                                                             <Image source={{ uri: photoUri }} style={styles.photoPreviewHalf} />
@@ -523,7 +552,7 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                                                                 onPress={takePhoto}
                                                             >
                                                                 <Text style={styles.placeholderButtonText}>
-                                                                    📷 Foto {requiresEvidence ? '(*)' : ''}
+                                                                    📷 Foto (*)
                                                                 </Text>
                                                             </TouchableOpacity>
                                                         </View>
@@ -554,7 +583,7 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                                                                 onPress={selectImageFromGallery}
                                                             >
                                                                 <Text style={styles.placeholderButtonText}>
-                                                                    🖼️ Imagen {requiresEvidence ? '(*)' : ''}
+                                                                    🖼️ Imagen (*)
                                                                 </Text>
                                                             </TouchableOpacity>
                                                         </View>
@@ -565,7 +594,7 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                                             /* Layout vertical cuando solo una opción está disponible */
                                             <>
                                                 {/* Campo de foto */}
-                                                {allowsPhoto && (
+                                                {requiresCameraPhoto && (
                                                     <View style={styles.singleImageContainer}>
                                                         {photoUri ? (
                                                             <View>
@@ -586,7 +615,7 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                                                                 onPress={takePhoto}
                                                             >
                                                                 <Text style={styles.photoButtonText}>
-                                                                    📷 Foto {requiresEvidence ? '(obligatorio)' : '(opcional)'}
+                                                                    📷 Foto (obligatorio)
                                                                 </Text>
                                                             </TouchableOpacity>
                                                         )}
@@ -594,7 +623,7 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                                                 )}
 
                                                 {/* Campo de imagen */}
-                                                {allowsImage && (
+                                                {requiresGalleryImage && (
                                                     <View style={styles.singleImageContainer}>
                                                         {imageUri ? (
                                                             <View>
@@ -615,7 +644,7 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                                                                 onPress={selectImageFromGallery}
                                                             >
                                                                 <Text style={styles.photoButtonText}>
-                                                                    🖼️ Imagen {requiresEvidence ? '(obligatorio)' : '(opcional)'}
+                                                                    🖼️ Imagen (obligatorio)
                                                                 </Text>
                                                             </TouchableOpacity>
                                                         )}
@@ -651,6 +680,7 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                                                     // Solo permite números y punto decimal
                                                     const filtered = text.replace(/[^0-9.]/g, '');
                                                     setAmountPaid(filtered);
+                                                    setAmountPaidEdited(true);
                                                 }}
                                                 keyboardType="numeric"
                                             />
