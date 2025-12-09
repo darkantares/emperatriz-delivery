@@ -606,24 +606,27 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                   </View>
                 )}
 
-                <View style={styles.paymentContainer}>
-                  <Text style={styles.paymentLabel}>
-                    Método de Pago (Obligatorio):
-                  </Text>
-                  <TouchableOpacity
-                    style={styles.paymentMethodButton}
-                    onPress={() => setShowPaymentMethodPicker(true)}
-                  >
-                    <Text style={styles.paymentMethodButtonText}>
-                      {selectedPaymentMethod
-                        ? paymentMethods.find(
-                            (pm) => pm.id === selectedPaymentMethod
-                          )?.title
-                        : "Seleccionar método de pago..."}
-                    </Text>
-                    <Text style={styles.dropdownArrow}>▼</Text>
-                  </TouchableOpacity>
-                </View>
+                {selectedStatus === IDeliveryStatus.DELIVERED &&
+                  !isPickupType && (
+                    <View style={styles.paymentContainer}>
+                      <Text style={styles.paymentLabel}>
+                        Método de Pago (Obligatorio):
+                      </Text>
+                      <TouchableOpacity
+                        style={styles.paymentMethodButton}
+                        onPress={() => setShowPaymentMethodPicker(true)}
+                      >
+                        <Text style={styles.paymentMethodButtonText}>
+                          {selectedPaymentMethod
+                            ? paymentMethods.find(
+                                (pm) => pm.id === selectedPaymentMethod
+                              )?.title
+                            : "Seleccionar método de pago..."}
+                        </Text>
+                        <Text style={styles.dropdownArrow}>▼</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
 
                 {/* Campos de evidencia (foto e imagen) */}
                 {showEvidence && (
@@ -1261,7 +1264,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.03)",
     borderRadius: 8,
     padding: 10,
-    // marginBottom: 10,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.04)",
   },
