@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "emperatriz-delivery",
-    "slug": "emperatriz-delivery",
+    "name": "tiendas-dominicanas-delivery",
+    "slug": "tiendas-dominicanas-delivery",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "emperatrizdelivery",
+    "scheme": "tiendasdominicanasdelivery",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "extra": {
@@ -44,7 +44,7 @@
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS"
       ],
-      "package": "com.valentinrod.emperatrizdelivery"
+      "package": "com.valentinrod.tiendasdominicanas"
     },
     "web": {
       "bundler": "metro",
