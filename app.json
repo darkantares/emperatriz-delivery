@@ -18,6 +18,12 @@
       "socketUrl": {
         "development": "http://192.168.100.22:5000",
         "production": "https://api.tiendasdominicanas.com.do"
+      },
+      "router": {
+        "root": "./app"
+      },
+      "eas": {
+        "projectId": "d9114a6d-b3be-4b76-b734-ce5aefdc980c"
       }
     },
     "splash": {
@@ -33,7 +39,12 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#1A1125"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ],
+      "package": "com.valentinrod.emperatrizdelivery"
     },
     "web": {
       "bundler": "metro",
