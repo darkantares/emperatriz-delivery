@@ -3,9 +3,10 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { useFonts } from 'expo-font';
 import { Stack, router, useSegments, useRootNavigationState } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { View, Image, ActivityIndicator, StyleSheet } from 'react-native';
 
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { ActiveDeliveryProvider } from '@/context/ActiveDeliveryContext';
@@ -36,6 +37,7 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     ...FontAwesome.font,
   });
+  const [showBootLoader, setShowBootLoader] = useState(false);
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
@@ -45,6 +47,8 @@ export default function RootLayout() {
   useEffect(() => {
     if (loaded) {
       SplashScreen.hideAsync();
+      setShowBootLoader(true);
+      setTimeout(() => setShowBootLoader(false), 1200);
     }
   }, [loaded]);
 
@@ -60,7 +64,14 @@ export default function RootLayout() {
     return null;
   }
 
-  return <RootLayoutNav />;
+  return showBootLoader ? (
+    <View style={styles.splashContainer}>
+      <Image source={require('../assets/images/screen.png')} style={styles.splashImage} resizeMode="contain" />
+      <ActivityIndicator size="large" color="#ffffff" style={styles.splashSpinner} />
+    </View>
+  ) : (
+    <RootLayoutNav />
+  );
 }
 
 // Protección de rutas
@@ -153,3 +164,21 @@ function RootLayoutNav() {
     </SafeAreaProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  splashContainer: {
+    flex: 1,
+    backgroundColor: '#1A1125',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  splashImage: {
+    width: '72%',
+    height: undefined,
+    aspectRatio: 1,
+    marginBottom: 24
+  },
+  splashSpinner: {
+    marginTop: 8
+  }
+});

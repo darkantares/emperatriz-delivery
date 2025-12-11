@@ -26,8 +26,8 @@ import { FontAwesome } from '@expo/vector-icons';
 import { authService } from '@/services/authService';
 
 export default function LoginScreen() {
-    const [email, setEmail] = useState('valentin.delivery@umarket.com');
-    const [password, setPassword] = useState('Si22500192319.');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [apiStatus, setApiStatus] = useState<{ connected: boolean, message: string }>({
@@ -135,19 +135,33 @@ export default function LoginScreen() {
                 <ScrollView contentContainerStyle={styles.scrollView}>
                     <View style={styles.header}>
                         <Image
-                            source={require('@/assets/images/splash-icon.png')}
+                            source={require('@/assets/images/screen.png')}
                             style={styles.logo}
                             resizeMode="contain"
                         />
                         <Text style={styles.title}>Emperatriz Delivery</Text>
                         <Text style={styles.apiUrl}>
-                            <Text>API: {API_URL} {' '}</Text>
-                            <Text style={{
-                                color: apiStatus.connected ? CustomColors.success : CustomColors.error,
-                                fontWeight: 'bold'
-                            }}>
-                                {apiStatus.connected ? '●' : '○'}
-                            </Text>
+                            {__DEV__ ? (
+                                <>
+                                    <Text>API: {API_URL} {' '}</Text>
+                                    <Text style={{
+                                        color: apiStatus.connected ? CustomColors.success : CustomColors.error,
+                                        fontWeight: 'bold'
+                                    }}>
+                                        {apiStatus.connected ? '●' : '○'}
+                                    </Text>
+                                </>
+                            ) : (
+                                <>
+                                    <Text>{apiStatus.connected ? 'CONECTADO' : 'DESCONECTADO'} {' '}</Text>
+                                    <Text style={{
+                                        color: apiStatus.connected ? CustomColors.success : CustomColors.error,
+                                        fontWeight: 'bold'
+                                    }}>
+                                        {apiStatus.connected ? '●' : '○'}
+                                    </Text>
+                                </>
+                            )}
                         </Text>
                         {apiStatus.message ? (
                             <TouchableOpacity onPress={checkServerConnection}>

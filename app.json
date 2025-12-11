@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "tiendas dominicanas delivery",
-    "slug": "tiendas-dominicanas-delivery",
+    "slug": "emperatriz-delivery",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -27,7 +27,7 @@
       }
     },
     "splash": {
-      "image": "./assets/images/splash-icon.png",
+      "image": "./assets/images/screen.png",
       "resizeMode": "contain",
       "backgroundColor": "#1A1125"
     },
@@ -63,6 +63,7 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "owner": "valentinrod"
   }
 }
