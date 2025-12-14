@@ -57,7 +57,7 @@ export default function RootLayout() {
     NavigationBar.setVisibilityAsync('hidden');
 
     // Los muestra solo si el usuario desliza desde abajo
-    NavigationBar.setBehaviorAsync('overlay-swipe');
+
   }, []);
 
   if (!loaded) {
@@ -100,9 +100,6 @@ function ProtectedRouteGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
       // Oculta los botones de Android
       NavigationBar.setVisibilityAsync('hidden');
-
-      // Los muestra solo si el usuario desliza desde abajo
-      NavigationBar.setBehaviorAsync('overlay-swipe');
   }, []);
   
   useEffect(() => {
