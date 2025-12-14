@@ -1,14 +1,12 @@
 import {
   StyleSheet,
-  TouchableOpacity,
   ActivityIndicator,
-  SafeAreaView,
   Alert,
 } from "react-native";
-import { Text, View } from "@/components/Themed";
+import { View } from "@/components/Themed";
 import { socketService, SocketEventType } from "@/services/websocketService";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { CustomColors } from "@/constants/CustomColors";
 import { StatusUpdateModal } from "@/components/modals/StatusUpdateModal";
 import { AppHeader } from "@/components/header/AppHeader";
@@ -25,7 +23,7 @@ import { DeliveryItemList } from "@/components/delivery-items/DeliveryItemList";
 import { IDeliveryStatus } from "@/interfaces/delivery/deliveryStatus";
 
 export default function TabOneScreen() {  
-  const { canProcessNewDelivery } = useActiveDelivery();
+  const { canProcessNewDelivery } = useActiveDelivery();  
   const {
     deliveries,
     inProgressDelivery,
@@ -44,8 +42,6 @@ export default function TabOneScreen() {
     useState<DeliveryItemAdapter | null>(null);
   const [isStatusModalVisible, setIsStatusModalVisible] =
     useState<boolean>(false);
-
-  const isNavigating = useRef(false);
 
   // Conectar socket y listeners
   useEffect(() => {
@@ -137,6 +133,8 @@ export default function TabOneScreen() {
     return null;
   };
 
+  const isNavigating = useRef(false);
+
   const handlePressItem = () => {
     if (isNavigating.current) return;
     isNavigating.current = true;
@@ -190,7 +188,7 @@ export default function TabOneScreen() {
     setIsStatusModalVisible(false);
     setSelectedDelivery(null);
   };
-
+   
   // Renderizar indicador de carga mientras se obtienen los datos
   if (loading && deliveries.length === 0 && !inProgressDelivery) {
     return <AppStateScreen type="loading" onRetry={() => fetchDeliveries()} />;
@@ -245,19 +243,8 @@ export default function TabOneScreen() {
             refreshing={refreshing}
             onRefresh={onRefresh}
             contentContainerStyle={{ paddingBottom: 180 }}
+            onProgress={handlePressItem}
           />
-
-          <TouchableOpacity
-            style={[
-              styles.progressButton,
-              (!inProgressDelivery && !canProcessNewDelivery(deliveries)) &&
-                styles.progressButtonDisabled,
-            ]}
-            onPress={handlePressItem}
-            disabled={!inProgressDelivery && !canProcessNewDelivery(deliveries)}
-          >
-            <Text style={styles.progressButtonText}>Progresar Envio</Text>
-          </TouchableOpacity>
         </View>
 
         {selectedDelivery && (

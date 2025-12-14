@@ -15,6 +15,7 @@ import { IProvincia, IMunicipio, ISector } from "@/interfaces/location";
 import { openWhatsAppMessage } from "@/utils/whatsapp";
 
 import { IDeliveryStatusEntity } from "@/interfaces/delivery/delivery";
+import { ProgressIconButton } from '@/components/ProgressIconButton';
 
 export interface Item {
   id: string;
@@ -38,11 +39,13 @@ export interface Item {
 interface DeliveryItemProps {
   item: Item;
   onPress?: () => void;
+  onAction?: () => void;
 }
 
 export const DeliveryItem: React.FC<DeliveryItemProps> = ({
   item,
   onPress,
+  onAction,
 }) => {
   const handleCall = (phone: string) => {
     const cleaned = phone.replace(/\D/g, "");
@@ -114,6 +117,10 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({
               />
             </TouchableOpacity>
           </View>
+          
+          {onAction && (
+            <ProgressIconButton onPress={onAction} />
+          )}
         </View>
 
         {/* Monto solo si es DELIVERY, tipo y estado siempre */}

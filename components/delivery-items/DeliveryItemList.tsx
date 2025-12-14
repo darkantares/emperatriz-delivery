@@ -9,17 +9,17 @@ interface DeliveryItemListProps {
   refreshing?: boolean;
   onRefresh?: () => void;
   contentContainerStyle?: StyleProp<ViewStyle>;
-
+  onProgress?: () => void;
 }
-
 
 export const DeliveryItemList: React.FC<DeliveryItemListProps> = ({
   data,
   refreshing = false,
   onRefresh,
   contentContainerStyle,
+  onProgress,
 }) => {
-  const renderItem = ({ item }: { item: DeliveryItemAdapter }) => {
+  const renderItem = ({ item, index }: { item: DeliveryItemAdapter; index: number }) => {
     // Convertir DeliveryItemAdapter a Item para compatibilidad
     const itemForComponent: Item = {
       id: item.id,
@@ -42,6 +42,7 @@ export const DeliveryItemList: React.FC<DeliveryItemListProps> = ({
     return (
       <DeliveryItem 
         item={itemForComponent}
+        onAction={index === 0 ? onProgress : undefined}
       />
     );
   };
