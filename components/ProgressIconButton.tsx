@@ -17,7 +17,7 @@ export const ProgressIconButton: React.FC<ProgressIconButtonProps> = ({ onPress,
       activeOpacity={0.7}
       accessibilityLabel="Progresar envío"
     >
-      <FontAwesome name="play" size={20} color={CustomColors.textLight} />
+      <FontAwesome name="play" size={30} color={CustomColors.textLight} />
     </TouchableOpacity>
   );
 };
@@ -25,9 +25,9 @@ export const ProgressIconButton: React.FC<ProgressIconButtonProps> = ({ onPress,
 const styles = StyleSheet.create({
   button: {
     backgroundColor: CustomColors.secondary,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 3,
     elevation: 4,
-    marginLeft: 10,
+    marginRight: 15,
   },
   disabled: {
     backgroundColor: CustomColors.divider,

@@ -67,103 +67,101 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({
       activeOpacity={onPress ? 0.7 : 1}
     >
       <View style={styles.contentContainer}>
-        {/* Cliente y Teléfono en la misma fila */}
-        <View style={[styles.infoRow, { justifyContent: "space-between" }]}>
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "flex-end",
-            }}
-          >
-            <FontAwesome
-              name="user"
-              size={16}
-              color={CustomColors.textLight}
-              style={{ marginRight: 6 }}
-            />
-            <Text style={styles.statusText}>{item.client}</Text>
-          </View>
-
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 18 }}>
-            {/* Icono de Llamada */}
-            <TouchableOpacity
-              style={{ flexDirection: "row", alignItems: "center" }}
-              onPress={() => handleCall(item.phone)}
-              activeOpacity={0.7}
-              accessibilityLabel="Llamar por teléfono"
-            >
+        {/* Main Row Container */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          
+          {/* Columna 1: Info Cliente (Arriba) y Dinero (Abajo) */}
+          <View>
+            {/* Info Cliente */}
+            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
               <FontAwesome
-                name="phone"
-                size={40}
+                name="user"
+                size={16}
                 color={CustomColors.textLight}
                 style={{ marginRight: 6 }}
               />
-            </TouchableOpacity>
+              <Text style={styles.statusText} numberOfLines={1}>{item.client}</Text>
+            </View>
 
-            {/* Icono de WhatsApp */}
-            <TouchableOpacity
-              style={{ flexDirection: "row", alignItems: "center" }}
-              onPress={() =>
-                openWhatsAppMessage(item.phone, `Hola ${item.client}`)
-              }
-              activeOpacity={0.7}
-              accessibilityLabel="Enviar mensaje por WhatsApp"
-            >
+            {/* Info Dinero */}
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
               <FontAwesome
-                name="whatsapp"
-                size={40}
+                name="money"
+                size={16}
                 color={CustomColors.textLight}
+                style={{ marginRight: 6 }}
               />
-            </TouchableOpacity>
-          </View>
-          
-          {onAction && (
-            <ProgressIconButton onPress={onAction} />
-          )}
-        </View>
-
-        {/* Monto solo si es DELIVERY, tipo y estado siempre */}
-        <View style={[styles.infoRow, { justifyContent: "space-between" }]}>
-          {/* Monto a cobrar solo si es DELIVERY */}
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "flex-end",
-            }}
-          >
-            <FontAwesome
-              name="money"
-              size={16}
-              color={CustomColors.textLight}
-              style={{ marginRight: 6 }}
-            />
-            <Text style={styles.statusText}>
-              RD$ {((item.fee || 0) + (item.cost || 0)).toFixed(2)}
-            </Text>
-          </View>
-          {/* Tipo y estado */}
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-            <View
-              style={[
-                styles.typeIndicator,
-                item.type === AssignmentType.PICKUP
-                  ? styles.pickupIndicator
-                  : styles.deliveryIndicator,
-              ]}
-            >
-              <Text style={styles.typeText}>
-                {item.type === AssignmentType.PICKUP ? "Recogida" : "Entrega"}
+              <Text style={styles.statusText}>
+                RD$ {((item.fee || 0) + (item.cost || 0)).toFixed(2)}
               </Text>
             </View>
-            {/* Tag GRUPO si pertenece a un grupo */}
-            {item.isGroup && (
-              <View style={[styles.typeIndicator, styles.groupIndicator]}>
-                <Text style={styles.typeText}>GRUPO</Text>
-              </View>
-            )}
           </View>
+
+          {/* Columna 2: Botones Acción (Arriba) y Tipo/Status (Abajo) */}
+          <View style={{ alignItems: 'flex-end', marginRight: 10 }}>
+            {/* Botones de Acción (Teléfono y WhatsApp) */}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 18, marginBottom: 8 }}>
+              {/* Icono de Llamada */}
+              <TouchableOpacity
+                style={{ flexDirection: "row", alignItems: "center" }}
+                onPress={() => handleCall(item.phone)}
+                activeOpacity={0.7}
+                accessibilityLabel="Llamar por teléfono"
+              >
+                <FontAwesome
+                  name="phone"
+                  size={40}
+                  color={CustomColors.textLight}
+                />
+              </TouchableOpacity>
+
+              {/* Icono de WhatsApp */}
+              <TouchableOpacity
+                style={{ flexDirection: "row", alignItems: "center" }}
+                onPress={() =>
+                  openWhatsAppMessage(item.phone, `Hola ${item.client}`)
+                }
+                activeOpacity={0.7}
+                accessibilityLabel="Enviar mensaje por WhatsApp"
+              >
+                <FontAwesome
+                  name="whatsapp"
+                  size={40}
+                  color={CustomColors.textLight}
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Indicadores de Tipo y Grupo */}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <View
+                style={[
+                  styles.typeIndicator,
+                  item.type === AssignmentType.PICKUP
+                    ? styles.pickupIndicator
+                    : styles.deliveryIndicator,
+                ]}
+              >
+                <Text style={styles.typeText}>
+                  {item.type === AssignmentType.PICKUP ? "Recogida" : "Entrega"}
+                </Text>
+              </View>
+              {/* Tag GRUPO si pertenece a un grupo */}
+              {item.isGroup && (
+                <View style={[styles.typeIndicator, styles.groupIndicator]}>
+                  <Text style={styles.typeText}>GRUPO</Text>
+                </View>
+              )}
+            </View>
+          </View>
+
+          {/* Columna 3: Botón de Progreso (Solo si onAction existe) */}
+          {onAction && (
+             <View style={{ width: 40, alignItems: 'center', justifyContent: 'center' }}>
+                <ProgressIconButton onPress={onAction} />
+             </View>
+          )}
+
         </View>
       </View>
     </ContainerComponent>
