@@ -6,6 +6,8 @@ import { DeliveryItemAdapter } from '@/interfaces/delivery/deliveryAdapters';
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import { AssignmentType } from '@/utils/enum';
 import { openWhatsAppMessage } from "@/utils/whatsapp";
+import { ProgressIconButton } from '@/components/ProgressIconButton';
+
 interface ActiveDeliveryCardProps {
   inProgressDelivery: DeliveryItemAdapter | null;
   onViewTask?: () => void;
@@ -81,11 +83,11 @@ export const ActiveDeliveryCard = ({ inProgressDelivery, onViewTask }: ActiveDel
 
           {/* Columna Derecha: Teléfono y Tipo */}
           <View style={{ alignItems: 'flex-end' }}>
-            {/* Teléfono */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+            {/* Botones de Acción */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 15 }}>             
               {/* Call Button */}
               <TouchableOpacity 
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginRight: 15 }}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
                 onPress={() => handleCall(inProgressDelivery.phone)}
                 activeOpacity={0.7}
               >
@@ -99,7 +101,7 @@ export const ActiveDeliveryCard = ({ inProgressDelivery, onViewTask }: ActiveDel
                 activeOpacity={0.7}
               >
                 <FontAwesome name="whatsapp" size={30} color={CustomColors.textLight} />
-              </TouchableOpacity>
+              </TouchableOpacity>                
             </View>
 
             {/* Tipo */}
@@ -120,6 +122,13 @@ export const ActiveDeliveryCard = ({ inProgressDelivery, onViewTask }: ActiveDel
               )}
             </View>
           </View>
+
+          {/* Progress Button */}
+          {onViewTask && (
+            <View style={{ width: 40, alignItems: 'center', justifyContent: 'center' }}>
+              <ProgressIconButton onPress={onViewTask} />
+            </View>
+          )}
         </View>
       </View>
     </TouchableOpacity>
