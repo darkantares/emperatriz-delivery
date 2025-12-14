@@ -1,11 +1,11 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Alert, Linking } from 'react-native';
 import { Text } from '@/components/Themed';
 import { CustomColors } from '@/constants/CustomColors';
 import { DeliveryItemAdapter } from '@/interfaces/delivery/deliveryAdapters';
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import { AssignmentType } from '@/utils/enum';
-
+import { openWhatsAppMessage } from "@/utils/whatsapp";
 interface ActiveDeliveryCardProps {
   inProgressDelivery: DeliveryItemAdapter | null;
   onViewTask?: () => void;
@@ -16,14 +16,15 @@ export const ActiveDeliveryCard = ({ inProgressDelivery, onViewTask }: ActiveDel
     return null;
   }
 
-  // Formatear teléfono a xxx-xxx-xxxx
-  const formatPhone = (phone: string) => {
-    if (!phone) return '';
-    const cleaned = phone.replace(/\D/g, '');
-    if (cleaned.length === 10) {
-      return `${cleaned.slice(0,3)}-${cleaned.slice(3,6)}-${cleaned.slice(6)}`;
+  const handleCall = (phone: string) => {
+    const cleaned = phone.replace(/\D/g, "");
+    if (cleaned.length === 0) {
+      Alert.alert("Error", "Número de teléfono no disponible");
+      return;
     }
-    return phone;
+    Linking.openURL(`tel:${cleaned}`).catch(() => {
+      Alert.alert("Error", "No se puede realizar la llamada");
+    });
   };
 
   // Construir dirección de recogida
@@ -82,13 +83,27 @@ export const ActiveDeliveryCard = ({ inProgressDelivery, onViewTask }: ActiveDel
           <View style={{ alignItems: 'flex-end' }}>
             {/* Teléfono */}
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-              <FontAwesome name="phone" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
-              <Text style={styles.statusText}>{formatPhone(inProgressDelivery.phone)}</Text>
+              {/* Call Button */}
+              <TouchableOpacity 
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginRight: 15 }}
+                onPress={() => handleCall(inProgressDelivery.phone)}
+                activeOpacity={0.7}
+              >
+                <FontAwesome name="phone" size={30} color={CustomColors.textLight} />
+              </TouchableOpacity>
+
+              {/* WhatsApp Button */}
+              <TouchableOpacity 
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+                onPress={() => openWhatsAppMessage(inProgressDelivery.phone, `Hola ${inProgressDelivery.client}`)}
+                activeOpacity={0.7}
+              >
+                <FontAwesome name="whatsapp" size={30} color={CustomColors.textLight} />
+              </TouchableOpacity>
             </View>
 
             {/* Tipo */}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <MaterialIcons name="assignment" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
               <View style={[
                 styles.typeIndicator,
                 inProgressDelivery.type === AssignmentType.PICKUP ? styles.pickupIndicator : styles.deliveryIndicator

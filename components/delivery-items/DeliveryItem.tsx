@@ -12,8 +12,6 @@ import React from "react";
 import { CustomColors } from "@/constants/CustomColors";
 import { AssignmentType } from "@/utils/enum";
 import { IProvincia, IMunicipio, ISector } from "@/interfaces/location";
-import { openWhatsAppMessage } from "@/utils/whatsapp";
-
 import { IDeliveryStatusEntity } from "@/interfaces/delivery/delivery";
 import { ProgressIconButton } from '@/components/ProgressIconButton';
 
@@ -47,16 +45,6 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({
   onPress,
   onAction,
 }) => {
-  const handleCall = (phone: string) => {
-    const cleaned = phone.replace(/\D/g, "");
-    if (cleaned.length === 0) {
-      Alert.alert("Error", "Número de teléfono no disponible");
-      return;
-    }
-    Linking.openURL(`tel:${cleaned}`).catch(() => {
-      Alert.alert("Error", "No se puede realizar la llamada");
-    });
-  };
 
   const ContainerComponent = onPress ? TouchableOpacity : View;
 
