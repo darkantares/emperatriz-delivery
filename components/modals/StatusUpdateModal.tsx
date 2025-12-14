@@ -554,9 +554,12 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalTitle}>Actualizar Estado</Text>
                   <Text style={styles.deliveryTitle}>Cliente: {itemTitle}</Text>
-                  <Text style={styles.deliveryTitle}>
-                    Total: ${totalAmmount.toFixed(2)}
-                  </Text>
+
+                  {!isPickupType && (
+                    <Text style={styles.deliveryTitle}>
+                      Total: ${totalAmmount.toFixed(2)}
+                    </Text>
+                  )}
                   <Text style={styles.currentStatus}>
                     Estado actual:{" "}
                     <Text

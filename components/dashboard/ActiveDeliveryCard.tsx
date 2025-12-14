@@ -60,10 +60,7 @@ export const ActiveDeliveryCard = ({
       style={styles.container}
       onPress={onViewTask}
       activeOpacity={0.85}
-    >
-      <View style={styles.header} pointerEvents="none">
-        <Text style={styles.headerText}>En Progreso</Text>
-      </View>
+    >     
 
       <View style={styles.cardContainer} pointerEvents="none">
         <View style={{ flexDirection: "row", alignItems: "stretch" }}>
@@ -162,28 +159,30 @@ export const ActiveDeliveryCard = ({
                 </Text>
               </View>
             </View>
-            {/* Monto a cobrar - Bottom aligned in column */}
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                marginTop: 4,
-              }}
-            >
-              <FontAwesome
-                name="money"
-                size={16}
-                color={CustomColors.textLight}
-                style={{ marginRight: 6 }}
-              />
-              <Text style={styles.statusText}>
-                RD${" "}
-                {(
-                  (Number(inProgressDelivery.fee) || 0) +
-                  (Number(inProgressDelivery.cost) || 0)
-                ).toFixed(2)}
-              </Text>
-            </View>
+              {/* Monto a cobrar - Bottom aligned in column */}
+            {inProgressDelivery.type === AssignmentType.DELIVERY && (
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  marginTop: 4,
+                }}
+              >
+                <FontAwesome
+                  name="money"
+                  size={16}
+                  color={CustomColors.textLight}
+                  style={{ marginRight: 6 }}
+                />
+                <Text style={styles.statusText}>
+                  RD${" "}
+                  {(
+                    (Number(inProgressDelivery.fee) || 0) +
+                    (Number(inProgressDelivery.cost) || 0)
+                  ).toFixed(2)}
+                </Text>
+              </View>              
+            )}
           </View>
 
           {/* Columna 2: Acciones y Estado */}
