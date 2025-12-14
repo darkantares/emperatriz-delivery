@@ -68,8 +68,7 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({
     >
       <View style={styles.contentContainer}>
         {/* Main Row Container */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>          
           {/* Columna 1: Info Cliente (Arriba) y Dinero (Abajo) */}
           <View>
             {/* Info Cliente */}
@@ -83,7 +82,8 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({
               <Text style={styles.statusText} numberOfLines={1}>{item.client}</Text>
             </View>
 
-            {/* Info Dinero */}
+            {/* Info Dinero - Solo si es DELIVERY */}
+            {item.type === AssignmentType.DELIVERY && (
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <FontAwesome
                 name="money"
@@ -95,44 +95,11 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({
                 RD$ {((item.fee || 0) + (item.cost || 0)).toFixed(2)}
               </Text>
             </View>
+            )}
           </View>
 
-          {/* Columna 2: Botones Acción (Arriba) y Tipo/Status (Abajo) */}
+          {/* Columna 2: Tipo/Status */}
           <View style={{ alignItems: 'flex-end', marginRight: 10 }}>
-            {/* Botones de Acción (Teléfono y WhatsApp) */}
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 18, marginBottom: 8 }}>
-              {/* Icono de Llamada */}
-              <TouchableOpacity
-                style={{ flexDirection: "row", alignItems: "center" }}
-                onPress={() => handleCall(item.phone)}
-                activeOpacity={0.7}
-                accessibilityLabel="Llamar por teléfono"
-              >
-                <FontAwesome
-                  name="phone"
-                  size={40}
-                  color={CustomColors.textLight}
-                />
-              </TouchableOpacity>
-
-              {/* Icono de WhatsApp */}
-              <TouchableOpacity
-                style={{ flexDirection: "row", alignItems: "center" }}
-                onPress={() =>
-                  openWhatsAppMessage(item.phone, `Hola ${item.client}`)
-                }
-                activeOpacity={0.7}
-                accessibilityLabel="Enviar mensaje por WhatsApp"
-              >
-                <FontAwesome
-                  name="whatsapp"
-                  size={40}
-                  color={CustomColors.textLight}
-                />
-              </TouchableOpacity>
-            </View>
-
-            {/* Indicadores de Tipo y Grupo */}
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
               <View
                 style={[
@@ -155,13 +122,12 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({
             </View>
           </View>
 
-          {/* Columna 3: Botón de Progreso (Solo si onAction existe) */}
+          {/* Columna 3: Botón de Progreso */}
           {onAction && (
              <View style={{ width: 40, alignItems: 'center', justifyContent: 'center' }}>
                 <ProgressIconButton onPress={onAction} />
              </View>
           )}
-
         </View>
       </View>
     </ContainerComponent>
