@@ -243,7 +243,7 @@ export default function TabOneScreen() {
             refreshing={refreshing}
             onRefresh={onRefresh}
             contentContainerStyle={{ paddingBottom: 180 }}
-            onProgress={handlePressItem}
+            onProgress={!inProgressDelivery ? handlePressItem : undefined}
           />
         </View>
 

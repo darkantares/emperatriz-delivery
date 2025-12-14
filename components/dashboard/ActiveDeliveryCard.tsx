@@ -44,36 +44,38 @@ export const ActiveDeliveryCard = ({ inProgressDelivery, onViewTask }: ActiveDel
       </View>
 
       <View style={styles.cardContainer} pointerEvents="none">
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-          {/* Columna Izquierda: Cliente, Direcciones, Dinero */}
-          <View style={{ flex: 1, marginRight: 10 }}>
-            {/* Cliente */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-              <FontAwesome name="user" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
-              <Text style={styles.statusText} numberOfLines={1}>
-                {inProgressDelivery.client}
-                {inProgressDelivery.enterprise && (
-                  <Text style={styles.subtitleText}> {inProgressDelivery.enterprise}</Text>
-                )}
-              </Text>
-            </View>
-
-            {/* Recoger en */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-              <MaterialIcons name="store-mall-directory" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
-              <Text style={styles.itemDescription}>{pickupAddress}</Text>
-            </View>
-
-            {/* Entregar en (solo DELIVERY) */}
-            {inProgressDelivery.type === AssignmentType.DELIVERY && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                <MaterialIcons name="location-on" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
-                <Text style={styles.itemDescription}>{deliveryAddress}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'stretch' }}>
+          {/* Columna 1: Información Principal (Cliente, Dirección, Dinero) */}
+          <View style={{ flex: 1, paddingRight: 8, justifyContent: 'space-between' }}>
+            <View>
+              {/* Cliente */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                <FontAwesome name="user" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
+                <Text style={styles.statusText} numberOfLines={1}>
+                  {inProgressDelivery.client}
+                  {inProgressDelivery.enterprise && (
+                    <Text style={styles.subtitleText}> {inProgressDelivery.enterprise}</Text>
+                  )}
+                </Text>
               </View>
-            )}
 
-            {/* Monto a cobrar */}
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              {/* Recoger en */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                <MaterialIcons name="store-mall-directory" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
+                <Text style={styles.itemDescription}>{pickupAddress}</Text>
+              </View>
+
+              {/* Entregar en (solo DELIVERY) */}
+              {inProgressDelivery.type === AssignmentType.DELIVERY && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                  <MaterialIcons name="location-on" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
+                  <Text style={styles.itemDescription}>{deliveryAddress}</Text>
+                </View>
+              )}
+            </View>
+
+            {/* Monto a cobrar - Bottom aligned in column */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
               <FontAwesome name="money" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
               <Text style={styles.statusText}>
                 RD$ {((Number(inProgressDelivery.fee) || 0) + (Number(inProgressDelivery.cost) || 0)).toFixed(2)}
@@ -81,31 +83,38 @@ export const ActiveDeliveryCard = ({ inProgressDelivery, onViewTask }: ActiveDel
             </View>
           </View>
 
-          {/* Columna Derecha: Teléfono y Tipo */}
-          <View style={{ alignItems: 'flex-end' }}>
+          {/* Columna 2: Acciones y Estado */}
+          <View style={{ alignItems: 'flex-end', justifyContent: 'space-between' }}>
+            {/* Columna 3: Botón de Progreso */}
+            {onViewTask && (
+              <View style={{ justifyContent: 'center' }}>
+                <ProgressIconButton onPress={onViewTask} />
+              </View>
+            )}
+
             {/* Botones de Acción */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 15 }}>             
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>             
               {/* Call Button */}
               <TouchableOpacity 
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+                style={{ flexDirection: 'row', alignItems: 'center', padding: 4 }}
                 onPress={() => handleCall(inProgressDelivery.phone)}
                 activeOpacity={0.7}
               >
-                <FontAwesome name="phone" size={30} color={CustomColors.textLight} />
+                <FontAwesome name="phone" size={28} color={CustomColors.textLight} />
               </TouchableOpacity>
 
               {/* WhatsApp Button */}
               <TouchableOpacity 
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+                style={{ flexDirection: 'row', alignItems: 'center', padding: 4 }}
                 onPress={() => openWhatsAppMessage(inProgressDelivery.phone, `Hola ${inProgressDelivery.client}`)}
                 activeOpacity={0.7}
               >
-                <FontAwesome name="whatsapp" size={30} color={CustomColors.textLight} />
+                <FontAwesome name="whatsapp" size={28} color={CustomColors.textLight} />
               </TouchableOpacity>                
             </View>
 
             {/* Tipo */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
               <View style={[
                 styles.typeIndicator,
                 inProgressDelivery.type === AssignmentType.PICKUP ? styles.pickupIndicator : styles.deliveryIndicator
@@ -114,21 +123,8 @@ export const ActiveDeliveryCard = ({ inProgressDelivery, onViewTask }: ActiveDel
                   {inProgressDelivery.type === AssignmentType.PICKUP ? 'Recogida' : 'Entrega'}
                 </Text>
               </View>
-              {/* Tag GRUPO si pertenece a un grupo */}
-              {inProgressDelivery.isGroup && (
-                <View style={[styles.typeIndicator, styles.groupIndicator]}>
-                  <Text style={styles.typeText}>GRUPO</Text>
-                </View>
-              )}
             </View>
           </View>
-
-          {/* Progress Button */}
-          {onViewTask && (
-            <View style={{ width: 40, alignItems: 'center', justifyContent: 'center' }}>
-              <ProgressIconButton onPress={onViewTask} />
-            </View>
-          )}
         </View>
       </View>
     </TouchableOpacity>
