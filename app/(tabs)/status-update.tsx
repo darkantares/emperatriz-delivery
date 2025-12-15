@@ -12,6 +12,7 @@ import {
   Modal,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
+import { AppHeader } from "@/components/header/AppHeader";
 import * as ImagePicker from "expo-image-picker";
 import {
   getStatusColor,
@@ -435,6 +436,7 @@ export default function StatusUpdateScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: CustomColors.backgroundDarkest }}>
+      <AppHeader />
       <View style={styles.modalContent}>
         <View style={styles.modalHeader}>
           <Text style={styles.modalTitle}>Actualizar Estado</Text>
@@ -1042,4 +1044,3 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
 });
-

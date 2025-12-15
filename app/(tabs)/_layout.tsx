@@ -55,6 +55,7 @@ export default function TabLayout() {
         name="status-update"
         options={{
           href: null,
+          headerShown: false,
         }}
       />
     </Tabs>
