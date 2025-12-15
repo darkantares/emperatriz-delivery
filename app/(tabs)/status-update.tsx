@@ -4,12 +4,12 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  FlatList,
   ActivityIndicator,
   Alert,
   TextInput,
   Image,
   Modal,
+  ScrollView,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { AppHeader } from "@/components/header/AppHeader";
@@ -398,7 +398,7 @@ export default function StatusUpdateScreen() {
     }
   };
 
-  const renderStatusItem = ({ item }: { item: IDeliveryStatusEntity }) => {
+  const renderStatusItem = (item: IDeliveryStatusEntity) => {
     const isSelected = selectedStatus === item.title;
     const statusColor = getStatusColor(item.title);
     return (
@@ -437,7 +437,8 @@ export default function StatusUpdateScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: CustomColors.backgroundDarkest }}>
       <AppHeader />
-      <View style={styles.modalContent}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.modalContent}>
         <View style={styles.modalHeader}>
           <Text style={styles.modalTitle}>Actualizar Estado</Text>
           <Text style={styles.deliveryTitle}>Cliente: {itemTitle}</Text>
@@ -457,12 +458,11 @@ export default function StatusUpdateScreen() {
         </View>
 
         {availableStatuses.length > 0 ? (
-          <FlatList
-            data={availableStatuses}
-            renderItem={renderStatusItem}
-            keyExtractor={(item) => item.id.toString()}
-            style={styles.statusList}
-          />
+          <View style={styles.statusList}>
+            {availableStatuses.map((item) => (
+              <View key={item.id.toString()}>{renderStatusItem(item)}</View>
+            ))}
+          </View>
         ) : (
           <View style={styles.noStatusesContainer}>
             <Text style={styles.noStatusesText}>
@@ -660,7 +660,8 @@ export default function StatusUpdateScreen() {
             )}
           </TouchableOpacity>
         </View>
-      </View>
+        </View>
+      </ScrollView>
 
       <Modal
         visible={showPaymentMethodPicker}
@@ -671,11 +672,10 @@ export default function StatusUpdateScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { maxHeight: "60%" }]}>
             <Text style={styles.modalTitle}>Seleccionar Método de Pago</Text>
-            <FlatList
-              data={paymentMethods}
-              keyExtractor={(item) => item.id.toString()}
-              renderItem={({ item }) => (
+            <View>
+              {paymentMethods.map((item) => (
                 <TouchableOpacity
+                  key={item.id.toString()}
                   style={[
                     styles.statusItem,
                     selectedPaymentMethod === item.id && {
@@ -719,8 +719,8 @@ export default function StatusUpdateScreen() {
                     {item.title}
                   </Text>
                 </TouchableOpacity>
-              )}
-            />
+              ))}
+            </View>
             <TouchableOpacity
               style={[styles.button, styles.cancelButton, { width: "100%", marginTop: 10 }]}
               onPress={() => setShowPaymentMethodPicker(false)}
@@ -735,6 +735,9 @@ export default function StatusUpdateScreen() {
 }
 
 const styles = StyleSheet.create({
+  scrollContent: {
+    paddingBottom: 20,
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.7)",
