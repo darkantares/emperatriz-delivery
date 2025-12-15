@@ -8,7 +8,7 @@ import { socketService, SocketEventType } from "@/services/websocketService";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useState, useEffect, useRef } from "react";
 import { CustomColors } from "@/constants/CustomColors";
-import { StatusUpdateModal } from "@/components/modals/StatusUpdateModal";
+import { router } from "expo-router";
 import { AppHeader } from "@/components/header/AppHeader";
 import { AppStateScreen } from "@/components/states/AppStateScreen";
 import { useActiveDelivery } from "@/context/ActiveDeliveryContext";
@@ -38,10 +38,7 @@ export default function TabOneScreen() {
     handleDriversGroupAssigned,
   } = useDelivery();
 
-  const [selectedDelivery, setSelectedDelivery] =
-    useState<DeliveryItemAdapter | null>(null);
-  const [isStatusModalVisible, setIsStatusModalVisible] =
-    useState<boolean>(false);
+  
 
   // Conectar socket y listeners
   useEffect(() => {
@@ -141,8 +138,17 @@ export default function TabOneScreen() {
 
     // Si hay un envío en progreso, abrir modal para continuar ese envío
     if (inProgressDelivery) {
-      setSelectedDelivery(inProgressDelivery);
-      setIsStatusModalVisible(true);
+      const total =
+        (inProgressDelivery.fee || 0) + (inProgressDelivery.cost || 0);
+      router.push({
+        pathname: "/(tabs)/status-update",
+        params: {
+          itemId: inProgressDelivery.id,
+          itemTitle: inProgressDelivery.client,
+          currentStatus: inProgressDelivery.deliveryStatus.title,
+          totalAmmount: String(total),
+        },
+      });
       setTimeout(() => {
         isNavigating.current = false;
       }, 500);
@@ -174,8 +180,16 @@ export default function TabOneScreen() {
     }
 
     // Guardar el delivery seleccionado y mostrar el modal de actualización de estado
-    setSelectedDelivery(nextDelivery);
-    setIsStatusModalVisible(true);
+    const total = (nextDelivery.fee || 0) + (nextDelivery.cost || 0);
+    router.push({
+      pathname: "/(tabs)/status-update",
+      params: {
+        itemId: nextDelivery.id,
+        itemTitle: nextDelivery.client,
+        currentStatus: nextDelivery.deliveryStatus.title,
+        totalAmmount: String(total),
+      },
+    });
 
     // Restablecer la bandera de navegación
     setTimeout(() => {
@@ -183,12 +197,6 @@ export default function TabOneScreen() {
     }, 500);
   };
 
-  // Manejar la actualización de estado
-  const handleStatusUpdate = async () => {
-    setIsStatusModalVisible(false);
-    setSelectedDelivery(null);
-  };
-   
   // Renderizar indicador de carga mientras se obtienen los datos
   if (loading && deliveries.length === 0 && !inProgressDelivery) {
     return <AppStateScreen type="loading" onRetry={() => fetchDeliveries()} />;
@@ -232,8 +240,18 @@ export default function TabOneScreen() {
             inProgressDelivery={inProgressDelivery}
             onViewTask={() => {
               if (inProgressDelivery) {
-                setSelectedDelivery(inProgressDelivery);
-                setIsStatusModalVisible(true);
+                const total =
+                  (inProgressDelivery.fee || 0) +
+                  (inProgressDelivery.cost || 0);
+                router.push({
+                  pathname: "/(tabs)/status-update",
+                  params: {
+                    itemId: inProgressDelivery.id,
+                    itemTitle: inProgressDelivery.client,
+                    currentStatus: inProgressDelivery.deliveryStatus.title,
+                    totalAmmount: String(total),
+                  },
+                });
               }
             }}
           />
@@ -247,17 +265,7 @@ export default function TabOneScreen() {
           />
         </View>
 
-        {selectedDelivery && (
-          <StatusUpdateModal
-            isVisible={isStatusModalVisible}
-            onClose={() => setIsStatusModalVisible(false)}
-            currentStatus={selectedDelivery.deliveryStatus.title}
-            onStatusSelected={handleStatusUpdate}
-            itemId={selectedDelivery.id}
-            itemTitle={selectedDelivery.client}
-            totalAmmount={(selectedDelivery.fee || 0) + (selectedDelivery.cost || 0)}
-          />
-        )}
+        
       </View>
     </GestureHandlerRootView>
   );
