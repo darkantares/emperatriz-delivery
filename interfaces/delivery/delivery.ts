@@ -32,7 +32,6 @@ export interface IDeliveryAssignmentSummaryEntity extends IGlobalEntity {
   type: AssignmentType;
   municipio: IMunicipio;
   deliveryStatus: IDeliveryStatusEntity;
-  shippingDate: string;
   assignedAt: Date;
   acceptedAt: Date;
   completedAt: Date;
@@ -59,7 +58,6 @@ export interface IDeliveryAssignmentEntity extends IGlobalEntity {
   municipio: IMunicipio;
   deliveryStatus: IDeliveryStatusEntity;
   paymentMethod?: IPaymentMethodEntity;
-  shippingDate: string;
   assignedAt: Date;
   acceptedAt: Date;
   completedAt: Date;
