@@ -53,6 +53,7 @@ export default function StatusUpdateScreen() {
   const [availableStatuses, setAvailableStatuses] = useState<
     IDeliveryStatusEntity[]
   >([]);
+  const [loadingStatuses, setLoadingStatuses] = useState<boolean>(true);
   const [loading, setLoading] = useState<boolean>(false);
   const [note, setNote] = useState<string>("");
   const [photoUri, setPhotoUri] = useState<string | null>(null);
@@ -188,6 +189,7 @@ export default function StatusUpdateScreen() {
     setSelectedPaymentMethod(null);
     setAmountPaidEdited(false);
 
+    setLoadingStatuses(true);
     Promise.all([loadStatuses(), loadPaymentMethods()]).then(() => {
       const allStatuses = getDeliveryStatuses();
       const currentStatusAsEnum = Object.values(IDeliveryStatus).find(
@@ -207,7 +209,13 @@ export default function StatusUpdateScreen() {
         validNextStatuses.includes(status.title)
       );
       setAvailableStatuses(filteredStatuses);
+      setLoadingStatuses(false);
     });
+    return () => {
+      setAvailableStatuses([]);
+      setSelectedStatus(null);
+      setLoadingStatuses(true);
+    };
   }, [currentStatus]);
 
   const takePhoto = async () => {
@@ -457,7 +465,17 @@ export default function StatusUpdateScreen() {
           </Text>
         </View>
 
-        {availableStatuses.length > 0 ? (
+        {loadingStatuses ? (
+          <View style={styles.statusList}>
+            {[...Array(4)].map((_, idx) => (
+              <View key={`skeleton-${idx}`} style={styles.skeletonItem}>
+                <View style={styles.skeletonRadio} />
+                <View style={styles.skeletonText} />
+                <View style={styles.skeletonIndicator} />
+              </View>
+            ))}
+          </View>
+        ) : availableStatuses.length > 0 ? (
           <View style={styles.statusList}>
             {availableStatuses.map((item) => (
               <View key={item.id.toString()}>{renderStatusItem(item)}</View>
@@ -788,6 +806,36 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: CustomColors.divider,
+  },
+  skeletonItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 15,
+    backgroundColor: CustomColors.cardBackground,
+    marginBottom: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: CustomColors.divider,
+  },
+  skeletonRadio: {
+    height: 24,
+    width: 24,
+    borderRadius: 12,
+    backgroundColor: CustomColors.divider,
+    marginRight: 12,
+  },
+  skeletonText: {
+    flex: 1,
+    height: 16,
+    borderRadius: 4,
+    backgroundColor: CustomColors.divider,
+  },
+  skeletonIndicator: {
+    height: 8,
+    width: 40,
+    borderRadius: 4,
+    backgroundColor: CustomColors.divider,
+    marginLeft: 12,
   },
   radioButton: {
     height: 24,
