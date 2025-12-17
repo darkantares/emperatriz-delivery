@@ -25,9 +25,9 @@ import {
 } from "@/interfaces/delivery/delivery";
 import { useDelivery } from "@/context/DeliveryContext";
 import { AssignmentType } from "@/utils/enum";
-import { EvidenceSection } from "../components/status-update/EvidenceSection";
-import { NoteInput } from "../components/status-update/NoteInput";
-import { PaymentControls } from "../components/status-update/PaymentControls";
+import { EvidenceSection } from "@/components/status-update/EvidenceSection";
+import { NoteInput } from "@/components/status-update/NoteInput";
+import { PaymentControls } from "@/components/status-update/PaymentControls";
 import { StatusList } from "../components/status-update/StatusList";
 import { useEvidenceFlags } from "../hooks/useEvidenceFlags";
 import { usePaymentMethods } from "../hooks/usePaymentMethods";

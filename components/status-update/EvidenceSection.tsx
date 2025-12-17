@@ -26,19 +26,6 @@ export function EvidenceSection({
   removeImage,
   styles,
 }: Props) {
-  console.log(
-    "showEvidence:",
-    showEvidence,
-    "requiresCameraPhoto:",
-    requiresCameraPhoto,
-    "requiresGalleryImage:",
-    requiresGalleryImage,
-    "photoUri:",
-    photoUri,
-    "imageUri:",
-    imageUri
-  );
-  
   if (!showEvidence) return null;
 
   const labelSuffix =

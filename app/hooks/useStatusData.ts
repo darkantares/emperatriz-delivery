@@ -3,6 +3,7 @@ import {
   areStatusesLoaded,
   getDeliveryStatuses,
   IDeliveryStatus,
+  setDeliveryStatuses,
   validStatusTransitions,
 } from "@/interfaces/delivery/deliveryStatus";
 import { deliveryStatusService } from "@/services/deliveryStatusService";
@@ -12,6 +13,8 @@ export function useStatusData(currentStatus: string) {
   const [availableStatuses, setAvailableStatuses] = useState<
     { id: number; title: string }[]
   >([]);
+  // console.log(availableStatuses);
+  
   const [loadingStatuses, setLoadingStatuses] = useState<boolean>(true);
 
   useEffect(() => {
@@ -19,7 +22,10 @@ export function useStatusData(currentStatus: string) {
       if (!areStatusesLoaded()) {
         try {
           const response = await deliveryStatusService.getDeliveryStatuses();
-          if (response.success && response.data) {
+          console.log("availableStatuses:", response.data);
+          
+          if (response.data && response.data.length > 0) {
+            setDeliveryStatuses(response.data);
             setLoadingStatuses(false);
           } else {
             Alert.alert("Error", "No se pudieron cargar los estados de entrega");
@@ -36,11 +42,15 @@ export function useStatusData(currentStatus: string) {
 
     const processStatuses = () => {
       const allStatuses = getDeliveryStatuses();
+      
+      console.log("allStatuses:", allStatuses);
+      
       const currentStatusAsEnum = Object.values(IDeliveryStatus).find(
         (status) => status === currentStatus
       ) as IDeliveryStatus | undefined;
 
       let validNextStatuses: string[] = [];
+
       if (currentStatusAsEnum && validStatusTransitions[currentStatusAsEnum]) {
         validNextStatuses = validStatusTransitions[currentStatusAsEnum];
       } else {
@@ -49,9 +59,13 @@ export function useStatusData(currentStatus: string) {
           .map((status) => status.title);
       }
 
+      console.log("allStatuses:", allStatuses);
+      
       const filteredStatuses = allStatuses.filter((status) =>
         validNextStatuses.includes(status.title)
       );
+
+      console.log("filteredStatuses:", filteredStatuses);
       setAvailableStatuses(filteredStatuses);
       setLoadingStatuses(false);
     };
