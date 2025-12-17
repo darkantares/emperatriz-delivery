@@ -13,7 +13,6 @@ export function useStatusData(currentStatus: string) {
   const [availableStatuses, setAvailableStatuses] = useState<
     { id: number; title: string }[]
   >([]);
-  // console.log(availableStatuses);
   
   const [loadingStatuses, setLoadingStatuses] = useState<boolean>(true);
 
@@ -22,7 +21,6 @@ export function useStatusData(currentStatus: string) {
       if (!areStatusesLoaded()) {
         try {
           const response = await deliveryStatusService.getDeliveryStatuses();
-          console.log("availableStatuses:", response.data);
           
           if (response.data && response.data.length > 0) {
             setDeliveryStatuses(response.data);

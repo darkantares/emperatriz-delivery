@@ -26,6 +26,7 @@ export function EvidenceSection({
   removeImage,
   styles,
 }: Props) {
+  
   if (!showEvidence) return null;
 
   const labelSuffix =

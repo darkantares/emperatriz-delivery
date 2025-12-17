@@ -12,10 +12,13 @@ export function useEvidenceFlags(
 
   const showEvidence = isDelivered && !isPickupType;
   const requiresCameraPhoto = showEvidence;
-
+  console.log('isAmountPaidZero:', isAmountPaidZero);
+  console.log('selectedPaymentTitle:', selectedPaymentTitle);
+  
   const requiresGalleryImage =
-    !isAmountPaidZero || 
-    (selectedPaymentTitle === IPaymentValidMethods.Transferencia);
+    !isAmountPaidZero ||
+    (selectedPaymentTitle ?? "").toLowerCase() ===
+      IPaymentValidMethods.Transferencia.toLowerCase();
 
   return {
     requiresCameraPhoto,
