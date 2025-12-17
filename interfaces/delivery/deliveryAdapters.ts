@@ -20,8 +20,8 @@ export interface DeliveryItemAdapter {
   destiny?: ISector;
   isGroup: boolean;
   shipmentId: string;
-  fee: number;
-  cost: number;
+  deliveryCost: number;
+  amountToBeCharged: number;
   enterprise: string;
 }
 
@@ -30,8 +30,8 @@ export interface DeliveryGroupAdapter {
   shipmentId: string;
   pickups: DeliveryItemAdapter[];
   delivery: DeliveryItemAdapter;
-  totalFee: number;
-  totalCost: number;
+  totalDeliveryCost: number;
+  totalAmountToBeCharged: number;
 }
 
 // Convierte un array de IDeliveryAssignmentEntity a DeliveryItemAdapter
@@ -52,8 +52,8 @@ export function adaptDeliveriesToAdapter(deliveries: IDeliveryAssignmentEntity[]
       destiny: delivery.destiny,
       isGroup: delivery.isGroup || false,
       shipmentId: delivery.shipmentId,
-      fee: Number(delivery.fee),
-      cost: Number(delivery.cost),
+      deliveryCost: Number(delivery.deliveryCost),
+      amountToBeCharged: Number((delivery as any).amountToBeCharged ?? (delivery as any).cost ?? 0),
       enterprise: delivery.enterprise.title,
     }));    
   } catch (error) {
@@ -93,8 +93,8 @@ export function groupDeliveriesByShipment(deliveries: DeliveryItemAdapter[]): (D
         shipmentId,
         pickups,
         delivery: deliveryItem,
-        totalFee: groupItems.reduce((sum, item) => sum + Number(item.fee), 0),
-        totalCost: groupItems.reduce((sum, item) => sum + Number(item.cost), 0),
+        totalDeliveryCost: groupItems.reduce((sum, item) => sum + Number(item.deliveryCost), 0),
+        totalAmountToBeCharged: groupItems.reduce((sum, item) => sum + Number((item as any).amountToBeCharged ?? (item as any).deliveryCost ?? 0), 0),
       };
       result.push(group);
     }

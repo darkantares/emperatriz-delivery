@@ -69,7 +69,7 @@ export const DeliveryGroupItem: React.FC<DeliveryGroupItemProps> = ({ group, onP
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <FontAwesome name="money" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
                 <Text style={styles.statusText}>
-                  Total: RD$ {(group.totalFee + group.totalCost).toFixed(2)}
+                  Total: RD$ {(group.totalDeliveryCost + group.totalAmountToBeCharged).toFixed(2)}
                 </Text>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -103,7 +103,7 @@ export const DeliveryGroupItem: React.FC<DeliveryGroupItemProps> = ({ group, onP
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <FontAwesome name="money" size={16} color={CustomColors.textLight} style={{ marginRight: 6 }} />
                 <Text style={styles.statusText}>
-                  Total: RD$ {(group.totalFee + group.totalCost).toFixed(2)}
+                  Total: RD$ {(group.totalDeliveryCost + group.totalAmountToBeCharged).toFixed(2)}
                 </Text>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -129,7 +129,7 @@ export const DeliveryGroupItem: React.FC<DeliveryGroupItemProps> = ({ group, onP
                     <MaterialIcons name="store" size={14} color={CustomColors.textLight} style={{ marginRight: 4 }} />
                     <Text style={styles.pickupText}>{pickup.enterprise}</Text>
                   </View>
-                  <Text style={styles.pickupAmount}>RD$ {(pickup.fee + pickup.cost).toFixed(2)}</Text>
+                  <Text style={styles.pickupAmount}>RD$ {(pickup.deliveryCost + pickup.amountToBeCharged).toFixed(2)}</Text>
                 </View>
                 <View style={[styles.infoRow]}>
                   <FontAwesome name="map-marker" size={14} color={CustomColors.textLight} style={{ marginRight: 4 }} />

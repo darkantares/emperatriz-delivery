@@ -139,7 +139,7 @@ export default function TabOneScreen() {
     // Si hay un envío en progreso, abrir modal para continuar ese envío
     if (inProgressDelivery) {
       const total =
-        (inProgressDelivery.fee || 0) + (inProgressDelivery.cost || 0);
+        (inProgressDelivery.deliveryCost || 0) + (inProgressDelivery.amountToBeCharged || 0);
       router.push({
         pathname: "/(tabs)/status-update",
         params: {
@@ -180,7 +180,7 @@ export default function TabOneScreen() {
     }
 
     // Guardar el delivery seleccionado y mostrar el modal de actualización de estado
-    const total = (nextDelivery.fee || 0) + (nextDelivery.cost || 0);
+    const total = (nextDelivery.deliveryCost || 0) + (nextDelivery.amountToBeCharged || 0);
     router.push({
       pathname: "/(tabs)/status-update",
       params: {
@@ -241,8 +241,8 @@ export default function TabOneScreen() {
             onViewTask={() => {
               if (inProgressDelivery) {
                 const total =
-                  (inProgressDelivery.fee || 0) +
-                  (inProgressDelivery.cost || 0);
+                  (inProgressDelivery.deliveryCost || 0) +
+                  (inProgressDelivery.amountToBeCharged || 0);
                 router.push({
                   pathname: "/(tabs)/status-update",
                   params: {

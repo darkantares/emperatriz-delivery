@@ -27,8 +27,8 @@ export interface Item {
   origin?: ISector;
   destiny?: ISector;
   deliveryStatus: IDeliveryStatusEntity;
-  fee: number;
-  cost: number;
+  deliveryCost: number;
+  amountToBeCharged: number;
   enterprise: string;
   isGroup?: boolean;
   shipmentId?: string;
@@ -80,7 +80,7 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({
                 style={{ marginRight: 6 }}
               />
               <Text style={styles.statusText}>
-                RD$ {((item.fee || 0) + (item.cost || 0)).toFixed(2)}
+                RD$ {((item.deliveryCost || 0) + (item.amountToBeCharged || 0)).toFixed(2)}
               </Text>
             </View>
             )}

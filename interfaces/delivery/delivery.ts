@@ -20,9 +20,9 @@ export interface IUpdateDeliveryStatusData {
 export interface IDeliveryAssignmentSummaryEntity extends IGlobalEntity {
   id: number;
   order: number;
-  fee: number;
+  deliveryCost: number;
   contact: string;
-  cost: number;
+  amountToBeCharged: number;
   phone: string;
   amountPaid?: number;
   deliveryAddress: string;
@@ -45,9 +45,9 @@ export interface IDeliveryAssignmentSummaryEntity extends IGlobalEntity {
 export interface IDeliveryAssignmentEntity extends IGlobalEntity {
   id: number;
   order: number;
-  fee: number;
+  deliveryCost: number;
   contact: string;
-  cost: number;
+  amountToBeCharged: number;
   amountPaid?: number;
   phone: string;
   shipmentId: string;
@@ -71,7 +71,7 @@ export interface IDeliveryAssignmentEntity extends IGlobalEntity {
 export interface IDeliveryInfoDto {
   phone: string;
   contact: string;
-  cost?: number;
+  amountToBeCharged?: number;
   deliveryAddress: string;
   observations?: string;
   provincia: number;
@@ -90,7 +90,7 @@ export interface IDeliveryStatusEntity {
   title: IDeliveryStatus;
 }
 
-export interface IFeeDelivery {
+export interface IDeliveryCost {
   id: number;
   value: number;
   description: string;

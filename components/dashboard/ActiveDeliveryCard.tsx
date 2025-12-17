@@ -177,8 +177,8 @@ export const ActiveDeliveryCard = ({
                 <Text style={styles.statusText}>
                   RD${" "}
                   {(
-                    (Number(inProgressDelivery.fee) || 0) +
-                    (Number(inProgressDelivery.cost) || 0)
+                    (Number(inProgressDelivery.deliveryCost) || 0) +
+                    (Number(inProgressDelivery.amountToBeCharged) || 0)
                   ).toFixed(2)}
                 </Text>
               </View>              
