@@ -9,3 +9,10 @@ export enum BackendUrls {
     DeliveryStatus = 'delivery-status',
     PaymentMethods = 'payment-methods',
 }
+
+export enum IPaymentValidMethods {
+  Efectivo = 'Efectivo',
+  Tarjeta = 'Tarjeta',
+  Transferencia = 'Transferencia',
+  Cheque = 'Cheque',
+}

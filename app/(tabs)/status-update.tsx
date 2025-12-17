@@ -7,8 +7,6 @@ import {
   ActivityIndicator,
   Alert,
   TextInput,
-  Image,
-  Modal,
   ScrollView,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
@@ -18,22 +16,22 @@ import {
   getStatusColor,
   IDeliveryStatus,
   getStatusIdFromTitle,
-  setDeliveryStatuses,
-  areStatusesLoaded,
-  getDeliveryStatuses,
-  validStatusTransitions,
 } from "@/interfaces/delivery/deliveryStatus";
 import { CustomColors } from "@/constants/CustomColors";
 import { deliveryService } from "@/services/deliveryService";
-import { deliveryStatusService } from "@/services/deliveryStatusService";
-import { paymentMethodService } from "@/services/paymentMethodService";
 import {
   IDeliveryStatusEntity,
   IUpdateDeliveryStatusData,
 } from "@/interfaces/delivery/delivery";
-import { IPaymentMethodEntity } from "@/interfaces/payment/payment";
 import { useDelivery } from "@/context/DeliveryContext";
 import { AssignmentType } from "@/utils/enum";
+import { EvidenceSection } from "../components/status-update/EvidenceSection";
+import { NoteInput } from "../components/status-update/NoteInput";
+import { PaymentControls } from "../components/status-update/PaymentControls";
+import { StatusList } from "../components/status-update/StatusList";
+import { useEvidenceFlags } from "../hooks/useEvidenceFlags";
+import { usePaymentMethods } from "../hooks/usePaymentMethods";
+import { useStatusData } from "../hooks/useStatusData";
 
 export default function StatusUpdateScreen() {
   const params = useLocalSearchParams<{
@@ -50,10 +48,7 @@ export default function StatusUpdateScreen() {
 
   const { fetchDeliveries, deliveries, inProgressDelivery } = useDelivery();
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
-  const [availableStatuses, setAvailableStatuses] = useState<
-    IDeliveryStatusEntity[]
-  >([]);
-  const [loadingStatuses, setLoadingStatuses] = useState<boolean>(true);
+  const { availableStatuses, loadingStatuses } = useStatusData(currentStatus);
   const [loading, setLoading] = useState<boolean>(false);
   const [note, setNote] = useState<string>("");
   const [photoUri, setPhotoUri] = useState<string | null>(null);
@@ -63,9 +58,7 @@ export default function StatusUpdateScreen() {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
     number | null
   >(null);
-  const [paymentMethods, setPaymentMethods] = useState<IPaymentMethodEntity[]>(
-    []
-  );
+  const { paymentMethods } = usePaymentMethods();
   const [showPaymentMethodPicker, setShowPaymentMethodPicker] =
     useState<boolean>(false);
 
@@ -75,15 +68,6 @@ export default function StatusUpdateScreen() {
     IDeliveryStatus.ON_HOLD,
     IDeliveryStatus.SCHEDULED,
   ];
-  const statusesAllowingPhoto = [IDeliveryStatus.DELIVERED];
-  const statusesAllowingImage = [
-    IDeliveryStatus.CANCELLED,
-    IDeliveryStatus.RETURNED,
-    IDeliveryStatus.ON_HOLD,
-    IDeliveryStatus.SCHEDULED,
-    IDeliveryStatus.DELIVERED,
-  ];
-  const statusesRequiringEvidence = [IDeliveryStatus.DELIVERED];
 
   const currentDelivery = (() => {
     const found = deliveries.find((d) => d.id === itemId);
@@ -97,34 +81,18 @@ export default function StatusUpdateScreen() {
   const requiresNote =
     selectedStatus &&
     statusesRequiringNote.includes(selectedStatus as IDeliveryStatus);
-  const allowsPhoto =
-    selectedStatus &&
-    statusesAllowingPhoto.includes(selectedStatus as IDeliveryStatus) &&
-    !isPickupType;
-  const allowsImage =
-    selectedStatus &&
-    statusesAllowingImage.includes(selectedStatus as IDeliveryStatus) &&
-    !isPickupType;
-  const requiresEvidence =
-    selectedStatus &&
-    statusesRequiringEvidence.includes(selectedStatus as IDeliveryStatus) &&
-    !isPickupType;
+
   const requiresPaymentInfo =
     selectedStatus === IDeliveryStatus.DELIVERED && !isPickupType;
 
-  const selectedPaymentTitle = selectedPaymentMethod
-    ? paymentMethods.find((pm) => pm.id === selectedPaymentMethod)?.title?.toLowerCase()
+  const selectedPaymentTitle: string | null = selectedPaymentMethod
+    ? (paymentMethods.find((pm) => pm.id === selectedPaymentMethod)?.title?.toLowerCase() ?? null)
     : null;
-  const requiresGalleryImage = !!(
-    selectedStatus === IDeliveryStatus.DELIVERED &&
-    !isPickupType &&
-    selectedPaymentTitle &&
-    (selectedPaymentTitle === "transferencia" ||
-      selectedPaymentTitle === "transfer")
-  );
-  const requiresCameraPhoto =
-    selectedStatus === IDeliveryStatus.DELIVERED && !isPickupType;
-  const showEvidence = requiresCameraPhoto || requiresGalleryImage;
+  const {
+    requiresCameraPhoto,
+    requiresGalleryImage,
+    showEvidence,
+  } = useEvidenceFlags(selectedStatus, isPickupType, selectedPaymentTitle, amountPaid);
 
   useEffect(() => {
     if (isPickupType && selectedStatus === IDeliveryStatus.DELIVERED) {
@@ -151,36 +119,6 @@ export default function StatusUpdateScreen() {
     (!requiresPaymentInfo || (amountPaid.trim() !== "" && selectedPaymentMethod));
 
   useEffect(() => {
-    const loadStatuses = async () => {
-      if (!areStatusesLoaded()) {
-        try {
-          const response = await deliveryStatusService.getDeliveryStatuses();
-          if (response.success && response.data) {
-            setDeliveryStatuses(response.data);
-          } else {
-            Alert.alert("Error", "No se pudieron cargar los estados de entrega");
-            return;
-          }
-        } catch {
-          Alert.alert("Error", "Error de conexión al cargar los estados");
-          return;
-        }
-      }
-    };
-
-    const loadPaymentMethods = async () => {
-      try {
-        const response = await paymentMethodService.getPaymentMethods();
-        if (response.success && response.data) {
-          setPaymentMethods(response.data);
-        } else {
-          Alert.alert("Error", "No se pudieron cargar los métodos de pago");
-        }
-      } catch {
-        Alert.alert("Error", "Error de conexión al cargar los métodos de pago");
-      }
-    };
-
     setSelectedStatus(null);
     setNote("");
     setPhotoUri(null);
@@ -188,34 +126,6 @@ export default function StatusUpdateScreen() {
     setAmountPaid("");
     setSelectedPaymentMethod(null);
     setAmountPaidEdited(false);
-
-    setLoadingStatuses(true);
-    Promise.all([loadStatuses(), loadPaymentMethods()]).then(() => {
-      const allStatuses = getDeliveryStatuses();
-      const currentStatusAsEnum = Object.values(IDeliveryStatus).find(
-        (status) => status === currentStatus
-      ) as IDeliveryStatus;
-
-      let validNextStatuses: string[] = [];
-      if (currentStatusAsEnum && validStatusTransitions[currentStatusAsEnum]) {
-        validNextStatuses = validStatusTransitions[currentStatusAsEnum];
-      } else {
-        validNextStatuses = allStatuses
-          .filter((status) => status.title !== currentStatus)
-          .map((status) => status.title);
-      }
-
-      const filteredStatuses = allStatuses.filter((status) =>
-        validNextStatuses.includes(status.title)
-      );
-      setAvailableStatuses(filteredStatuses);
-      setLoadingStatuses(false);
-    });
-    return () => {
-      setAvailableStatuses([]);
-      setSelectedStatus(null);
-      setLoadingStatuses(true);
-    };
   }, [currentStatus]);
 
   const takePhoto = async () => {
@@ -297,7 +207,7 @@ export default function StatusUpdateScreen() {
         );
         return;
       }
-      if (requiresEvidence && !photoUri && !imageUri) {
+      if (!photoUri && !imageUri) {
         Alert.alert(
           "Evidencia requerida",
           "Debes tomar una foto o seleccionar una imagen para el estado DELIVERED.",
@@ -465,174 +375,40 @@ export default function StatusUpdateScreen() {
           </Text>
         </View>
 
-        {loadingStatuses ? (
-          <View style={styles.statusList}>
-            {[...Array(4)].map((_, idx) => (
-              <View key={`skeleton-${idx}`} style={styles.skeletonItem}>
-                <View style={styles.skeletonRadio} />
-                <View style={styles.skeletonText} />
-                <View style={styles.skeletonIndicator} />
-              </View>
-            ))}
-          </View>
-        ) : availableStatuses.length > 0 ? (
-          <View style={styles.statusList}>
-            {availableStatuses.map((item) => (
-              <View key={item.id.toString()}>{renderStatusItem(item)}</View>
-            ))}
-          </View>
-        ) : (
-          <View style={styles.noStatusesContainer}>
-            <Text style={styles.noStatusesText}>
-              No hay estados disponibles para progresión. Este es un estado final.
-            </Text>
-          </View>
-        )}
+        <StatusList
+          availableStatuses={availableStatuses as any}
+          selectedStatus={selectedStatus}
+          onSelectStatus={setSelectedStatus}
+          loadingStatuses={loadingStatuses}
+          styles={styles}
+        />
 
-        {requiresNote && (
-          <View style={styles.noteContainer}>
-            <Text style={styles.noteLabel}>Nota (Obligatorio):</Text>
-            <TextInput
-              style={styles.noteInput}
-              placeholder="Escribe una nota explicando el motivo..."
-              placeholderTextColor={CustomColors.divider}
-              value={note}
-              onChangeText={setNote}
-              multiline={true}
-              numberOfLines={3}
-              textAlignVertical="top"
-              maxLength={500}
-            />
-            <Text style={styles.characterCount}>{note.length}/500 caracteres</Text>
-          </View>
-        )}
+        {requiresNote && <NoteInput value={note} onChange={setNote} styles={styles} />}
 
         {selectedStatus === IDeliveryStatus.DELIVERED && !isPickupType && (
-          <View style={styles.paymentContainer}>
-            <Text style={styles.paymentLabel}>Método de Pago (Obligatorio):</Text>
-            <TouchableOpacity
-              style={styles.paymentMethodButton}
-              onPress={() => setShowPaymentMethodPicker(true)}
-            >
-              <Text style={styles.paymentMethodButtonText}>
-                {selectedPaymentMethod
-                  ? paymentMethods.find((pm) => pm.id === selectedPaymentMethod)?.title
-                  : "Seleccionar método de pago..."}
-              </Text>
-              <Text style={styles.dropdownArrow}>▼</Text>
-            </TouchableOpacity>
-          </View>
+          <PaymentControls
+            selectedPaymentMethod={selectedPaymentMethod}
+            paymentMethods={paymentMethods}
+            showPicker={showPaymentMethodPicker}
+            setShowPicker={setShowPaymentMethodPicker}
+            onSelect={setSelectedPaymentMethod}
+            styles={styles}
+          />
         )}
+        
+        <EvidenceSection
+          showEvidence={showEvidence}
+          requiresCameraPhoto={requiresCameraPhoto}
+          requiresGalleryImage={requiresGalleryImage}
+          photoUri={photoUri}
+          imageUri={imageUri}
+          takePhoto={takePhoto}
+          selectImageFromGallery={selectImageFromGallery}
+          removePhoto={removePhoto}
+          removeImage={removeImage}
+          styles={styles}
+        />
 
-        {showEvidence && (
-          <View style={styles.photoContainer}>
-            <Text style={styles.photoLabel}>Evidencia (obligatorio):</Text>
-            {requiresCameraPhoto && requiresGalleryImage ? (
-              <View style={styles.imagesRowContainer}>
-                <View style={styles.imageHalfContainer}>
-                  <Text style={styles.imageTypeLabel}>Foto de cámara:</Text>
-                  {photoUri ? (
-                    <View style={styles.photoPreviewContainer}>
-                      <Image source={{ uri: photoUri }} style={styles.photoPreviewHalf} />
-                      <TouchableOpacity
-                        style={styles.removePhotoButton}
-                        onPress={removePhoto}
-                      >
-                        <Text style={styles.removePhotoText}>✕</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ) : (
-                    <View style={styles.imagePlaceholderContainer}>
-                      <View style={styles.imagePlaceholder}>
-                        <Text style={styles.placeholderIcon}>📷</Text>
-                        <Text style={styles.placeholderText}>No image selected</Text>
-                      </View>
-                      <TouchableOpacity style={styles.placeholderButton} onPress={takePhoto}>
-                        <Text style={styles.placeholderButtonText}>📷 Foto (*)</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </View>
-                <View style={styles.imageHalfContainer}>
-                  <Text style={styles.imageTypeLabel}>Imagen de galería:</Text>
-                  {imageUri ? (
-                    <View style={styles.photoPreviewContainer}>
-                      <Image source={{ uri: imageUri }} style={styles.photoPreviewHalf} />
-                      <TouchableOpacity
-                        style={styles.removePhotoButton}
-                        onPress={removeImage}
-                      >
-                        <Text style={styles.removePhotoText}>✕</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ) : (
-                    <View style={styles.imagePlaceholderContainer}>
-                      <View style={styles.imagePlaceholder}>
-                        <Text style={styles.placeholderIcon}>🖼️</Text>
-                        <Text style={styles.placeholderText}>No image selected</Text>
-                      </View>
-                      <TouchableOpacity
-                        style={styles.placeholderButton}
-                        onPress={selectImageFromGallery}
-                      >
-                        <Text style={styles.placeholderButtonText}>🖼️ Imagen (*)</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </View>
-              </View>
-            ) : (
-              <>
-                {requiresCameraPhoto && (
-                  <View style={styles.singleImageContainer}>
-                    {photoUri ? (
-                      <View>
-                        <View style={styles.photoPreviewContainer}>
-                          <Image source={{ uri: photoUri }} style={styles.photoPreview} />
-                          <TouchableOpacity
-                            style={styles.removePhotoButton}
-                            onPress={removePhoto}
-                          >
-                            <Text style={styles.removePhotoText}>✕</Text>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    ) : (
-                      <TouchableOpacity style={styles.photoButton} onPress={takePhoto}>
-                        <Text style={styles.photoButtonText}>📷 Foto (obligatorio)</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                )}
-                {requiresGalleryImage && (
-                  <View style={styles.singleImageContainer}>
-                    {imageUri ? (
-                      <View>
-                        <Text style={styles.imageTypeLabel}>Imagen de galería:</Text>
-                        <View style={styles.photoPreviewContainer}>
-                          <Image source={{ uri: imageUri }} style={styles.photoPreview} />
-                          <TouchableOpacity
-                            style={styles.removePhotoButton}
-                            onPress={removeImage}
-                          >
-                            <Text style={styles.removePhotoText}>✕</Text>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    ) : (
-                      <TouchableOpacity
-                        style={styles.photoButton}
-                        onPress={selectImageFromGallery}
-                      >
-                        <Text style={styles.photoButtonText}>🖼️ Imagen (obligatorio)</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                )}
-              </>
-            )}
-          </View>
-        )}
 
         {isPickupType && (
           <View style={styles.pickupNoteContainer}>
@@ -681,73 +457,7 @@ export default function StatusUpdateScreen() {
         </View>
       </ScrollView>
 
-      <Modal
-        visible={showPaymentMethodPicker}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowPaymentMethodPicker(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { maxHeight: "60%" }]}>
-            <Text style={styles.modalTitle}>Seleccionar Método de Pago</Text>
-            <View>
-              {paymentMethods.map((item) => (
-                <TouchableOpacity
-                  key={item.id.toString()}
-                  style={[
-                    styles.statusItem,
-                    selectedPaymentMethod === item.id && {
-                      borderColor: CustomColors.secondary,
-                      borderWidth: 2,
-                    },
-                  ]}
-                  onPress={() => {
-                    setSelectedPaymentMethod(item.id);
-                    setShowPaymentMethodPicker(false);
-                  }}
-                >
-                  <View
-                    style={[
-                      styles.radioButton,
-                      selectedPaymentMethod === item.id && {
-                        borderColor: CustomColors.secondary,
-                      },
-                    ]}
-                  >
-                    {selectedPaymentMethod === item.id && (
-                      <View
-                        style={[
-                          styles.radioButtonSelected,
-                          { backgroundColor: CustomColors.secondary },
-                        ]}
-                      />
-                    )}
-                  </View>
-                  <Text
-                    style={[
-                      styles.statusText,
-                      {
-                        color:
-                          selectedPaymentMethod === item.id
-                            ? CustomColors.secondary
-                            : CustomColors.textLight,
-                      },
-                    ]}
-                  >
-                    {item.title}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <TouchableOpacity
-              style={[styles.button, styles.cancelButton, { width: "100%", marginTop: 10 }]}
-              onPress={() => setShowPaymentMethodPicker(false)}
-            >
-              <Text style={styles.buttonText}>Cancelar</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      
     </View>
   );
 }
