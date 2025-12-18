@@ -316,42 +316,6 @@ export default function StatusUpdateScreen() {
     }
   };
 
-  const renderStatusItem = (item: IDeliveryStatusEntity) => {
-    const isSelected = selectedStatus === item.title;
-    const statusColor = getStatusColor(item.title);
-    return (
-      <TouchableOpacity
-        style={[
-          styles.statusItem,
-          isSelected && { borderColor: statusColor, borderWidth: 2 },
-        ]}
-        onPress={() => setSelectedStatus(item.title)}
-      >
-        <View
-          style={[styles.radioButton, isSelected && { borderColor: statusColor }]}
-        >
-          {isSelected && (
-            <View
-              style={[
-                styles.radioButtonSelected,
-                { backgroundColor: statusColor },
-              ]}
-            />
-          )}
-        </View>
-        <Text
-          style={[
-            styles.statusText,
-            { color: isSelected ? statusColor : CustomColors.textLight },
-          ]}
-        >
-          {item.title}
-        </Text>
-        <View style={[styles.statusIndicator, { backgroundColor: statusColor }]} />
-      </TouchableOpacity>
-    );
-  };
-
   return (
     <View style={{ flex: 1, backgroundColor: CustomColors.backgroundDarkest }}>
       <AppHeader />
