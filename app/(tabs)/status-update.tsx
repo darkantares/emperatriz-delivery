@@ -77,13 +77,13 @@ export default function StatusUpdateScreen() {
     return undefined;
   })();
   const isPickupType = currentDelivery?.type === AssignmentType.PICKUP;
-
+  const isDelivered = selectedStatus === IDeliveryStatus.DELIVERED;
   const requiresNote =
     selectedStatus &&
     statusesRequiringNote.includes(selectedStatus as IDeliveryStatus);
 
   const requiresPaymentInfo =
-    selectedStatus === IDeliveryStatus.DELIVERED && !isPickupType;
+    isDelivered && !isPickupType;
 
   const selectedPaymentTitle: string | null = selectedPaymentMethod
     ? (paymentMethods.find((pm) => pm.id === selectedPaymentMethod)?.title?.toLowerCase() ?? null)
@@ -95,14 +95,14 @@ export default function StatusUpdateScreen() {
   } = useEvidenceFlags(selectedStatus, isPickupType, selectedPaymentTitle, amountPaid);
 
   useEffect(() => {
-    if (isPickupType && selectedStatus === IDeliveryStatus.DELIVERED) {
+    if (isPickupType && isDelivered) {
       setAmountPaid("0");
     }
   }, [isPickupType, selectedStatus]);
 
   useEffect(() => {
     if (
-      selectedStatus === IDeliveryStatus.DELIVERED &&
+      isDelivered &&
       !isPickupType &&
       !amountPaidEdited
     ) {
@@ -207,7 +207,8 @@ export default function StatusUpdateScreen() {
         );
         return;
       }
-      if (!photoUri && !imageUri) {
+
+      if (!isPickupType && isDelivered && (!photoUri && !imageUri)) {
         Alert.alert(
           "Evidencia requerida",
           "Debes tomar una foto o seleccionar una imagen para el estado DELIVERED.",
@@ -215,6 +216,7 @@ export default function StatusUpdateScreen() {
         );
         return;
       }
+
       if (requiresPaymentInfo) {
         if (!amountPaid.trim()) {
           Alert.alert(
@@ -351,7 +353,7 @@ export default function StatusUpdateScreen() {
 
         {requiresNote && <NoteInput value={note} onChange={setNote} styles={styles} />}
 
-        {selectedStatus === IDeliveryStatus.DELIVERED && !isPickupType && (
+        {isDelivered && !isPickupType && (
           <PaymentControls
             selectedPaymentMethod={selectedPaymentMethod}
             paymentMethods={paymentMethods}
