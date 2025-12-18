@@ -280,6 +280,8 @@ export default function StatusUpdateScreen() {
                 : undefined,
           };
           result = await deliveryService.updateDeliveryStatusWithImages(updateData);
+          console.log('updateData:', updateData);
+          
         } else {
           result = await deliveryService.updateDeliveryStatus(
             itemId,
@@ -391,12 +393,8 @@ export default function StatusUpdateScreen() {
                 placeholder="Ingrese el monto pagado..."
                 placeholderTextColor={CustomColors.divider}
                 value={amountPaid}
-                onChangeText={(text) => {
-                  const filtered = text.replace(/[^0-9.]/g, "");
-                  setAmountPaid(filtered);
-                  setAmountPaidEdited(true);
-                }}
-                keyboardType="numeric"
+                editable={false}
+                selectTextOnFocus={false}
               />
             </View>
           </>
