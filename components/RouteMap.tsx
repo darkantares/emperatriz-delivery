@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
   },
   map: {
     width: Dimensions.get('window').width,
-    height: Dimensions.get('window').height * 0.6, // 60% de la altura de la pantalla
+    height: Dimensions.get('window').height - 100,
   },
   loadingContainer: {
     flex: 1,

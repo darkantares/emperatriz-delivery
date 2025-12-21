@@ -56,8 +56,6 @@ export const AppStateScreen: React.FC<AppStateScreenProps> = ({
       longitude: -69.7826263,
     };
 
-    console.log('[AppStateScreen] Consultando ruta desde:', currentLocation, 'hasta:', destination);
-
     await fetchRoute({
       origin: currentLocation,
       destination: destination,
@@ -68,7 +66,7 @@ export const AppStateScreen: React.FC<AppStateScreenProps> = ({
   // Mostrar resultado en consola cuando se obtenga
   useEffect(() => {
     if (routeData) {
-      console.log('[AppStateScreen] Ruta OSRM obtenida:', JSON.stringify(routeData, null, 2));
+      console.log('[AppStateScreen] Ruta OSRM obtenida.');
     }
     if (routeError) {
       console.error('[AppStateScreen] Error en ruta OSRM:', routeError);
@@ -90,7 +88,7 @@ export const AppStateScreen: React.FC<AppStateScreenProps> = ({
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>Error: {error}</Text>
             <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
-              <Text style={styles.retryButtonText}>Reintentard</Text>
+              <Text style={styles.retryButtonText}>Reintentar</Text>
             </TouchableOpacity>
           </View>
         );
