@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, TouchableOpacity, ActivityIndicator, SafeAreaView, StyleSheet } from 'react-native';
 import { Text } from '@/components/Themed';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { CustomColors } from '@/constants/CustomColors';
+import { useOsrmRoute } from '@/hooks/useOsrmRoute';
+import * as Location from 'expo-location';
 
 interface AppStateScreenProps {
   type: 'loading' | 'error' | 'noDeliveries';
@@ -15,6 +17,62 @@ export const AppStateScreen: React.FC<AppStateScreenProps> = ({
   error,
   onRetry
 }) => {
+  const { data: routeData, loading: routeLoading, error: routeError, fetchRoute } = useOsrmRoute();
+  const [currentLocation, setCurrentLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+
+  // Obtener ubicación actual al montar el componente
+  useEffect(() => {
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          console.log('[AppStateScreen] Permiso de ubicación denegado');
+          return;
+        }
+
+        const location = await Location.getCurrentPositionAsync({});
+        setCurrentLocation({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        });
+        console.log('[AppStateScreen] Ubicación actual obtenida:', location.coords);
+      } catch (err) {
+        console.error('[AppStateScreen] Error obteniendo ubicación:', err);
+      }
+    })();
+  }, []);
+
+  const handleTestRoute = async () => {
+    if (!currentLocation) {
+      console.log('[AppStateScreen] No se ha obtenido la ubicación actual aún');
+      return;
+    }
+
+    // Coordenadas de destino desde la URL: https://www.google.com/maps?q=18.4928592,-69.7826263
+    const destination = {
+      latitude: 18.4928592,
+      longitude: -69.7826263,
+    };
+
+    console.log('[AppStateScreen] Consultando ruta desde:', currentLocation, 'hasta:', destination);
+
+    await fetchRoute({
+      origin: currentLocation,
+      destination: destination,
+      steps: true,
+    });
+  };
+
+  // Mostrar resultado en consola cuando se obtenga
+  useEffect(() => {
+    if (routeData) {
+      console.log('[AppStateScreen] Ruta OSRM obtenida:', JSON.stringify(routeData, null, 2));
+    }
+    if (routeError) {
+      console.error('[AppStateScreen] Error en ruta OSRM:', routeError);
+    }
+  }, [routeData, routeError]);
+
   const renderContent = () => {
     switch (type) {
       case 'loading':
@@ -56,12 +114,25 @@ export const AppStateScreen: React.FC<AppStateScreenProps> = ({
         
         {/* Botón manual para refrescar entregas solo en desarrollo */}
         {__DEV__ && (
-          <TouchableOpacity
-            style={styles.manualRefreshButton}
-            onPress={onRetry}
-          >
-            <Text style={styles.manualRefreshButtonText}>Refrescar entregas</Text>
-          </TouchableOpacity>
+          <>
+            <TouchableOpacity
+              style={styles.manualRefreshButton}
+              onPress={onRetry}
+            >
+              <Text style={styles.manualRefreshButtonText}>Refrescar entregas</Text>
+            </TouchableOpacity>
+
+            {/* Botón para probar ruta OSRM */}
+            <TouchableOpacity
+              style={[styles.manualRefreshButton, styles.testRouteButton]}
+              onPress={handleTestRoute}
+              disabled={routeLoading || !currentLocation}
+            >
+              <Text style={styles.manualRefreshButtonText}>
+                {routeLoading ? 'Consultando ruta...' : !currentLocation ? 'Obteniendo ubicación...' : 'Probar Ruta OSRM'}
+              </Text>
+            </TouchableOpacity>
+          </>
         )}
       </SafeAreaView>
     </GestureHandlerRootView>
@@ -134,6 +205,10 @@ const styles = StyleSheet.create({
     right: 20,
     bottom: 70,
     zIndex: 99,
+  },
+  testRouteButton: {
+    bottom: 150, // Posicionar encima del botón de refrescar
+    backgroundColor: CustomColors.secondary,
   },
   manualRefreshButtonText: {
     color: CustomColors.textLight,

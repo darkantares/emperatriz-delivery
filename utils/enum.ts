@@ -8,6 +8,7 @@ export enum BackendUrls {
     DeliveryOriginAddress = 'delivery-origin-address',
     DeliveryStatus = 'delivery-status',
     PaymentMethods = 'payment-methods',
+    OsrmRoute = 'admin/osrm/route',
 }
 
 export enum IPaymentValidMethods {

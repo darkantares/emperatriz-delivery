@@ -49,32 +49,24 @@
         {
           "action": "VIEW",
           "autoVerify": true,
-          "category": ["DEFAULT", "BROWSABLE"],
+          "category": [
+            "DEFAULT",
+            "BROWSABLE"
+          ],
           "data": [
-            {
-              "scheme": "geo"
-            },
-            {
-              "scheme": "https",
-              "host": "*"
-            },
-            {
-              "scheme": "google.navigation"
-            },
-            {
-              "scheme": "google.streetview"
-            },
-            {
-              "scheme": "https",
-              "host": "www.google.com",
-              "pathPrefix": "/maps"
-            },
-            {
-              "scheme": "https",
-              "host": "google.com",
-              "pathPrefix": "/maps"
-            }
+            { "scheme": "geo" },
+            { "scheme": "http", "host": "maps.google.com" },
+            { "scheme": "https", "host": "maps.google.com" },
+            { "scheme": "https", "host": "www.google.com", "pathPrefix": "/maps" },
+            { "scheme": "https", "host": "google.com", "pathPrefix": "/maps" }
           ]
+        },
+        {
+          "action": "SEND",
+          "category": [
+            "DEFAULT"
+          ],
+          "mimeType": "text/plain"
         }
       ]
     },
