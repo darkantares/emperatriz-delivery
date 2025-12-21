@@ -2,10 +2,10 @@
 
 ## Descripción
 El componente `RouteMap` muestra en un mapa interactivo la ruta que debe seguir el mensajero, usando:
-- **OpenStreetMap (OSM)** - Mapas gratuitos y de código abierto
+- **OpenStreetMap con tema oscuro** - Mapas gratuitos con estilo elegante como Uber
 - **OSRM (Open Source Routing Machine)** - Motor de rutas gratuito
 
-**✅ Completamente gratuito - Sin API Keys - Sin facturación externa**
+**✅ Completamente gratuito - Sin API Keys - Sin facturación externa - Estilo oscuro profesional**
 
 ## Dependencias instaladas
 
@@ -266,23 +266,23 @@ https://tile.openstreetmap.org/{z}/{x}/{y}.png
 ```
 
 ### Alternativas (opcionales):
-Si OpenStreetMap está lento, puedes usar otros proveedores gratuitos:
+Si CartoDB Dark no está disponible, puedes usar otros proveedores gratuitos con tema oscuro:
 
 ```typescript
-// Carto Light (más limpio)
-<UrlTile urlTemplate="https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png" />
-
-// Carto Dark (tema oscuro)
+// CartoDB Dark (actual - estilo Uber)
 <UrlTile urlTemplate="https://cartodb-basemaps-a.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png" />
 
-// Humanitarian (mejor para zonas rurales)
-<UrlTile urlTemplate="https://tile-a.openstreetmap.fr/hot/{z}/{x}/{y}.png" />
+// Stamen Toner (blanco y negro elegante)
+<UrlTile urlTemplate="https://stamen-tiles.a.ssl.fastly.net/toner/{z}/{x}/{y}.png" />
+
+// Humanitarian Dark (para zonas rurales)
+<UrlTile urlTemplate="https://tile-{a-c}.openstreetmap.fr/hot/{z}/{x}/{y}.png" />
 ```
 
 Para cambiar el proveedor, edita [components/RouteMap.tsx](components/RouteMap.tsx):
 ```typescript
 <UrlTile
-  urlTemplate="URL_AQUI"
+  urlTemplate="URL_DEL_TEMA_OSCURO_AQUI"
   maximumZ={19}
   flipY={false}
 />
@@ -300,10 +300,10 @@ interface RouteMapProps {
 ```
 
 ### Renderizado:
-- ✅ Mapa con tiles de OpenStreetMap
-- ✅ Polyline de la ruta original (color primario)
-- ✅ Polyline de progreso (verde, estilo dashed)
-- ✅ Polyline de ruta recalculada (morado/violeta)
+- ✅ **Mapa con tema oscuro** (estilo Uber) usando CartoDB Dark
+- ✅ **Polyline de la ruta restante** (azul brillante #00BFFF, grosor 5px)
+- ✅ **Polyline de progreso** (amarillo dorado #FFD700, punteada, grosor 5px)
+- ✅ **Polyline de ruta recalculada** (rosa fuerte #FF1493, grosor 6px)
 - ✅ Marker de origen (verde)
 - ✅ Marker de destino (rojo)
 - ✅ Marker de posición actual del usuario (azul, animado)
@@ -493,8 +493,8 @@ Error: Location permissions denied
 
 Esta implementación te permite:
 
-✅ Mostrar mapas sin costo alguno  
-✅ Dibujar rutas calculadas por OSRM  
+✅ Mostrar mapas con **estilo oscuro profesional** como Uber  
+✅ Dibujar rutas con **colores brillantes y visibles** en tema oscuro  
 ✅ Simular viajes tipo Uber con recalculo dinámico  
 ✅ No depender de servicios de pago  
 ✅ Deployar sin preocupaciones de facturación  
@@ -502,14 +502,14 @@ Esta implementación te permite:
 ✅ Mantener privacidad de usuarios  
 ✅ Testear en desarrollo sin movimiento físico  
 
-**Todo 100% gratuito y open source.**
+**Todo 100% gratuito y open source con estilo moderno.**
 
 ### Funcionalidades implementadas:
-- 🗺️ **Mapa interactivo** con OpenStreetMap
-- 🛣️ **Rutas optimizadas** con OSRM
+- 🗺️ **Mapa interactivo con tema oscuro** (CartoDB Dark)
+- 🛣️ **Rutas optimizadas** con colores brillantes (#00BFFF, #FFD700, #FF1493)
 - 🚗 **Simulación dinámica** de viaje (cada 2s)
 - 📍 **Tracking en tiempo real** con markers animados
 - 🔄 **Recalculo automático** en desvíos >50m
 - 📊 **Estadísticas en vivo** (distancia/duración restantes)
 - 🎮 **Control manual** (Iniciar/Detener viaje)
-- 🎨 **Múltiples polylines** (ruta, progreso, recalculada)
+- 🎨 **Múltiples polylines** con colores diferenciados

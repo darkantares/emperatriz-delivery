@@ -411,9 +411,9 @@ export const RouteMap: React.FC<RouteMapProps> = ({ routeData, loading, error })
         showsUserLocation={false}
         showsMyLocationButton={false}
       >
-        {/* Tiles usando CartoDB como alternativa a OSM */}
+        {/* Tiles usando CartoDB Dark para estilo oscuro como Uber */}
         <UrlTile
-          urlTemplate="https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
+          urlTemplate="https://cartodb-basemaps-a.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png"
           maximumZ={19}
           flipY={false}
         />
@@ -422,8 +422,8 @@ export const RouteMap: React.FC<RouteMapProps> = ({ routeData, loading, error })
         {remainingCoordinates.length > 0 && (
           <Polyline
             coordinates={remainingCoordinates}
-            strokeColor={CustomColors.primary}
-            strokeWidth={4}
+            strokeColor="#00BFFF"
+            strokeWidth={5}
           />
         )}
 
@@ -431,9 +431,18 @@ export const RouteMap: React.FC<RouteMapProps> = ({ routeData, loading, error })
         {isTraveling && currentIndex > 0 && (
           <Polyline
             coordinates={routeCoordinates.slice(0, currentIndex + 1)}
-            strokeColor="#00FF00"
-            strokeWidth={4}
+            strokeColor="#FFD700"
+            strokeWidth={5}
             lineDashPattern={[1]}
+          />
+        )}
+
+        {/* Polyline de ruta recalculada (si existe) */}
+        {recalculatedRoute && recalculatedRoute.routes && recalculatedRoute.routes.length > 0 && (
+          <Polyline
+            coordinates={remainingCoordinates}
+            strokeColor="#FF1493"
+            strokeWidth={6}
           />
         )}
 
@@ -505,21 +514,17 @@ export const RouteMap: React.FC<RouteMapProps> = ({ routeData, loading, error })
                 {Math.round(remainingDuration / 60)} min
               </Text>
             </View>
-            {isTraveling && (
-              <View style={styles.statItem}>
-                <Text style={styles.statLabel}>Estado:</Text>
-                <Text style={[styles.statValue, styles.statusActive]}>
-                  🔵 En movimiento
-                </Text>
-              </View>
-            )}
-            {recalculating && (
-              <View style={styles.statItem}>
-                <Text style={[styles.statLabel, styles.recalculating]}>
-                  🔄 Recalculando ruta...
-                </Text>
-              </View>
-            )}
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>Estado:</Text>
+              <Text style={[styles.statValue, isTraveling ? styles.statusActive : styles.statusInactive]}>
+                {isTraveling ? '🔵 En movimiento' : '⚪ Detenido'}
+              </Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={[styles.statLabel, recalculating ? styles.recalculating : styles.statusNormal]}>
+                {recalculating ? '🔄 Recalculando ruta...' : ' '}
+              </Text>
+            </View>
           </View>
         )}
       </View>
@@ -533,8 +538,8 @@ const styles = StyleSheet.create({
     backgroundColor: CustomColors.backgroundDarkest,
   },
   map: {
+    flex: 1,
     width: Dimensions.get('window').width,
-    height: Dimensions.get('window').height - 200,
   },
   loadingContainer: {
     flex: 1,
@@ -564,7 +569,7 @@ const styles = StyleSheet.create({
     padding: 15,
     borderTopWidth: 1,
     borderTopColor: CustomColors.textLight + '20',
-    minHeight: 150,
+    height: 170,
   },
   controlsContainer: {
     marginBottom: 15,
@@ -606,6 +611,12 @@ const styles = StyleSheet.create({
   },
   statusActive: {
     color: '#4CAF50',
+  },
+  statusInactive: {
+    color: '#888888',
+  },
+  statusNormal: {
+    color: 'transparent',
   },
   recalculating: {
     color: '#FFA500',
