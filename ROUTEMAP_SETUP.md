@@ -134,7 +134,21 @@ En `AppStateScreen.tsx` hay 3 botones de prueba:
    - Ruta dibujada (Polyline)
    - Marker de origen (verde)
    - Marker de destino (rojo)
+   - Marker de posición actual (azul)
    - Info: distancia y duración
+   ↓
+8. Usuario presiona "Iniciar Viaje"
+   ↓
+9. Simulación dinámica tipo Uber:
+   - Posición actual se mueve cada 2 segundos
+   - Polyline verde muestra progreso
+   - Distancia/duración se actualizan en tiempo real
+   - Si hay desviación >50m, recalcula ruta automáticamente
+   - Nuevo polyline morado muestra ruta recalculada
+   ↓
+10. Usuario presiona "Detener Viaje"
+    - Simulación se detiene
+    - Se puede reiniciar cuando se desee
 ```
 
 ### Integración programática:
@@ -287,12 +301,83 @@ interface RouteMapProps {
 
 ### Renderizado:
 - ✅ Mapa con tiles de OpenStreetMap
-- ✅ Polyline de la ruta (color primario)
+- ✅ Polyline de la ruta original (color primario)
+- ✅ Polyline de progreso (verde, estilo dashed)
+- ✅ Polyline de ruta recalculada (morado/violeta)
 - ✅ Marker de origen (verde)
 - ✅ Marker de destino (rojo)
-- ✅ Ubicación actual del usuario (punto azul)
-- ✅ Botón "Mi ubicación"
-- ✅ Panel de información (distancia y duración)
+- ✅ Marker de posición actual del usuario (azul, animado)
+- ✅ Botones de control (Iniciar/Detener viaje)
+- ✅ Panel de información (distancia y duración restantes)
+
+### Simulación de viaje tipo Uber:
+El componente incluye una simulación dinámica que replica el comportamiento de apps como Uber:
+
+#### Características:
+- **Movimiento automático**: La posición del usuario avanza cada 2 segundos siguiendo la ruta
+- **Detección de desviación**: Usa fórmula de Haversine para calcular distancia a la ruta
+- **Recalculo automático**: Si el usuario se desvía >50 metros, solicita nueva ruta desde posición actual
+- **Simulación de desvío**: 20% de probabilidad de desviación aleatoria (±0.001 grados ≈ 110m)
+- **Actualización en tiempo real**: Distancia y duración restantes se actualizan dinámicamente
+- **Visualización de progreso**: Polyline verde muestra el camino recorrido
+- **Control manual**: Botones para iniciar y detener la simulación
+
+#### Cómo funciona:
+```typescript
+// 1. Al iniciar viaje, se configura un intervalo de 2 segundos
+useEffect(() => {
+  if (isTraveling && remainingCoordinates.length > 0) {
+    intervalRef.current = setInterval(() => {
+      // Obtener siguiente punto de la ruta
+      const nextPoint = remainingCoordinates[0];
+      
+      // Simular posible desviación (20% probabilidad)
+      const deviatedPoint = simulateDeviation(nextPoint);
+      setCurrentPosition(deviatedPoint);
+      
+      // Verificar si hay desviación significativa (>50m)
+      if (isSignificantDeviation(deviatedPoint, nextPoint)) {
+        recalculateRoute(deviatedPoint); // Recalcular ruta
+      }
+      
+      // Avanzar al siguiente punto
+      updateProgress();
+    }, 2000); // Cada 2 segundos
+  }
+}, [isTraveling, currentIndex]);
+
+// 2. Detección de desviación con Haversine
+const calculateDistance = (coord1, coord2) => {
+  const R = 6371e3; // Radio de la Tierra en metros
+  const φ1 = coord1.latitude * Math.PI / 180;
+  const φ2 = coord2.latitude * Math.PI / 180;
+  const Δφ = (coord2.latitude - coord1.latitude) * Math.PI / 180;
+  const Δλ = (coord2.longitude - coord1.longitude) * Math.PI / 180;
+
+  const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ/2) * Math.sin(Δλ/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+  return R * c; // Distancia en metros
+};
+
+// 3. Recalculo automático desde posición actual
+const recalculateRoute = async (currentPos) => {
+  await fetchRoute({
+    origin: currentPos,
+    destination: destination,
+    steps: true,
+  });
+  // La nueva ruta se muestra en morado
+};
+```
+
+#### Para desarrollo:
+- **No requiere movimiento físico**: La simulación avanza automáticamente sin mover el dispositivo
+- **Testing rápido**: Observa el comportamiento completo en segundos
+- **Reproducible**: Mismo comportamiento en cada ejecución
+- **Ajustable**: Modifica el intervalo (2000ms) o umbral de desviación (50m) según necesites
 
 ### Estados:
 - **Loading**: Muestra `ActivityIndicator` con mensaje "Cargando ruta..."
@@ -335,12 +420,29 @@ Si tu app crece mucho, considera:
 - ✅ Asegúrate de que `routeData.routes[0].geometry` exista
 - ✅ Verifica coordenadas válidas (lat: -90 a 90, lng: -180 a 180)
 
+### La simulación no inicia
+- ✅ Verifica que haya una ruta cargada primero ("Probar Ruta OSRM")
+- ✅ Presiona "Iniciar Viaje" después de abrir el mapa
+- ✅ Revisa logs: `[RouteMap] Iniciando simulación de viaje`
+- ✅ Asegúrate de que `decodedCoordinates` tenga al menos 2 puntos
+
+### El recalculo no funciona
+- ✅ Verifica umbral de desviación (por defecto 50m)
+- ✅ Aumenta probabilidad de desviación en simulateDeviation() si necesitas testear
+- ✅ Revisa logs: `[RouteMap] Desviación detectada` y `[RouteMap] Recalculando ruta`
+- ✅ Asegúrate de que el backend OSRM responda correctamente
+
 ### Error de decodificación polyline
 ```
 Error: Invalid polyline
 ```
 - ✅ Verifica que OSRM devuelva geometría en formato polyline (no geojson)
 - ✅ En el backend, asegúrate de no usar `geometries=geojson`
+
+### La simulación no se detiene
+- ✅ Presiona "Detener Viaje" para limpiar el intervalo
+- ✅ Cierra y vuelve a abrir el modal si persiste
+- ✅ Verifica que `intervalRef.current` se limpie en `useEffect` cleanup
 
 ### Tiles no cargan
 - ✅ Verifica conexión a internet
@@ -393,9 +495,21 @@ Esta implementación te permite:
 
 ✅ Mostrar mapas sin costo alguno  
 ✅ Dibujar rutas calculadas por OSRM  
+✅ Simular viajes tipo Uber con recalculo dinámico  
 ✅ No depender de servicios de pago  
 ✅ Deployar sin preocupaciones de facturación  
 ✅ Escalar sin límites artificiales  
 ✅ Mantener privacidad de usuarios  
+✅ Testear en desarrollo sin movimiento físico  
 
 **Todo 100% gratuito y open source.**
+
+### Funcionalidades implementadas:
+- 🗺️ **Mapa interactivo** con OpenStreetMap
+- 🛣️ **Rutas optimizadas** con OSRM
+- 🚗 **Simulación dinámica** de viaje (cada 2s)
+- 📍 **Tracking en tiempo real** con markers animados
+- 🔄 **Recalculo automático** en desvíos >50m
+- 📊 **Estadísticas en vivo** (distancia/duración restantes)
+- 🎮 **Control manual** (Iniciar/Detener viaje)
+- 🎨 **Múltiples polylines** (ruta, progreso, recalculada)
