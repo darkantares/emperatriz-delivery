@@ -16,7 +16,7 @@
         "EXPO_PUBLIC_API_URL_DEFAULT": "http://192.168.100.24:5000"
       },
       "socketUrl": {
-        "development": "http://192.168.100.22:5000",
+        "development": "http://192.168.100.24:5000",
         "production": "https://api.tiendasdominicanas.com.do"
       },
       "router": {
@@ -49,17 +49,20 @@
         {
           "action": "VIEW",
           "autoVerify": true,
-          "category": [
-            "DEFAULT",
-            "BROWSABLE"
-          ],
+          "category": ["DEFAULT", "BROWSABLE"],
           "data": [
             {
               "scheme": "geo"
             },
             {
               "scheme": "https",
-              "host": "maps.google.com"
+              "host": "*"
+            },
+            {
+              "scheme": "google.navigation"
+            },
+            {
+              "scheme": "google.streetview"
             },
             {
               "scheme": "https",
@@ -68,7 +71,7 @@
             },
             {
               "scheme": "https",
-              "host": "goo.gl",
+              "host": "google.com",
               "pathPrefix": "/maps"
             }
           ]
