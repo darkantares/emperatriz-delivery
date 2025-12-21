@@ -23,7 +23,7 @@ export const useOsrmRoute = (): UseOsrmRouteReturn => {
     setData(null);
 
     try {
-      console.log("[useOsrmRoute] Fetching route with params:", params);
+    //   console.log("[useOsrmRoute] Fetching route with params:", params);
 
       const result = await osrmService.getRoute(params);
 
@@ -31,7 +31,7 @@ export const useOsrmRoute = (): UseOsrmRouteReturn => {
         throw new Error(result.error || "Error desconocido al obtener la ruta");
       }
 
-      console.log("[useOsrmRoute] Route fetched successfully:", result.data);
+    //   console.log("[useOsrmRoute] Route fetched successfully:", result.data);
       setData(result.data);
     } catch (err: any) {
       const errorMessage =

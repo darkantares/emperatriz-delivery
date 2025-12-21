@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, TouchableOpacity, ActivityIndicator, SafeAreaView, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, ActivityIndicator, SafeAreaView, StyleSheet, Modal, ScrollView } from 'react-native';
 import { Text } from '@/components/Themed';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { CustomColors } from '@/constants/CustomColors';
 import { useOsrmRoute } from '@/hooks/useOsrmRoute';
 import * as Location from 'expo-location';
+import { RouteMap } from '@/components/RouteMap';
 
 interface AppStateScreenProps {
   type: 'loading' | 'error' | 'noDeliveries';
@@ -19,6 +20,7 @@ export const AppStateScreen: React.FC<AppStateScreenProps> = ({
 }) => {
   const { data: routeData, loading: routeLoading, error: routeError, fetchRoute } = useOsrmRoute();
   const [currentLocation, setCurrentLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [showMap, setShowMap] = useState<boolean>(false);
 
   // Obtener ubicación actual al montar el componente
   useEffect(() => {
@@ -132,8 +134,40 @@ export const AppStateScreen: React.FC<AppStateScreenProps> = ({
                 {routeLoading ? 'Consultando ruta...' : !currentLocation ? 'Obteniendo ubicación...' : 'Probar Ruta OSRM'}
               </Text>
             </TouchableOpacity>
+
+            {/* Botón para ver mapa */}
+            {routeData && (
+              <TouchableOpacity
+                style={[styles.manualRefreshButton, styles.mapButton]}
+                onPress={() => setShowMap(true)}
+              >
+                <Text style={styles.manualRefreshButtonText}>Ver Mapa</Text>
+              </TouchableOpacity>
+            )}
           </>
         )}
+
+        {/* Modal con el mapa */}
+        <Modal
+          visible={showMap}
+          animationType="slide"
+          onRequestClose={() => setShowMap(false)}
+        >
+          <SafeAreaView style={{ flex: 1, backgroundColor: CustomColors.backgroundDarkest }}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Ruta en Mapa</Text>
+              <TouchableOpacity onPress={() => setShowMap(false)}>
+                <Text style={styles.closeButton}>Cerrar</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <RouteMap 
+              routeData={routeData} 
+              loading={routeLoading} 
+              error={routeError} 
+            />
+          </SafeAreaView>
+        </Modal>
       </SafeAreaView>
     </GestureHandlerRootView>
   );
@@ -210,9 +244,32 @@ const styles = StyleSheet.create({
     bottom: 150, // Posicionar encima del botón de refrescar
     backgroundColor: CustomColors.secondary,
   },
+  mapButton: {
+    bottom: 230, // Posicionar encima del botón de probar ruta
+    backgroundColor: '#4CAF50',
+  },
   manualRefreshButtonText: {
     color: CustomColors.textLight,
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 15,
+    backgroundColor: CustomColors.backgroundDark,
+    borderBottomWidth: 1,
+    borderBottomColor: CustomColors.textLight + '20',
+  },
+  modalTitle: {
+    color: CustomColors.textLight,
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  closeButton: {
+    color: CustomColors.primary,
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
