@@ -44,7 +44,36 @@
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS"
       ],
-      "package": "com.valentinrod.tiendasdominicanas"
+      "package": "com.valentinrod.tiendasdominicanas",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "category": [
+            "DEFAULT",
+            "BROWSABLE"
+          ],
+          "data": [
+            {
+              "scheme": "geo"
+            },
+            {
+              "scheme": "https",
+              "host": "maps.google.com"
+            },
+            {
+              "scheme": "https",
+              "host": "www.google.com",
+              "pathPrefix": "/maps"
+            },
+            {
+              "scheme": "https",
+              "host": "goo.gl",
+              "pathPrefix": "/maps"
+            }
+          ]
+        }
+      ]
     },
     "web": {
       "bundler": "metro",

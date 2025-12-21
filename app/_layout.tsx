@@ -18,6 +18,7 @@ import LoadingScreen from '@/components/LoadingScreen';
 import { NotificationHandler } from '@/components/NotificationHandler';
 import * as NavigationBar from 'expo-navigation-bar';
 import { checkApiConnectivity } from '@/services/api';
+import { setupDeepLinkListeners } from '@/utils/deepLinkHandler';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -133,6 +134,15 @@ function ProtectedRouteGuard({ children }: { children: React.ReactNode }) {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
+
+  useEffect(() => {
+    // Setup deep link listeners for handling shared locations
+    console.log('[App] Setting up deep link listeners');
+    const cleanup = setupDeepLinkListeners();
+    
+    // Cleanup on unmount
+    return cleanup;
+  }, []);
 
   return (
     <SafeAreaProvider>
