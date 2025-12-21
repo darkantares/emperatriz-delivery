@@ -63,10 +63,11 @@ export const AppStateScreen: React.FC<AppStateScreenProps> = ({
     });
   };
 
-  // Mostrar resultado en consola cuando se obtenga
+  // Mostrar resultado en consola cuando se obtenga y abrir modal automáticamente
   useEffect(() => {
     if (routeData) {
-      console.log('[AppStateScreen] Ruta OSRM obtenida.');
+      console.log('[AppStateScreen] Ruta OSRM obtenida. Abriendo mapa...');
+      setShowMap(true);
     }
     if (routeError) {
       console.error('[AppStateScreen] Error en ruta OSRM:', routeError);
@@ -132,16 +133,6 @@ export const AppStateScreen: React.FC<AppStateScreenProps> = ({
                 {routeLoading ? 'Consultando ruta...' : !currentLocation ? 'Obteniendo ubicación...' : 'Probar Ruta OSRM'}
               </Text>
             </TouchableOpacity>
-
-            {/* Botón para ver mapa */}
-            {routeData && (
-              <TouchableOpacity
-                style={[styles.manualRefreshButton, styles.mapButton]}
-                onPress={() => setShowMap(true)}
-              >
-                <Text style={styles.manualRefreshButtonText}>Ver Mapa</Text>
-              </TouchableOpacity>
-            )}
           </>
         )}
 
@@ -241,10 +232,6 @@ const styles = StyleSheet.create({
   testRouteButton: {
     bottom: 150, // Posicionar encima del botón de refrescar
     backgroundColor: CustomColors.secondary,
-  },
-  mapButton: {
-    bottom: 230, // Posicionar encima del botón de probar ruta
-    backgroundColor: '#4CAF50',
   },
   manualRefreshButtonText: {
     color: CustomColors.textLight,

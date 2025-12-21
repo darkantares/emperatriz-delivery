@@ -462,7 +462,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({ routeData, loading, error })
             title="Tu posición"
             description={isTraveling ? "En movimiento" : ""}
             pinColor="blue"
-          />
+          /> 
         )}
       </MapView>
 
