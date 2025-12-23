@@ -10,6 +10,7 @@ type Props = {
   setShowPicker: (v: boolean) => void;
   onSelect: (id: number) => void;
   styles: any;
+  disabled?: boolean;
 };
 
 export function PaymentControls({
@@ -19,14 +20,16 @@ export function PaymentControls({
   setShowPicker,
   onSelect,
   styles,
+  disabled = false,
 }: Props) {
   return (
     <>
       <View style={styles.paymentContainer}>
         <Text style={styles.paymentLabel}>Método de Pago (Obligatorio):</Text>
         <TouchableOpacity
-          style={styles.paymentMethodButton}
+          style={[styles.paymentMethodButton, disabled && { opacity: 0.5 }]}
           onPress={() => setShowPicker(true)}
+          disabled={disabled}
         >
           <Text style={styles.paymentMethodButtonText}>
             {selectedPaymentMethod

@@ -88,6 +88,7 @@ export default function StatusUpdateScreen() {
   const selectedPaymentTitle: string | null = selectedPaymentMethod
     ? (paymentMethods.find((pm) => pm.id === selectedPaymentMethod)?.title?.toLowerCase() ?? null)
     : null;
+  const isPaymentMethodDisabled = totalAmmount === 0 && isDelivered && !isPickupType;
   const {
     requiresCameraPhoto,
     requiresGalleryImage,
@@ -107,8 +108,14 @@ export default function StatusUpdateScreen() {
       !amountPaidEdited
     ) {
       setAmountPaid(totalAmmount.toFixed(2));
+      if (totalAmmount === 0) {
+        const transferencia = paymentMethods.find(pm => pm.title?.toLowerCase() === 'transferencia');
+        if (transferencia) {
+          setSelectedPaymentMethod(transferencia.id);
+        }
+      }
     }
-  }, [selectedStatus, isPickupType, totalAmmount, amountPaidEdited]);
+  }, [selectedStatus, isPickupType, totalAmmount, amountPaidEdited, paymentMethods]);
 
   const isFormValid =
     selectedStatus &&
@@ -361,6 +368,7 @@ export default function StatusUpdateScreen() {
             setShowPicker={setShowPaymentMethodPicker}
             onSelect={setSelectedPaymentMethod}
             styles={styles}
+            disabled={isPaymentMethodDisabled}
           />
         )}
         
