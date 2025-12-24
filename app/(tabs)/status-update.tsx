@@ -286,7 +286,7 @@ export default function StatusUpdateScreen() {
                 ? parseFloat(amountPaid)
                 : undefined,
             additionalAmount:
-              requiresPaymentInfo && additionalAmount.trim()
+              isPickupType && isDelivered && additionalAmount.trim()
                 ? parseFloat(additionalAmount)
                 : undefined,
             paymentMethodId:
@@ -391,40 +391,32 @@ export default function StatusUpdateScreen() {
           styles={styles}
         />
 
-
-        {isPickupType && (
-          <View style={styles.pickupNoteContainer}>
-            <Text style={styles.pickupNoteText}>
-              Para recogidas (PICKUP) no se requiere evidencia fotográfica.
-            </Text>
+        {selectedStatus === IDeliveryStatus.DELIVERED && !isPickupType && (
+          <View style={styles.paymentContainer}>
+            <Text style={styles.paymentLabel}>Monto Pagado (Obligatorio):</Text>
+            <TextInput
+              style={styles.paymentInput}
+              placeholder="Ingrese el monto pagado..."
+              placeholderTextColor={CustomColors.divider}
+              value={amountPaid}
+              editable={false}
+              selectTextOnFocus={false}
+            />
           </View>
         )}
 
-        {selectedStatus === IDeliveryStatus.DELIVERED && !isPickupType && (
-          <>
-            <View style={styles.paymentContainer}>
-              <Text style={styles.paymentLabel}>Monto Pagado (Obligatorio):</Text>
-              <TextInput
-                style={styles.paymentInput}
-                placeholder="Ingrese el monto pagado..."
-                placeholderTextColor={CustomColors.divider}
-                value={amountPaid}
-                editable={false}
-                selectTextOnFocus={false}
-              />
-            </View>
-            <View style={styles.paymentContainer}>
-              <Text style={styles.paymentLabel}>Monto Adicional (Opcional):</Text>
-              <TextInput
-                style={styles.paymentInput}
-                placeholder="Ingrese el monto adicional..."
-                placeholderTextColor={CustomColors.divider}
-                value={additionalAmount}
-                onChangeText={setAdditionalAmount}
-                keyboardType="numeric"
-              />
-            </View>
-          </>
+        {selectedStatus === IDeliveryStatus.DELIVERED && isPickupType && (
+          <View style={styles.paymentContainer}>
+            <Text style={styles.paymentLabel}>Monto Adicional (Opcional):</Text>
+            <TextInput
+              style={styles.paymentInput}
+              placeholder="Ingrese el monto adicional..."
+              placeholderTextColor={CustomColors.divider}
+              value={additionalAmount}
+              onChangeText={setAdditionalAmount}
+              keyboardType="numeric"
+            />
+          </View>
         )}
 
         <View style={styles.buttonContainer}>
