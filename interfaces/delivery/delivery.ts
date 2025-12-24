@@ -14,6 +14,7 @@ export interface IUpdateDeliveryStatusData {
   note?: string;
   imageUris?: string[];
   amountPaid?: number;
+  additionalAmount?: number;
   paymentMethodId?: number;
 }
 

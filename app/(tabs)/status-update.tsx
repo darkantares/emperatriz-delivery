@@ -55,6 +55,7 @@ export default function StatusUpdateScreen() {
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [amountPaid, setAmountPaid] = useState<string>("");
   const [amountPaidEdited, setAmountPaidEdited] = useState<boolean>(false);
+  const [additionalAmount, setAdditionalAmount] = useState<string>("");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
     number | null
   >(null);
@@ -131,6 +132,7 @@ export default function StatusUpdateScreen() {
     setPhotoUri(null);
     setImageUri(null);
     setAmountPaid("");
+    setAdditionalAmount("");
     setSelectedPaymentMethod(null);
     setAmountPaidEdited(false);
   }, [currentStatus]);
@@ -283,6 +285,10 @@ export default function StatusUpdateScreen() {
               requiresPaymentInfo && amountPaid.trim()
                 ? parseFloat(amountPaid)
                 : undefined,
+            additionalAmount:
+              requiresPaymentInfo && additionalAmount.trim()
+                ? parseFloat(additionalAmount)
+                : undefined,
             paymentMethodId:
               requiresPaymentInfo && selectedPaymentMethod
                 ? selectedPaymentMethod
@@ -405,6 +411,17 @@ export default function StatusUpdateScreen() {
                 value={amountPaid}
                 editable={false}
                 selectTextOnFocus={false}
+              />
+            </View>
+            <View style={styles.paymentContainer}>
+              <Text style={styles.paymentLabel}>Monto Adicional (Opcional):</Text>
+              <TextInput
+                style={styles.paymentInput}
+                placeholder="Ingrese el monto adicional..."
+                placeholderTextColor={CustomColors.divider}
+                value={additionalAmount}
+                onChangeText={setAdditionalAmount}
+                keyboardType="numeric"
               />
             </View>
           </>
