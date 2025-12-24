@@ -307,6 +307,9 @@ export default function StatusUpdateScreen() {
               : undefined,
             requiresPaymentInfo && selectedPaymentMethod
               ? selectedPaymentMethod
+              : undefined,
+            isPickupType && isDelivered && additionalAmount.trim()
+              ? parseFloat(additionalAmount)
               : undefined
           );
         }

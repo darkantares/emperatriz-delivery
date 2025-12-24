@@ -271,9 +271,10 @@ export const deliveryService = {
      * @param note Nota opcional para ciertos estados
      * @param amountPaid Monto pagado (opcional)
      * @param paymentMethodId ID del método de pago (opcional)
+     * @param additionalAmount Monto adicional (opcional)
      * @returns Entrega actualizada
      */
-    updateDeliveryStatus: async (id: string, status: number, note?: string, amountPaid?: number, paymentMethodId?: number): Promise<{
+    updateDeliveryStatus: async (id: string, status: number, note?: string, amountPaid?: number, paymentMethodId?: number, additionalAmount?: number): Promise<{
         success: boolean;
         data?: IDeliveryAssignmentEntity;
         error?: string;
@@ -293,6 +294,7 @@ export const deliveryService = {
                 note?: string; 
                 amountPaid?: number; 
                 paymentMethodId?: number; 
+                additionalAmount?: number;
             } = { status };
             
             if (note) {
@@ -303,6 +305,9 @@ export const deliveryService = {
             }
             if (paymentMethodId !== undefined) {
                 payload.paymentMethodId = paymentMethodId;
+            }
+            if (additionalAmount !== undefined) {
+                payload.additionalAmount = additionalAmount;
             }
             
             const response = await api.patch<ResponseDataAPI<IDeliveryAssignmentEntity>>(`${BackendUrls.DeliveryAssignments}/${id}/status`, payload);
@@ -351,7 +356,7 @@ export const deliveryService = {
         error?: string;
         details?: any;
     }> => {
-        const { id, status, note, imageUris, amountPaid, paymentMethodId } = updateData;
+        const { id, status, note, imageUris, amountPaid, paymentMethodId, additionalAmount } = updateData;
         
         // Verificar token antes de hacer la solicitud
         const token = await AsyncStorage.getItem('auth_token');
@@ -383,6 +388,10 @@ export const deliveryService = {
             
             if (paymentMethodId !== undefined) {
                 formData.append('paymentMethodId', paymentMethodId.toString());
+            }
+
+            if (additionalAmount !== undefined) {
+                formData.append('additionalAmount', additionalAmount.toString());
             }
 
             // Agregar todas las imágenes
