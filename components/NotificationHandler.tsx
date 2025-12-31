@@ -100,10 +100,10 @@ export const NotificationHandler: React.FC = () => {
           type: notification.type,
           text1: notification.title,
           text2: notification.message,
-          position: 'top',
+          position: 'bottom',
           visibilityTime: 3000,
           autoHide: true,
-          topOffset: 50,
+          bottomOffset: 60,
           props: {
             // Pasamos un ID único como prop
             toastId: uniqueId
