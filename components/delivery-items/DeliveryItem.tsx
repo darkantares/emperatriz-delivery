@@ -88,7 +88,7 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({
 
           {/* Columna 2: Tipo/Status */}
           <View style={{ alignItems: 'flex-end', marginRight: 10 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <View style={{ flexDirection: "column", alignItems: "center", gap: 6 }}>
               <View
                 style={[
                   styles.typeIndicator,
@@ -101,7 +101,6 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({
                   {item.type === AssignmentType.PICKUP ? "Recogida" : "Entrega"}
                 </Text>
               </View>
-              {/* Tag GRUPO si pertenece a un grupo */}
               {item.isGroup && (
                 <View style={[styles.typeIndicator, styles.groupIndicator]}>
                   <Text style={styles.typeText}>GRUPO</Text>
