@@ -85,7 +85,7 @@ export function extractCoordinatesFromUrl(url: string): Coordinates | null {
  */
 export async function sendCoordinatesToBackend(coordinates: Coordinates): Promise<any> {
   try {
-    const apiUrl = Constants.expoConfig?.extra?.apiUrl?.EXPO_PUBLIC_API_URL_DEFAULT || 'http://192.168.100.24:5000';
+    const apiUrl = Constants.expoConfig?.extra?.apiUrl?.EXPO_PUBLIC_API_URL_DEFAULT || 'http://192.168.100.29:5000';
     
     // Formato: origin_lng,origin_lat;dest_lng,dest_lat
     // Por ahora usamos las mismas coordenadas como origen y destino (puedes ajustar según necesites)
