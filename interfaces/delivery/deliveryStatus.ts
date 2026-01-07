@@ -1,14 +1,14 @@
 import { IDeliveryStatusEntity } from './delivery';
 
 export enum IDeliveryStatus {
-    PENDING = 'Pendiente',
-    ASSIGNED = 'Asignado',
-    IN_PROGRESS = 'En Progreso',
-    DELIVERED = 'Entregado',
-    CANCELLED = 'Cancelado',
-    RETURNED = 'Devuelto',
-    ON_HOLD = 'En Espera',
-    SCHEDULED = 'Programado',
+    PENDING = 'pendiente',
+    ASSIGNED = 'asignado',
+    IN_PROGRESS = 'en progreso',
+    DELIVERED = 'entregado',
+    CANCELLED = 'cancelado',
+    RETURNED = 'devuelto',
+    ON_HOLD = 'en espera',
+    SCHEDULED = 'programado',
 }
 
 // Variable global para almacenar los estados obtenidos del backend
