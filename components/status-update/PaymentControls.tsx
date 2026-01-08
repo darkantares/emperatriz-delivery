@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, TouchableOpacity, Modal } from "react-native";
 import { CustomColors } from "@/constants/CustomColors";
 import { IPaymentMethodEntity } from "@/interfaces/payment/payment";
+import { Capitalize } from "@/utils/capitalize";
 
 type Props = {
   selectedPaymentMethod: number | null;
@@ -33,8 +34,8 @@ export function PaymentControls({
         >
           <Text style={styles.paymentMethodButtonText}>
             {selectedPaymentMethod
-              ? paymentMethods.find((pm) => pm.id === selectedPaymentMethod)?.title
-              : "Seleccionar método de pago..."}
+              ? Capitalize(paymentMethods.find((pm) => pm.id === selectedPaymentMethod)?.title || "")
+              : Capitalize("Seleccionar método de pago...")}
           </Text>
           <Text style={styles.dropdownArrow}>▼</Text>
         </TouchableOpacity>
@@ -93,7 +94,7 @@ export function PaymentControls({
                       },
                     ]}
                   >
-                    {item.title}
+                    {Capitalize(item.title)}
                   </Text>
                 </TouchableOpacity>
               ))}

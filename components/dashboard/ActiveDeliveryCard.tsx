@@ -56,13 +56,9 @@ export const ActiveDeliveryCard = ({
       : "";
 
   return (
-    <TouchableOpacity
-      style={styles.container}
-      onPress={onViewTask}
-      activeOpacity={0.85}
-    >     
+    <View style={styles.container}>
 
-      <View style={styles.cardContainer} pointerEvents="none">
+      <View style={styles.cardContainer}>
         <View style={{ flexDirection: "row", alignItems: "stretch" }}>
           {/* Columna 1: Información Principal (Cliente, Dirección, Dinero) */}
           <View
@@ -234,7 +230,7 @@ export const ActiveDeliveryCard = ({
           </View>
         </View>
       </View>
-    </TouchableOpacity>
+    </View>
   );
 };
 
