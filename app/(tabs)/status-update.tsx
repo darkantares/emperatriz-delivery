@@ -32,6 +32,7 @@ import { StatusList } from "@/components/status-update/StatusList";
 import { useEvidenceFlags } from "@/hooks/useEvidenceFlags";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 import { useStatusData } from "@/hooks/useStatusData";
+import { Capitalize } from "@/utils/capitalize";
 
 export default function StatusUpdateScreen() {
   const params = useLocalSearchParams<{
@@ -354,7 +355,7 @@ export default function StatusUpdateScreen() {
             <Text
               style={[styles.statusValue, { color: getStatusColor(currentStatus) }]}
             >
-              {currentStatus}
+              {Capitalize(currentStatus)}
             </Text>
           </Text>
         </View>

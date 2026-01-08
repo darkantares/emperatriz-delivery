@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { CustomColors } from "@/constants/CustomColors";
 import { getStatusColor } from "@/interfaces/delivery/deliveryStatus";
+import { Capitalize } from "@/utils/capitalize";
 
 type Status = { id: number; title: string };
 
@@ -73,7 +74,7 @@ export function StatusList({
                 { color: isSelected ? statusColor : CustomColors.textLight },
               ]}
             >
-              {item.title}
+              {Capitalize(item.title)}
             </Text>
             <View style={[styles.statusIndicator, { backgroundColor: statusColor }]} />
           </TouchableOpacity>
