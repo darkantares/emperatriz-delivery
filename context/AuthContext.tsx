@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 import { IUserEntity, IRolesAllowedEntity } from '@/interfaces/auth';
 import { authService } from '@/services/authService';
+import { socketService } from '@/services/websocketService';
+import { courierLocationTracking } from '@/services/courierLocationService';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -58,6 +60,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     checkAuth();
   }, []);
+
+  // Gestionar tracking de ubicación basado en autenticación
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      console.log('[AuthContext] Usuario autenticado, configurando location tracking');
+      
+      // Configurar el servicio con el userId
+      courierLocationTracking.setUserId(user.id);
+      
+      // Escuchar cambios en la conexión del WebSocket
+      const handleConnectionChange = async (connected: boolean) => {
+        if (connected) {
+          console.log('[AuthContext] WebSocket conectado, iniciando location tracking');
+          
+          // Esperar un poco para asegurar que la conexión está estable
+          setTimeout(async () => {
+            const started = await courierLocationTracking.startTracking();
+            if (started) {
+              console.log('[AuthContext] Location tracking iniciado correctamente');
+            } else {
+              console.warn('[AuthContext] No se pudo iniciar location tracking');
+            }
+          }, 1000);
+        } else {
+          console.log('[AuthContext] WebSocket desconectado, deteniendo location tracking');
+          await courierLocationTracking.stopTracking();
+        }
+      };
+
+      socketService.onConnectionChange(handleConnectionChange);
+
+      // Si ya está conectado, iniciar tracking
+      if (socketService.isConnected()) {
+        handleConnectionChange(true);
+      }
+
+      // Cleanup
+      return () => {
+        socketService.offConnectionChange(handleConnectionChange);
+        courierLocationTracking.stopTracking();
+      };
+    } else {
+      // Si no está autenticado, detener tracking
+      courierLocationTracking.stopTracking();
+    }
+  }, [isAuthenticated, user]);
 
   // Verifica si el usuario tiene un rol específico
   const hasPermission = (roleTitle: string): boolean => {
