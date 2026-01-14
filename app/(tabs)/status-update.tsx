@@ -10,7 +10,7 @@ import {
   ScrollView,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
-import { AppHeader } from "@/components/header/AppHeader";
+import { AppHeader } from "@/components/AppHeader";
 import * as ImagePicker from "expo-image-picker";
 import {
   getStatusColor,

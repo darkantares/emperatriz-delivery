@@ -57,6 +57,7 @@ export interface IDeliveryAssignmentEntity extends IGlobalEntity {
   observations?: string;
   provincia: IProvincia;
   municipio: IMunicipio;
+  additionalDataNominatim: AdditionalDataNominatimEntity;
   deliveryStatus: IDeliveryStatusEntity;
   paymentMethod?: IPaymentMethodEntity;
   assignedAt: Date;
@@ -69,6 +70,37 @@ export interface IDeliveryAssignmentEntity extends IGlobalEntity {
   enterprise:IEnterpriseEntity;
 }
 
+export interface AdditionalDataNominatimEntity {
+  id: number;
+  place_id: number
+  licence: string
+  osm_type: string
+  osm_id: number
+  lat: string
+  lon: string
+  class: string
+  type: string
+  place_rank: number
+  importance: number
+  addresstype: string
+  name: string
+  display_name: string
+  boundingbox: string[]
+  svg: string
+  address: Address
+}
+
+export interface Address {
+  id: number;
+  neighbourhood: string;
+  city: string;
+  county: string;
+  state: string;
+  ISO3166_2_lvl4: string;
+  postcode: string;
+  country: string;
+  country_code: string;
+}
 export interface IDeliveryInfoDto {
   phone: string;
   contact: string;

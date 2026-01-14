@@ -2,6 +2,8 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  TouchableOpacity,
+  Text,
 } from "react-native";
 import { View } from "@/components/Themed";
 import { socketService, SocketEventType } from "@/services/websocketService";
@@ -9,7 +11,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useState, useEffect, useRef } from "react";
 import { CustomColors } from "@/constants/CustomColors";
 import { router } from "expo-router";
-import { AppHeader } from "@/components/header/AppHeader";
+import { AppHeader } from "@/components/AppHeader";
 import { AppStateScreen } from "@/components/states/AppStateScreen";
 import { useActiveDelivery } from "@/context/ActiveDeliveryContext";
 import { useDelivery } from "@/context/DeliveryContext";
@@ -18,7 +20,7 @@ import {
   DeliveryGroupAdapter,
   groupDeliveriesByShipment,
 } from "@/interfaces/delivery/deliveryAdapters";
-import { ActiveDeliveryCard } from "@/components/dashboard/ActiveDeliveryCard";
+import { ActiveDeliveryCard } from "@/components/ActiveDeliveryCard";
 import { DeliveryItemList } from "@/components/delivery-items/DeliveryItemList";
 import { IDeliveryStatus } from "@/interfaces/delivery/deliveryStatus";
 
@@ -263,6 +265,19 @@ export default function TabOneScreen() {
             contentContainerStyle={{ paddingBottom: 180 }}
             onProgress={!inProgressDelivery ? handlePressItem : undefined}
           />
+
+          {/* Botón "Iniciar Rutas" - solo visible si hay deliveries disponibles */}
+          {deliveries.length > 0 && (
+            <TouchableOpacity
+              style={styles.startRoutesButton}
+              onPress={() => {
+                // Por ahora no tiene acción
+                console.log('Botón "Iniciar Rutas" presionado');
+              }}
+            >
+              <Text style={styles.startRoutesButtonText}>Iniciar Rutas</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         
@@ -388,6 +403,29 @@ const styles = StyleSheet.create({
     color: CustomColors.textLight,
     paddingHorizontal: 20,
     fontWeight: "bold",
+    fontSize: 16,
+  },
+  startRoutesButton: {
+    backgroundColor: CustomColors.primary,
+    paddingVertical: 14,
+    paddingHorizontal: 30,
+    borderRadius: 12,
+    marginVertical: 20,
+    marginHorizontal: 20,
+    alignItems: 'center',
+    elevation: 5,
+    shadowColor: CustomColors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 3,
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+  },
+  startRoutesButtonText: {
+    color: CustomColors.textLight,
+    fontWeight: 'bold',
     fontSize: 16,
   },
 });

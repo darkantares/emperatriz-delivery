@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, TouchableOpacity, ActivityIndicator, SafeAreaView, StyleSheet, Modal, ScrollView } from 'react-native';
+import { View, TouchableOpacity, ActivityIndicator, StyleSheet, Modal, ScrollView } from 'react-native';
 import { Text } from '@/components/Themed';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { CustomColors } from '@/constants/CustomColors';
 import { useOsrmRoute } from '@/hooks/useOsrmRoute';
 import * as Location from 'expo-location';
@@ -18,7 +19,7 @@ export const AppStateScreen: React.FC<AppStateScreenProps> = ({
   error,
   onRetry
 }) => {
-  const { data: routeData, loading: routeLoading, error: routeError, fetchRoute } = useOsrmRoute();
+  const { data: routeData, loading: routeLoading, error: routeError } = useOsrmRoute();
   const [currentLocation, setCurrentLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [showMap, setShowMap] = useState<boolean>(false);
 
@@ -51,16 +52,16 @@ export const AppStateScreen: React.FC<AppStateScreenProps> = ({
     }
 
     // Coordenadas de destino desde la URL: https://www.google.com/maps?q=18.4928592,-69.7826263
-    const destination = {
-      latitude: 18.4928592,
-      longitude: -69.7826263,
-    };
+    // const destination = {
+    //   latitude: 18.4928592,
+    //   longitude: -69.7826263,
+    // };
 
-    await fetchRoute({
-      origin: currentLocation,
-      destination: destination,
-      steps: true,
-    });
+    // await fetchRoute({
+    //   origin: currentLocation,
+    //   destination: destination,
+    //   steps: true,
+    // });
   };
 
   // Mostrar resultado en consola cuando se obtenga y abrir modal automáticamente
