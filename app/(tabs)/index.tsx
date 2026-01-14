@@ -4,6 +4,7 @@ import {
   Alert,
   TouchableOpacity,
   Text,
+  Modal,
 } from "react-native";
 import { View } from "@/components/Themed";
 import { socketService, SocketEventType } from "@/services/websocketService";
@@ -24,12 +25,15 @@ import {
 import { ActiveDeliveryCard } from "@/components/ActiveDeliveryCard";
 import { DeliveryItemList } from "@/components/delivery-items/DeliveryItemList";
 import { IDeliveryStatus } from "@/interfaces/delivery/deliveryStatus";
+import { TripMap } from "@/components/TripMap";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function TabOneScreen() {  
   const { canProcessNewDelivery } = useActiveDelivery();  
   const {
     deliveries,
     inProgressDelivery,
+    allDeliveries,
     loading,
     refreshing,
     error,
@@ -41,7 +45,8 @@ export default function TabOneScreen() {
     handleDriversGroupAssigned,
   } = useDelivery();
 
-  const { data: tripData, loading: tripLoading, error: tripError, fetchTrip } = useOsrmTrip();  
+  const { data: tripData, loading: tripLoading, error: tripError, fetchTrip } = useOsrmTrip();
+  const [showTripMap, setShowTripMap] = useState<boolean>(false);
 
   // Conectar socket y listeners
   useEffect(() => {
@@ -139,8 +144,9 @@ export default function TabOneScreen() {
     try {
       console.log('[TabOneScreen] Iniciando cálculo de rutas...');
       
+      // const deliveriesToProcess = [deliveries];
       // Filtrar solo deliveries pendientes con coordenadas válidas
-      const pendingDeliveries = deliveries.filter(delivery => {
+      const pendingDeliveries = allDeliveries.filter(delivery => {
         const isPending = delivery.deliveryStatus.title !== IDeliveryStatus.DELIVERED &&
                          delivery.deliveryStatus.title !== IDeliveryStatus.CANCELLED &&
                          delivery.deliveryStatus.title !== IDeliveryStatus.RETURNED;
@@ -188,7 +194,7 @@ export default function TabOneScreen() {
     }
   };
 
-  // Efecto para imprimir la respuesta del trip en consola
+  // Efecto para imprimir la respuesta del trip en consola y abrir el mapa
   useEffect(() => {
     if (tripData) {
       console.log('========================================');
@@ -198,6 +204,8 @@ export default function TabOneScreen() {
       console.log('Número de trips:', tripData.trips?.length);
       console.log('Datos completos del trip:', tripData);
       console.log('========================================');
+      // Abrir el modal con el mapa
+      setShowTripMap(true);
     }
     if (tripError) {
       console.error('[TabOneScreen] Error en trip OSRM:', tripError);
@@ -353,7 +361,27 @@ export default function TabOneScreen() {
           )}
         </View>
 
-        
+        {/* Modal con el mapa de ruta optimizada (Trip) */}
+        <Modal
+          visible={showTripMap}
+          animationType="slide"
+          onRequestClose={() => setShowTripMap(false)}
+        >
+          <SafeAreaView style={{ flex: 1, backgroundColor: CustomColors.backgroundDarkest }}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Ruta Optimizada</Text>
+              <TouchableOpacity onPress={() => setShowTripMap(false)}>
+                <Text style={styles.closeButton}>Cerrar</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <TripMap 
+              tripData={tripData} 
+              loading={tripLoading} 
+              error={tripError} 
+            />
+          </SafeAreaView>
+        </Modal>
       </View>
     </GestureHandlerRootView>
   );
@@ -504,5 +532,24 @@ const styles = StyleSheet.create({
   startRoutesButtonDisabled: {
     backgroundColor: CustomColors.divider,
     opacity: 0.6,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 15,
+    backgroundColor: CustomColors.backgroundDark,
+    borderBottomWidth: 1,
+    borderBottomColor: CustomColors.textLight + '20',
+  },
+  modalTitle: {
+    color: CustomColors.textLight,
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  closeButton: {
+    color: CustomColors.primary,
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });

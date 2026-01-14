@@ -8,6 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 
 interface DeliveryContextType {
     deliveries: DeliveryItemAdapter[];
+    allDeliveries: DeliveryItemAdapter[];
     inProgressDelivery: DeliveryItemAdapter | null;
     loading: boolean;
     refreshing: boolean;
@@ -39,6 +40,7 @@ export const DeliveryProvider: React.FC<DeliveryProviderProps> = ({ children }) 
     const { setActiveDelivery } = useActiveDelivery();
     const { isAuthenticated, isLoading, logout } = useAuth();
     const [deliveries, setDeliveries] = useState<DeliveryItemAdapter[]>([]);
+    const [allDeliveries, setAllDeliveries] = useState<DeliveryItemAdapter[]>([]);
     const [inProgressDelivery, setInProgressDelivery] = useState<DeliveryItemAdapter | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -68,6 +70,9 @@ export const DeliveryProvider: React.FC<DeliveryProviderProps> = ({ children }) 
 
             if (response.success && response.data) {
                 const adaptedDeliveries = adaptDeliveriesToAdapter(response.data);
+                
+                // Guardar todos los deliveries tal como vienen del backend
+                setAllDeliveries(adaptedDeliveries);
                                 
                 // Verificar si hay algún envío en progreso (IN_PROGRESS)
                 const inProgressIndex = adaptedDeliveries.findIndex(delivery =>
@@ -216,6 +221,7 @@ export const DeliveryProvider: React.FC<DeliveryProviderProps> = ({ children }) 
 
     const value: DeliveryContextType = {
         deliveries,
+        allDeliveries,
         inProgressDelivery,
         loading,
         refreshing,
