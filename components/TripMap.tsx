@@ -24,15 +24,64 @@ interface WaypointWithDelivery {
   index: number;
 }
 
+/**
+ * Representa un grupo de waypoints que comparten la misma coordenada exacta
+ */
+interface WaypointGroup {
+  coordinate: Coordinate;
+  deliveries: DeliveryItemAdapter[];
+  count: number;
+  isFirstInRoute: boolean;
+  isLastInRoute: boolean;
+}
+
 export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error, deliveries }) => {
   const [waypointsWithDeliveries, setWaypointsWithDeliveries] = useState<WaypointWithDelivery[]>([]);
+  const [groupedWaypoints, setGroupedWaypoints] = useState<WaypointGroup[]>([]);
   const [routeCoordinates, setRouteCoordinates] = useState<Coordinate[]>([]);
   const [totalDistance, setTotalDistance] = useState<number>(0);
   const [totalDuration, setTotalDuration] = useState<number>(0);
-  const [selectedDelivery, setSelectedDelivery] = useState<DeliveryItemAdapter | null>(null);
+  const [selectedDeliveries, setSelectedDeliveries] = useState<DeliveryItemAdapter[]>([]);
   const [showDeliveryModal, setShowDeliveryModal] = useState<boolean>(false);
   
   const mapRef = useRef<MapView>(null);
+
+  /**
+   * Agrupa waypoints que comparten exactamente la misma latitud y longitud
+   * @param waypoints Array de waypoints con sus deliveries asociados
+   * @returns Array de grupos donde cada grupo contiene todos los deliveries del mismo punto
+   */
+  const groupWaypointsByCoordinates = (waypoints: WaypointWithDelivery[]): WaypointGroup[] => {
+    // Mapa para agrupar por clave "lat,lng"
+    const groupsMap = new Map<string, WaypointGroup>();
+
+    waypoints.forEach((waypoint, waypointIndex) => {
+      // Crear clave única usando lat y lng con precisión completa
+      const key = `${waypoint.coordinate.latitude},${waypoint.coordinate.longitude}`;
+
+      if (groupsMap.has(key)) {
+        // Ya existe un grupo para esta coordenada, agregar delivery
+        const existingGroup = groupsMap.get(key)!;
+        existingGroup.deliveries.push(waypoint.delivery);
+        existingGroup.count = existingGroup.deliveries.length;
+      } else {
+        // Crear nuevo grupo para esta coordenada
+        groupsMap.set(key, {
+          coordinate: waypoint.coordinate,
+          deliveries: [waypoint.delivery],
+          count: 1,
+          isFirstInRoute: waypointIndex === 0,
+          isLastInRoute: waypointIndex === waypoints.length - 1,
+        });
+      }
+    });
+
+    // Convertir el mapa a array
+    const groups = Array.from(groupsMap.values());
+    console.log(`[TripMap] Agrupación completa: ${waypoints.length} waypoints -> ${groups.length} grupos`);
+    
+    return groups;
+  };
 
   useEffect(() => {
     if (!tripData || !tripData.trips || tripData.trips.length === 0) {
@@ -64,6 +113,11 @@ export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error, deli
 
         setWaypointsWithDeliveries(waypointsData);
         console.log('[TripMap] Waypoints con deliveries:', waypointsData.length);
+
+        // Agrupar waypoints por coordenadas exactas
+        const grouped = groupWaypointsByCoordinates(waypointsData);
+        setGroupedWaypoints(grouped);
+        console.log('[TripMap] Grupos creados:', grouped.length);
       }
 
       // Extraer coordenadas de la geometría (GeoJSON format)
@@ -115,7 +169,7 @@ export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error, deli
   }
 
   // Renderizar mensaje si no hay datos
-  if (!tripData || waypointsWithDeliveries.length === 0) {
+  if (!tripData || groupedWaypoints.length === 0) {
     return (
       <View style={styles.centerContainer}>
         <Text style={styles.noDataText}>No hay datos de ruta optimizada para mostrar</Text>
@@ -123,8 +177,12 @@ export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error, deli
     );
   }
 
-  const handleMarkerPress = (waypointData: WaypointWithDelivery) => {
-    setSelectedDelivery(waypointData.delivery);
+  /**
+   * Maneja el evento de presión sobre un marker del mapa
+   * @param group Grupo de waypoints asociado al marker presionado
+   */
+  const handleMarkerPress = (group: WaypointGroup) => {
+    setSelectedDeliveries(group.deliveries);
     setShowDeliveryModal(true);
   };
 
@@ -157,22 +215,34 @@ export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error, deli
           />
         )}
 
-        {/* Markers para cada waypoint con delivery info */}
-        {waypointsWithDeliveries.map((waypointData, index) => (
-          <Marker
-            key={`waypoint-${index}`}
-            coordinate={waypointData.coordinate}
-            pinColor={index === 0 ? 'green' : index === waypointsWithDeliveries.length - 1 ? 'red' : 'orange'}
-            onPress={() => handleMarkerPress(waypointData)}
-          />
-        ))}
+        {/* Markers agrupados por coordenadas con contador visual */}
+        {groupedWaypoints.map((group, index) => {
+          // Determinar color del marker según posición en la ruta
+          const pinColor = group.isFirstInRoute ? 'green' : group.isLastInRoute ? 'red' : 'orange';
+          
+          return (
+            <Marker
+              key={`group-${group.coordinate.latitude}-${group.coordinate.longitude}`}
+              coordinate={group.coordinate}
+              pinColor={pinColor}
+              onPress={() => handleMarkerPress(group)}
+            >
+              {/* Badge con contador si hay múltiples deliveries */}
+              {group.count > 1 && (
+                <View style={styles.markerBadge}>
+                  <Text style={styles.markerBadgeText}>{group.count}</Text>
+                </View>
+              )}
+            </Marker>
+          );
+        })}
       </MapView>
 
       {/* Panel de información */}
       <View style={styles.infoPanel}>
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Puntos de entrega:</Text>
-          <Text style={styles.infoValue}>{waypointsWithDeliveries.length}</Text>
+          <Text style={styles.infoValue}>{groupedWaypoints.length}</Text>
         </View>
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Distancia total:</Text>
@@ -184,7 +254,7 @@ export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error, deli
         </View>
       </View>
 
-      {/* Modal con información del delivery */}
+      {/* Modal con información del/los delivery(s) */}
       <Modal
         visible={showDeliveryModal}
         transparent={true}
@@ -197,60 +267,76 @@ export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error, deli
           onPress={() => setShowDeliveryModal(false)}
         >
           <View style={styles.deliveryModal}>
-            {selectedDelivery && (
-              <ScrollView>
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Información de Entrega</Text>
-                  <TouchableOpacity onPress={() => setShowDeliveryModal(false)}>
-                    <Text style={styles.closeButtonText}>✕</Text>
-                  </TouchableOpacity>
-                </View>
+            <ScrollView>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>
+                  {selectedDeliveries.length > 1 
+                    ? `Información de Entregas (${selectedDeliveries.length})`
+                    : 'Información de Entrega'}
+                </Text>
+                <TouchableOpacity onPress={() => setShowDeliveryModal(false)}>
+                  <Text style={styles.closeButtonText}>✕</Text>
+                </TouchableOpacity>
+              </View>
 
-                <View style={styles.modalContent}>
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoItemLabel}>Cliente:</Text>
-                    <Text style={styles.infoItemValue}>{selectedDelivery.client}</Text>
-                  </View>
-
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoItemLabel}>Teléfono:</Text>
-                    <Text style={styles.infoItemValue}>{selectedDelivery.phone}</Text>
-                  </View>
-
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoItemLabel}>Dirección:</Text>
-                    <Text style={styles.infoItemValue}>{selectedDelivery.deliveryAddress}</Text>
-                  </View>
-
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoItemLabel}>Ubicación:</Text>
-                    <Text style={styles.infoItemValue}>{selectedDelivery.title}</Text>
-                  </View>
-
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoItemLabel}>Estado:</Text>
-                    <Text style={styles.infoItemValue}>{selectedDelivery.deliveryStatus.title}</Text>
-                  </View>
-
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoItemLabel}>Costo de envío:</Text>
-                    <Text style={styles.infoItemValue}>RD$ {selectedDelivery.deliveryCost.toFixed(2)}</Text>
-                  </View>
-
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoItemLabel}>Monto a cobrar:</Text>
-                    <Text style={styles.infoItemValue}>RD$ {selectedDelivery.amountToBeCharged.toFixed(2)}</Text>
-                  </View>
-
-                  {selectedDelivery.observations && (
-                    <View style={styles.infoItem}>
-                      <Text style={styles.infoItemLabel}>Observaciones:</Text>
-                      <Text style={styles.infoItemValue}>{selectedDelivery.observations}</Text>
+              {selectedDeliveries.map((delivery, index) => (
+                <View key={delivery.id}>
+                  {selectedDeliveries.length > 1 && (
+                    <View style={styles.deliveryHeader}>
+                      <Text style={styles.deliveryNumber}>Entrega #{index + 1}</Text>
                     </View>
                   )}
+
+                  <View style={styles.modalContent}>
+                    <View style={styles.infoItem}>
+                      <Text style={styles.infoItemLabel}>Cliente:</Text>
+                      <Text style={styles.infoItemValue}>{delivery.client}</Text>
+                    </View>
+
+                    <View style={styles.infoItem}>
+                      <Text style={styles.infoItemLabel}>Teléfono:</Text>
+                      <Text style={styles.infoItemValue}>{delivery.phone}</Text>
+                    </View>
+
+                    <View style={styles.infoItem}>
+                      <Text style={styles.infoItemLabel}>Dirección:</Text>
+                      <Text style={styles.infoItemValue}>{delivery.deliveryAddress}</Text>
+                    </View>
+
+                    <View style={styles.infoItem}>
+                      <Text style={styles.infoItemLabel}>Ubicación:</Text>
+                      <Text style={styles.infoItemValue}>{delivery.title}</Text>
+                    </View>
+
+                    <View style={styles.infoItem}>
+                      <Text style={styles.infoItemLabel}>Estado:</Text>
+                      <Text style={styles.infoItemValue}>{delivery.deliveryStatus.title}</Text>
+                    </View>
+
+                    <View style={styles.infoItem}>
+                      <Text style={styles.infoItemLabel}>Costo de envío:</Text>
+                      <Text style={styles.infoItemValue}>RD$ {delivery.deliveryCost.toFixed(2)}</Text>
+                    </View>
+
+                    <View style={styles.infoItem}>
+                      <Text style={styles.infoItemLabel}>Monto a cobrar:</Text>
+                      <Text style={styles.infoItemValue}>RD$ {delivery.amountToBeCharged.toFixed(2)}</Text>
+                    </View>
+
+                    {delivery.observations && (
+                      <View style={styles.infoItem}>
+                        <Text style={styles.infoItemLabel}>Observaciones:</Text>
+                        <Text style={styles.infoItemValue}>{delivery.observations}</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {index < selectedDeliveries.length - 1 && (
+                    <View style={styles.deliverySeparator} />
+                  )}
                 </View>
-              </ScrollView>
-            )}
+              ))}
+            </ScrollView>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -373,5 +459,47 @@ const styles = StyleSheet.create({
   infoItemValue: {
     color: CustomColors.textLight,
     fontSize: 16,
+  },  // Estilos para el badge de contador en markers
+  markerBadge: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: CustomColors.primary,
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 5,
   },
-});
+  markerBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  // Estilos para múltiples deliveries en el modal
+  deliveryHeader: {
+    backgroundColor: CustomColors.backgroundDarkest,
+    padding: 10,
+    marginTop: 10,
+    borderRadius: 8,
+  },
+  deliveryNumber: {
+    color: CustomColors.primary,
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  deliverySeparator: {
+    height: 2,
+    backgroundColor: CustomColors.primary + '30',
+    marginVertical: 15,
+    marginHorizontal: 15,
+  },});
