@@ -1,14 +1,16 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, StyleSheet, ActivityIndicator, Dimensions, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, Dimensions, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import MapView, { Marker, Polyline, UrlTile } from 'react-native-maps';
 import { Text } from '@/components/Themed';
 import { CustomColors } from '@/constants/CustomColors';
 import { OsrmTripResult } from '@/services/osrmService';
+import { DeliveryItemAdapter } from '@/interfaces/delivery/deliveryAdapters';
 
 interface TripMapProps {
   tripData: OsrmTripResult | null;
   loading?: boolean;
   error?: string | null;
+  deliveries: DeliveryItemAdapter[];
 }
 
 interface Coordinate {
@@ -16,11 +18,19 @@ interface Coordinate {
   longitude: number;
 }
 
-export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error }) => {
-  const [waypoints, setWaypoints] = useState<Coordinate[]>([]);
+interface WaypointWithDelivery {
+  coordinate: Coordinate;
+  delivery: DeliveryItemAdapter;
+  index: number;
+}
+
+export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error, deliveries }) => {
+  const [waypointsWithDeliveries, setWaypointsWithDeliveries] = useState<WaypointWithDelivery[]>([]);
   const [routeCoordinates, setRouteCoordinates] = useState<Coordinate[]>([]);
   const [totalDistance, setTotalDistance] = useState<number>(0);
   const [totalDuration, setTotalDuration] = useState<number>(0);
+  const [selectedDelivery, setSelectedDelivery] = useState<DeliveryItemAdapter | null>(null);
+  const [showDeliveryModal, setShowDeliveryModal] = useState<boolean>(false);
   
   const mapRef = useRef<MapView>(null);
 
@@ -33,15 +43,27 @@ export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error }) =>
       const trip = tripData.trips[0];
       
       console.log('[TripMap] Processing trip data:', trip);
+      console.log('[TripMap] Deliveries recibidos:', deliveries.length);
 
-      // Extraer waypoints desde la respuesta
+      // Extraer waypoints y asociarlos con deliveries usando waypoint_index
       if (tripData.waypoints && tripData.waypoints.length > 0) {
-        const waypointCoords: Coordinate[] = tripData.waypoints.map(wp => ({
-          latitude: wp.location[1],
-          longitude: wp.location[0],
-        }));
-        setWaypoints(waypointCoords);
-        console.log('[TripMap] Waypoints extraídos:', waypointCoords.length);
+        const waypointsData: WaypointWithDelivery[] = tripData.waypoints.map(wp => {
+          // waypoint_index indica el índice original de la coordenada enviada
+          const originalIndex = wp.waypoint_index;
+          const delivery = deliveries[originalIndex];
+
+          return {
+            coordinate: {
+              latitude: wp.location[1],
+              longitude: wp.location[0],
+            },
+            delivery: delivery,
+            index: originalIndex,
+          };
+        });
+
+        setWaypointsWithDeliveries(waypointsData);
+        console.log('[TripMap] Waypoints con deliveries:', waypointsData.length);
       }
 
       // Extraer coordenadas de la geometría (GeoJSON format)
@@ -59,8 +81,8 @@ export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error }) =>
       setTotalDuration(trip.duration);
 
       // Centrar el mapa en la primera coordenada
-      if (routeCoordinates.length > 0 && mapRef.current) {
-        const firstCoord = routeCoordinates[0];
+      if (waypointsWithDeliveries.length > 0 && mapRef.current) {
+        const firstCoord = waypointsWithDeliveries[0].coordinate;
         mapRef.current.animateToRegion({
           latitude: firstCoord.latitude,
           longitude: firstCoord.longitude,
@@ -71,7 +93,7 @@ export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error }) =>
     } catch (err) {
       console.error('[TripMap] Error procesando trip data:', err);
     }
-  }, [tripData]);
+  }, [tripData, deliveries]);
 
   // Renderizar estado de carga
   if (loading) {
@@ -93,7 +115,7 @@ export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error }) =>
   }
 
   // Renderizar mensaje si no hay datos
-  if (!tripData || waypoints.length === 0) {
+  if (!tripData || waypointsWithDeliveries.length === 0) {
     return (
       <View style={styles.centerContainer}>
         <Text style={styles.noDataText}>No hay datos de ruta optimizada para mostrar</Text>
@@ -101,14 +123,19 @@ export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error }) =>
     );
   }
 
+  const handleMarkerPress = (waypointData: WaypointWithDelivery) => {
+    setSelectedDelivery(waypointData.delivery);
+    setShowDeliveryModal(true);
+  };
+
   return (
     <View style={styles.container}>
       <MapView
         ref={mapRef}
         style={styles.map}
         initialRegion={{
-          latitude: waypoints[0]?.latitude || 0,
-          longitude: waypoints[0]?.longitude || 0,
+          latitude: waypointsWithDeliveries[0]?.coordinate.latitude || 0,
+          longitude: waypointsWithDeliveries[0]?.coordinate.longitude || 0,
           latitudeDelta: 0.1,
           longitudeDelta: 0.1,
         }}
@@ -130,20 +157,13 @@ export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error }) =>
           />
         )}
 
-        {/* Markers para cada waypoint */}
-        {waypoints.map((waypoint, index) => (
+        {/* Markers para cada waypoint con delivery info */}
+        {waypointsWithDeliveries.map((waypointData, index) => (
           <Marker
             key={`waypoint-${index}`}
-            coordinate={waypoint}
-            pinColor={index === 0 ? 'green' : index === waypoints.length - 1 ? 'red' : 'orange'}
-            title={`Punto ${index + 1}`}
-            description={
-              index === 0
-                ? 'Inicio'
-                : index === waypoints.length - 1
-                ? 'Fin'
-                : `Entrega ${index}`
-            }
+            coordinate={waypointData.coordinate}
+            pinColor={index === 0 ? 'green' : index === waypointsWithDeliveries.length - 1 ? 'red' : 'orange'}
+            onPress={() => handleMarkerPress(waypointData)}
           />
         ))}
       </MapView>
@@ -152,7 +172,7 @@ export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error }) =>
       <View style={styles.infoPanel}>
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Puntos de entrega:</Text>
-          <Text style={styles.infoValue}>{waypoints.length}</Text>
+          <Text style={styles.infoValue}>{waypointsWithDeliveries.length}</Text>
         </View>
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Distancia total:</Text>
@@ -163,6 +183,77 @@ export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error }) =>
           <Text style={styles.infoValue}>{Math.round(totalDuration / 60)} min</Text>
         </View>
       </View>
+
+      {/* Modal con información del delivery */}
+      <Modal
+        visible={showDeliveryModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowDeliveryModal(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowDeliveryModal(false)}
+        >
+          <View style={styles.deliveryModal}>
+            {selectedDelivery && (
+              <ScrollView>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Información de Entrega</Text>
+                  <TouchableOpacity onPress={() => setShowDeliveryModal(false)}>
+                    <Text style={styles.closeButtonText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.modalContent}>
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoItemLabel}>Cliente:</Text>
+                    <Text style={styles.infoItemValue}>{selectedDelivery.client}</Text>
+                  </View>
+
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoItemLabel}>Teléfono:</Text>
+                    <Text style={styles.infoItemValue}>{selectedDelivery.phone}</Text>
+                  </View>
+
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoItemLabel}>Dirección:</Text>
+                    <Text style={styles.infoItemValue}>{selectedDelivery.deliveryAddress}</Text>
+                  </View>
+
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoItemLabel}>Ubicación:</Text>
+                    <Text style={styles.infoItemValue}>{selectedDelivery.title}</Text>
+                  </View>
+
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoItemLabel}>Estado:</Text>
+                    <Text style={styles.infoItemValue}>{selectedDelivery.deliveryStatus.title}</Text>
+                  </View>
+
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoItemLabel}>Costo de envío:</Text>
+                    <Text style={styles.infoItemValue}>RD$ {selectedDelivery.deliveryCost.toFixed(2)}</Text>
+                  </View>
+
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoItemLabel}>Monto a cobrar:</Text>
+                    <Text style={styles.infoItemValue}>RD$ {selectedDelivery.amountToBeCharged.toFixed(2)}</Text>
+                  </View>
+
+                  {selectedDelivery.observations && (
+                    <View style={styles.infoItem}>
+                      <Text style={styles.infoItemLabel}>Observaciones:</Text>
+                      <Text style={styles.infoItemValue}>{selectedDelivery.observations}</Text>
+                    </View>
+                  )}
+                </View>
+              </ScrollView>
+            )}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
@@ -174,7 +265,7 @@ const styles = StyleSheet.create({
   },
   map: {
     width: Dimensions.get('window').width,
-    height: Dimensions.get('window').height * 0.7,
+    height: Dimensions.get('window').height,
   },
   centerContainer: {
     flex: 1,
@@ -229,5 +320,58 @@ const styles = StyleSheet.create({
     color: CustomColors.secondary,
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  deliveryModal: {
+    backgroundColor: CustomColors.backgroundDark,
+    borderRadius: 15,
+    width: '90%',
+    maxHeight: '80%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: CustomColors.textLight + '20',
+  },
+  modalTitle: {
+    color: CustomColors.textLight,
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  closeButtonText: {
+    color: CustomColors.primary,
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  modalContent: {
+    padding: 15,
+  },
+  infoItem: {
+    marginBottom: 15,
+  },
+  infoItemLabel: {
+    color: CustomColors.textLight,
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 5,
+    opacity: 0.7,
+  },
+  infoItemValue: {
+    color: CustomColors.textLight,
+    fontSize: 16,
   },
 });

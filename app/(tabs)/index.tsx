@@ -47,6 +47,7 @@ export default function TabOneScreen() {
 
   const { data: tripData, loading: tripLoading, error: tripError, fetchTrip } = useOsrmTrip();
   const [showTripMap, setShowTripMap] = useState<boolean>(false);
+  const [tripDeliveries, setTripDeliveries] = useState<DeliveryItemAdapter[]>([]);
 
   // Conectar socket y listeners
   useEffect(() => {
@@ -173,6 +174,9 @@ export default function TabOneScreen() {
       }));
 
       console.log('[TabOneScreen] Coordenadas a enviar:', coordinates);
+
+      // Guardar los deliveries en el orden en que se envían las coordenadas
+      setTripDeliveries(pendingDeliveries);
 
       // Llamar al endpoint /trip
       await fetchTrip({
@@ -378,7 +382,8 @@ export default function TabOneScreen() {
             <TripMap 
               tripData={tripData} 
               loading={tripLoading} 
-              error={tripError} 
+              error={tripError}
+              deliveries={tripDeliveries}
             />
           </SafeAreaView>
         </Modal>
