@@ -43,6 +43,7 @@ export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error, deli
   const [totalDuration, setTotalDuration] = useState<number>(0);
   const [selectedDeliveries, setSelectedDeliveries] = useState<DeliveryItemAdapter[]>([]);
   const [showDeliveryModal, setShowDeliveryModal] = useState<boolean>(false);
+  const [activeTabIndex, setActiveTabIndex] = useState<number>(0);
   
   const mapRef = useRef<MapView>(null);
 
@@ -183,6 +184,7 @@ export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error, deli
    */
   const handleMarkerPress = (group: WaypointGroup) => {
     setSelectedDeliveries(group.deliveries);
+    setActiveTabIndex(0); // Reset al primer tab
     setShowDeliveryModal(true);
   };
 
@@ -218,21 +220,24 @@ export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error, deli
         {/* Markers agrupados por coordenadas con contador visual */}
         {groupedWaypoints.map((group, index) => {
           // Determinar color del marker según posición en la ruta
-          const pinColor = group.isFirstInRoute ? 'green' : group.isLastInRoute ? 'red' : 'orange';
+          const markerColor = group.isFirstInRoute ? '#4CAF50' : group.isLastInRoute ? '#F44336' : '#FF9800';
           
           return (
             <Marker
               key={`group-${group.coordinate.latitude}-${group.coordinate.longitude}`}
               coordinate={group.coordinate}
-              pinColor={pinColor}
               onPress={() => handleMarkerPress(group)}
             >
-              {/* Badge con contador si hay múltiples deliveries */}
-              {group.count > 1 && (
-                <View style={styles.markerBadge}>
-                  <Text style={styles.markerBadgeText}>{group.count}</Text>
+              <View style={styles.customMarker}>
+                <View style={[styles.markerPin, { backgroundColor: markerColor }]}>
+                  {group.count > 1 && (
+                    <View style={styles.markerBadge}>
+                      <Text style={styles.markerBadgeText}>{group.count}</Text>
+                    </View>
+                  )}
                 </View>
-              )}
+                <View style={[styles.markerArrow, { borderTopColor: markerColor }]} />
+              </View>
             </Marker>
           );
         })}
@@ -266,78 +271,94 @@ export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error, deli
           activeOpacity={1}
           onPress={() => setShowDeliveryModal(false)}
         >
-          <View style={styles.deliveryModal}>
-            <ScrollView>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>
-                  {selectedDeliveries.length > 1 
-                    ? `Información de Entregas (${selectedDeliveries.length})`
-                    : 'Información de Entrega'}
-                </Text>
-                <TouchableOpacity onPress={() => setShowDeliveryModal(false)}>
-                  <Text style={styles.closeButtonText}>✕</Text>
-                </TouchableOpacity>
-              </View>
+          <TouchableOpacity activeOpacity={1} style={styles.deliveryModal}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {selectedDeliveries.length > 1 
+                  ? `Entregas en este punto (${selectedDeliveries.length})`
+                  : 'Información de Entrega'}
+              </Text>
+              <TouchableOpacity onPress={() => setShowDeliveryModal(false)}>
+                <Text style={styles.closeButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
 
-              {selectedDeliveries.map((delivery, index) => (
-                <View key={delivery.id}>
-                  {selectedDeliveries.length > 1 && (
-                    <View style={styles.deliveryHeader}>
-                      <Text style={styles.deliveryNumber}>Entrega #{index + 1}</Text>
-                    </View>
-                  )}
+            {/* Tabs para navegar entre entregas */}
+            {selectedDeliveries.length > 1 && (
+              <ScrollView 
+                horizontal 
+                style={styles.tabsContainer}
+                showsHorizontalScrollIndicator={false}
+              >
+                {selectedDeliveries.map((delivery, index) => (
+                  <TouchableOpacity
+                    key={delivery.id}
+                    style={[
+                      styles.tab,
+                      activeTabIndex === index && styles.activeTab
+                    ]}
+                    onPress={() => setActiveTabIndex(index)}
+                  >
+                    <Text style={[
+                      styles.tabText,
+                      activeTabIndex === index && styles.activeTabText
+                    ]}>
+                      Entrega {index + 1}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
 
-                  <View style={styles.modalContent}>
-                    <View style={styles.infoItem}>
-                      <Text style={styles.infoItemLabel}>Cliente:</Text>
-                      <Text style={styles.infoItemValue}>{delivery.client}</Text>
-                    </View>
-
-                    <View style={styles.infoItem}>
-                      <Text style={styles.infoItemLabel}>Teléfono:</Text>
-                      <Text style={styles.infoItemValue}>{delivery.phone}</Text>
-                    </View>
-
-                    <View style={styles.infoItem}>
-                      <Text style={styles.infoItemLabel}>Dirección:</Text>
-                      <Text style={styles.infoItemValue}>{delivery.deliveryAddress}</Text>
-                    </View>
-
-                    <View style={styles.infoItem}>
-                      <Text style={styles.infoItemLabel}>Ubicación:</Text>
-                      <Text style={styles.infoItemValue}>{delivery.title}</Text>
-                    </View>
-
-                    <View style={styles.infoItem}>
-                      <Text style={styles.infoItemLabel}>Estado:</Text>
-                      <Text style={styles.infoItemValue}>{delivery.deliveryStatus.title}</Text>
-                    </View>
-
-                    <View style={styles.infoItem}>
-                      <Text style={styles.infoItemLabel}>Costo de envío:</Text>
-                      <Text style={styles.infoItemValue}>RD$ {delivery.deliveryCost.toFixed(2)}</Text>
-                    </View>
-
-                    <View style={styles.infoItem}>
-                      <Text style={styles.infoItemLabel}>Monto a cobrar:</Text>
-                      <Text style={styles.infoItemValue}>RD$ {delivery.amountToBeCharged.toFixed(2)}</Text>
-                    </View>
-
-                    {delivery.observations && (
-                      <View style={styles.infoItem}>
-                        <Text style={styles.infoItemLabel}>Observaciones:</Text>
-                        <Text style={styles.infoItemValue}>{delivery.observations}</Text>
-                      </View>
-                    )}
+            {/* Contenido del tab activo */}
+            <ScrollView style={styles.modalScrollContent}>
+              {selectedDeliveries[activeTabIndex] && (
+                <View style={styles.modalContent}>
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoItemLabel}>Cliente:</Text>
+                    <Text style={styles.infoItemValue}>{selectedDeliveries[activeTabIndex].client}</Text>
                   </View>
 
-                  {index < selectedDeliveries.length - 1 && (
-                    <View style={styles.deliverySeparator} />
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoItemLabel}>Teléfono:</Text>
+                    <Text style={styles.infoItemValue}>{selectedDeliveries[activeTabIndex].phone}</Text>
+                  </View>
+
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoItemLabel}>Dirección:</Text>
+                    <Text style={styles.infoItemValue}>{selectedDeliveries[activeTabIndex].deliveryAddress}</Text>
+                  </View>
+
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoItemLabel}>Ubicación:</Text>
+                    <Text style={styles.infoItemValue}>{selectedDeliveries[activeTabIndex].title}</Text>
+                  </View>
+
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoItemLabel}>Estado:</Text>
+                    <Text style={styles.infoItemValue}>{selectedDeliveries[activeTabIndex].deliveryStatus.title}</Text>
+                  </View>
+
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoItemLabel}>Costo de envío:</Text>
+                    <Text style={styles.infoItemValue}>RD$ {selectedDeliveries[activeTabIndex].deliveryCost.toFixed(2)}</Text>
+                  </View>
+
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoItemLabel}>Monto a cobrar:</Text>
+                    <Text style={styles.infoItemValue}>RD$ {selectedDeliveries[activeTabIndex].amountToBeCharged.toFixed(2)}</Text>
+                  </View>
+
+                  {selectedDeliveries[activeTabIndex].observations && (
+                    <View style={styles.infoItem}>
+                      <Text style={styles.infoItemLabel}>Observaciones:</Text>
+                      <Text style={styles.infoItemValue}>{selectedDeliveries[activeTabIndex].observations}</Text>
+                    </View>
                   )}
                 </View>
-              ))}
+              )}
             </ScrollView>
-          </View>
+          </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
     </View>
@@ -459,12 +480,41 @@ const styles = StyleSheet.create({
   infoItemValue: {
     color: CustomColors.textLight,
     fontSize: 16,
-  },  // Estilos para el badge de contador en markers
+  },
+  // Estilos para custom marker con pin circular
+  customMarker: {
+    alignItems: 'center',
+  },
+  markerPin: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  markerArrow: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 8,
+    borderRightWidth: 8,
+    borderTopWidth: 12,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    marginTop: -1,
+  },
+  // Estilos para el badge de contador en markers
   markerBadge: {
     position: 'absolute',
     top: -8,
     right: -8,
-    backgroundColor: CustomColors.primary,
+    backgroundColor: '#DC143C',
     borderRadius: 12,
     minWidth: 24,
     height: 24,
@@ -474,17 +524,46 @@ const styles = StyleSheet.create({
     borderColor: '#FFFFFF',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.5,
     shadowRadius: 3,
-    elevation: 5,
+    elevation: 8,
   },
   markerBadgeText: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
     textAlign: 'center',
   },
-  // Estilos para múltiples deliveries en el modal
+  // Estilos para sistema de tabs
+  tabsContainer: {
+    maxHeight: 50,
+    borderBottomWidth: 1,
+    borderBottomColor: CustomColors.textLight + '20',
+    backgroundColor: CustomColors.backgroundDarkest,
+  },
+  tab: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    marginHorizontal: 5,
+    borderBottomWidth: 3,
+    borderBottomColor: 'transparent',
+  },
+  activeTab: {
+    borderBottomColor: CustomColors.primary,
+  },
+  tabText: {
+    color: CustomColors.textLight + '80',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  activeTabText: {
+    color: CustomColors.primary,
+    fontWeight: 'bold',
+  },
+  modalScrollContent: {
+    flex: 1,
+  },
+  // Estilos deprecados (mantenidos por compatibilidad)
   deliveryHeader: {
     backgroundColor: CustomColors.backgroundDarkest,
     padding: 10,
@@ -502,4 +581,5 @@ const styles = StyleSheet.create({
     backgroundColor: CustomColors.primary + '30',
     marginVertical: 15,
     marginHorizontal: 15,
-  },});
+  },
+});
