@@ -303,7 +303,7 @@ export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error, deli
                       styles.tabText,
                       activeTabIndex === index && styles.activeTabText
                     ]}>
-                      Entrega {index + 1}
+                      Asignacion {index + 1}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -440,6 +440,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     width: '90%',
     maxHeight: '80%',
+    height: '80%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
@@ -562,6 +563,7 @@ const styles = StyleSheet.create({
   },
   modalScrollContent: {
     flex: 1,
+    maxHeight: 500,
   },
   // Estilos deprecados (mantenidos por compatibilidad)
   deliveryHeader: {
