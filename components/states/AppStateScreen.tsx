@@ -50,18 +50,6 @@ export const AppStateScreen: React.FC<AppStateScreenProps> = ({
       console.log('[AppStateScreen] No se ha obtenido la ubicación actual aún');
       return;
     }
-
-    // Coordenadas de destino desde la URL: https://www.google.com/maps?q=18.4928592,-69.7826263
-    // const destination = {
-    //   latitude: 18.4928592,
-    //   longitude: -69.7826263,
-    // };
-
-    // await fetchRoute({
-    //   origin: currentLocation,
-    //   destination: destination,
-    //   steps: true,
-    // });
   };
 
   // Mostrar resultado en consola cuando se obtenga y abrir modal automáticamente

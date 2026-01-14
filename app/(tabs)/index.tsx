@@ -15,6 +15,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { AppStateScreen } from "@/components/states/AppStateScreen";
 import { useActiveDelivery } from "@/context/ActiveDeliveryContext";
 import { useDelivery } from "@/context/DeliveryContext";
+import { useOsrmTrip } from "@/hooks/useOsrmTrip";
 import {
   DeliveryItemAdapter,
   DeliveryGroupAdapter,
@@ -40,7 +41,7 @@ export default function TabOneScreen() {
     handleDriversGroupAssigned,
   } = useDelivery();
 
-  
+  const { data: tripData, loading: tripLoading, error: tripError, fetchTrip } = useOsrmTrip();  
 
   // Conectar socket y listeners
   useEffect(() => {
@@ -133,6 +134,75 @@ export default function TabOneScreen() {
   };
 
   const isNavigating = useRef(false);
+
+  const handleStartRoutes = async () => {
+    try {
+      console.log('[TabOneScreen] Iniciando cálculo de rutas...');
+      
+      // Filtrar solo deliveries pendientes con coordenadas válidas
+      const pendingDeliveries = deliveries.filter(delivery => {
+        const isPending = delivery.deliveryStatus.title !== IDeliveryStatus.DELIVERED &&
+                         delivery.deliveryStatus.title !== IDeliveryStatus.CANCELLED &&
+                         delivery.deliveryStatus.title !== IDeliveryStatus.RETURNED;
+        
+        const hasCoordinates = delivery.additionalDataNominatim?.lat && 
+                              delivery.additionalDataNominatim?.lon;
+        
+        return isPending && hasCoordinates;
+      });
+
+      if (pendingDeliveries.length === 0) {
+        Alert.alert(
+          "Sin entregas disponibles",
+          "No hay entregas pendientes con coordenadas válidas para calcular la ruta.",
+          [{ text: "Entendido" }]
+        );
+        return;
+      }
+
+      // Adaptar DeliveryItemAdapter[] a coordenadas para OSRM
+      const coordinates = pendingDeliveries.map(delivery => ({
+        latitude: parseFloat(delivery.additionalDataNominatim.lat),
+        longitude: parseFloat(delivery.additionalDataNominatim.lon),
+      }));
+
+      console.log('[TabOneScreen] Coordenadas a enviar:', coordinates);
+
+      // Llamar al endpoint /trip
+      await fetchTrip({
+        coordinates,
+        source: 'first',
+        destination: 'last',
+        roundtrip: false,
+        geometries: 'geojson',
+        overview: 'full',
+      });
+
+    } catch (err) {
+      console.error('[TabOneScreen] Error al iniciar rutas:', err);
+      Alert.alert(
+        "Error",
+        "Ocurrió un error al calcular la ruta optimizada.",
+        [{ text: "Entendido" }]
+      );
+    }
+  };
+
+  // Efecto para imprimir la respuesta del trip en consola
+  useEffect(() => {
+    if (tripData) {
+      console.log('========================================');
+      console.log('[TabOneScreen] RUTA OPTIMIZADA RECIBIDA:');
+      console.log('========================================');
+      console.log('Código de respuesta:', tripData.code);
+      console.log('Número de trips:', tripData.trips?.length);
+      console.log('Datos completos del trip:', tripData);
+      console.log('========================================');
+    }
+    if (tripError) {
+      console.error('[TabOneScreen] Error en trip OSRM:', tripError);
+    }
+  }, [tripData, tripError]);
 
   const handlePressItem = () => {
     if (isNavigating.current) return;
@@ -269,13 +339,16 @@ export default function TabOneScreen() {
           {/* Botón "Iniciar Rutas" - solo visible si hay deliveries disponibles */}
           {deliveries.length > 0 && (
             <TouchableOpacity
-              style={styles.startRoutesButton}
-              onPress={() => {
-                // Por ahora no tiene acción
-                console.log('Botón "Iniciar Rutas" presionado');
-              }}
+              style={[
+                styles.startRoutesButton,
+                tripLoading && styles.startRoutesButtonDisabled
+              ]}
+              onPress={handleStartRoutes}
+              disabled={tripLoading}
             >
-              <Text style={styles.startRoutesButtonText}>Iniciar Rutas</Text>
+              <Text style={styles.startRoutesButtonText}>
+                {tripLoading ? 'Calculando ruta...' : 'Iniciar Rutas'}
+              </Text>
             </TouchableOpacity>
           )}
         </View>
@@ -427,5 +500,9 @@ const styles = StyleSheet.create({
     color: CustomColors.textLight,
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  startRoutesButtonDisabled: {
+    backgroundColor: CustomColors.divider,
+    opacity: 0.6,
   },
 });
