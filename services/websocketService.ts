@@ -171,6 +171,19 @@ class SocketService {
       this.notifyListeners(SocketEventType.DELIVERY_UPDATED, data);
     });
 
+    this.socket.on(SocketEventType.DELIVERY_REORDERED, ({data,message}: SocketParam<IDeliveryAssignmentEntity>) => {
+      console.log('Evento recibido - Entrega reordenada');
+      console.log(data);
+      
+      queueNotification(
+        NotificationType.INFO,
+        'Entrega reordenada',
+        message,
+        true
+      );
+
+      this.notifyListeners(SocketEventType.DELIVERY_REORDERED, data);
+    });
 
     this.socket.on(SocketEventType.DELIVERY_STATUS_CHANGED, ({data,message}: SocketParam<IDeliveryAssignmentEntity>) => {
       console.log('Evento recibido - Estado de entrega cambiado');
@@ -190,19 +203,7 @@ class SocketService {
       this.notifyListeners(SocketEventType.DELIVERY_ASSIGNMENT_UPDATED, data);
     });
 
-    this.socket.on(SocketEventType.DELIVERY_REORDERED, ({data,message}: SocketParam<IDeliveryAssignmentEntity>) => {
-      console.log('Evento recibido - Entrega reordenada');
-      console.log(data);
-      
-      queueNotification(
-        NotificationType.INFO,
-        'Entrega reordenada',
-        message,
-        true
-      );
-
-      this.notifyListeners(SocketEventType.DELIVERY_REORDERED, data);
-    });
+   
   }
 
   disconnect() {

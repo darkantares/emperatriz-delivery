@@ -49,22 +49,79 @@ export default function TabOneScreen() {
   const [showTripMap, setShowTripMap] = useState<boolean>(false);
   const [tripDeliveries, setTripDeliveries] = useState<DeliveryItemAdapter[]>([]);
 
+  // Función para recalcular rutas automáticamente cuando se reciban nuevas asignaciones
+  const handleRecalculateRoutes = async () => {
+    if (!showTripMap) {
+      console.log('[TabOneScreen] TripMap no está visible, no se recalcula ruta');
+      return;
+    }
+
+    console.log('[TabOneScreen] Recalculando rutas debido a nueva asignación...');
+    
+    try {
+      const pendingDeliveries = allDeliveries.filter(delivery => {
+        const isPending = delivery.deliveryStatus.title !== IDeliveryStatus.DELIVERED &&
+                         delivery.deliveryStatus.title !== IDeliveryStatus.CANCELLED &&
+                         delivery.deliveryStatus.title !== IDeliveryStatus.RETURNED;
+        
+        const hasCoordinates = delivery.additionalDataNominatim?.lat && 
+                              delivery.additionalDataNominatim?.lon;
+        
+        return isPending && hasCoordinates;
+      });
+
+      if (pendingDeliveries.length === 0) {
+        console.log('[TabOneScreen] No hay entregas pendientes para recalcular ruta');
+        return;
+      }
+
+      const coordinates = pendingDeliveries.map(delivery => ({
+        latitude: parseFloat(delivery.additionalDataNominatim.lat),
+        longitude: parseFloat(delivery.additionalDataNominatim.lon),
+      }));
+
+      setTripDeliveries(pendingDeliveries);
+
+      await fetchTrip({
+        coordinates,
+        source: 'first',
+        destination: 'last',
+        roundtrip: false,
+        geometries: 'geojson',
+        overview: 'full',
+      });
+    } catch (err) {
+      console.error('[TabOneScreen] Error al recalcular rutas:', err);
+    }
+  };
+
+  // Wrappers para los handlers que también recalculan rutas
+  const handleDeliveryAssignedWithRouteUpdate = (data: any) => {
+    handleDeliveryAssigned(data);
+    handleRecalculateRoutes();
+  };
+
+  const handleDriversGroupAssignedWithRouteUpdate = (data: any) => {
+    handleDriversGroupAssigned(data);
+    handleRecalculateRoutes();
+  };
+
   // Conectar socket y listeners
   useEffect(() => {
     socketService.connect();
     
-    socketService.on(SocketEventType.DRIVER_ASSIGNED, handleDeliveryAssigned);
+    socketService.on(SocketEventType.DRIVER_ASSIGNED, handleDeliveryAssignedWithRouteUpdate);
     socketService.on(SocketEventType.DELIVERY_REORDERED, handleDeliveryReordered); 
     socketService.on(SocketEventType.DELIVERY_ASSIGNMENT_UPDATED, handleDeliveryUpdated);
-    socketService.on(SocketEventType.DRIVERS_GROUP_ASSIGNED, handleDriversGroupAssigned);
+    socketService.on(SocketEventType.DRIVERS_GROUP_ASSIGNED, handleDriversGroupAssignedWithRouteUpdate);
 
     return () => {
-      socketService.off(SocketEventType.DRIVER_ASSIGNED, handleDeliveryAssigned);
+      socketService.off(SocketEventType.DRIVER_ASSIGNED, handleDeliveryAssignedWithRouteUpdate);
       socketService.off(SocketEventType.DELIVERY_REORDERED, handleDeliveryReordered);
       socketService.off(SocketEventType.DELIVERY_ASSIGNMENT_UPDATED, handleDeliveryUpdated);  
-      socketService.off(SocketEventType.DRIVERS_GROUP_ASSIGNED, handleDriversGroupAssigned);
+      socketService.off(SocketEventType.DRIVERS_GROUP_ASSIGNED, handleDriversGroupAssignedWithRouteUpdate);
     };
-  }, [handleDeliveryAssigned, handleDeliveryReordered, handleDeliveryUpdated, handleDriversGroupAssigned]);
+  }, [handleDeliveryAssigned, handleDeliveryReordered, handleDeliveryUpdated, handleDriversGroupAssigned, showTripMap, allDeliveries]);
 
   // Type guard para verificar si el item es un grupo
   const isDeliveryGroup = (

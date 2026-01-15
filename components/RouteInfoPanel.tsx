@@ -7,58 +7,80 @@ interface RouteInfoPanelProps {
   pointsCount: number;
   totalDistance: number; // meters
   totalDuration: number; // seconds
+  isTraveling?: boolean;
+  remainingDistance?: number; // meters
+  remainingDuration?: number; // seconds
 }
 
-const RouteInfoPanel: React.FC<RouteInfoPanelProps> = ({ pointsCount, totalDistance, totalDuration }) => {
+const RouteInfoPanel: React.FC<RouteInfoPanelProps> = ({ 
+  pointsCount, 
+  totalDistance, 
+  totalDuration, 
+  isTraveling = false, 
+  remainingDistance, 
+  remainingDuration 
+}) => {
   return (
     <View style={styles.infoPanel}>
-      <View style={styles.infoRow}>
-        <Text style={styles.infoLabel}>Puntos de entrega:</Text>
-        <Text style={styles.infoValue}>{pointsCount}</Text>
+      <View style={styles.infoPanelRow}>
+        <Text style={styles.infoPanelLabel}>Puntos de entrega:</Text>
+        <Text style={styles.infoPanelValue}>{pointsCount}</Text>
       </View>
-      <View style={styles.infoRow}>
-        <Text style={styles.infoLabel}>Distancia total:</Text>
-        <Text style={styles.infoValue}>{(totalDistance / 1000).toFixed(2)} km</Text>
+      <View style={styles.infoPanelRow}>
+        <Text style={styles.infoPanelLabel}>Distancia {isTraveling ? 'restante' : 'total'}:</Text>
+        <Text style={styles.infoPanelValue}>
+          {((isTraveling && remainingDistance !== undefined ? remainingDistance : totalDistance) / 1000).toFixed(2)} km
+        </Text>
       </View>
-      <View style={styles.infoRow}>
-        <Text style={styles.infoLabel}>Tiempo estimado:</Text>
-        <Text style={styles.infoValue}>{Math.round(totalDuration / 60)} min</Text>
+      <View style={styles.infoPanelRow}>
+        <Text style={styles.infoPanelLabel}>Tiempo {isTraveling ? 'restante' : 'estimado'}:</Text>
+        <Text style={styles.infoPanelValue}>
+          {Math.round((isTraveling && remainingDuration !== undefined ? remainingDuration : totalDuration) / 60)} min
+        </Text>
       </View>
+      {isTraveling && (
+        <View style={styles.infoPanelRow}>
+          <Text style={styles.infoPanelLabel}>Estado:</Text>
+          <Text style={[styles.infoPanelValue, styles.statusActive]}>🔵 En movimiento</Text>
+        </View>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   infoPanel: {
-    backgroundColor: CustomColors.backgroundDark,
-    padding: 15,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+    bottom: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: CustomColors.backgroundDark,
+    borderRadius: 12,
+    padding: 15,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 10,
+    shadowRadius: 4,
+    elevation: 5,
   },
-  infoRow: {
+  infoPanelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginVertical: 5,
+    marginBottom: 8,
   },
-  infoLabel: {
+  infoPanelLabel: {
+    color: CustomColors.textLight,
+    fontSize: 14,
+    opacity: 0.8,
+  },
+  infoPanelValue: {
     color: CustomColors.textLight,
     fontSize: 16,
     fontWeight: 'bold',
   },
-  infoValue: {
-    color: CustomColors.secondary,
-    fontSize: 16,
-    fontWeight: 'bold',
+  statusActive: {
+    color: '#4CAF50',
   },
 });
 

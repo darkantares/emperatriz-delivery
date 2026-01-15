@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, TouchableOpacity, ActivityIndicator, StyleSheet, Modal, ScrollView } from 'react-native';
+import { View, TouchableOpacity, ActivityIndicator, StyleSheet, Modal } from 'react-native';
 import { Text } from '@/components/Themed';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CustomColors } from '@/constants/CustomColors';
 import { useOsrmRoute } from '@/hooks/useOsrmRoute';
-import * as Location from 'expo-location';
-import { RouteMap } from '@/components/RouteMap';
 
 interface AppStateScreenProps {
   type: 'loading' | 'error' | 'noDeliveries';
@@ -19,38 +17,8 @@ export const AppStateScreen: React.FC<AppStateScreenProps> = ({
   error,
   onRetry
 }) => {
-  const { data: routeData, loading: routeLoading, error: routeError } = useOsrmRoute();
-  const [currentLocation, setCurrentLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const { data: routeData, error: routeError } = useOsrmRoute();
   const [showMap, setShowMap] = useState<boolean>(false);
-
-  // Obtener ubicación actual al montar el componente
-  useEffect(() => {
-    (async () => {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-          console.log('[AppStateScreen] Permiso de ubicación denegado');
-          return;
-        }
-
-        const location = await Location.getCurrentPositionAsync({});
-        setCurrentLocation({
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-        });
-        console.log('[AppStateScreen] Ubicación actual obtenida:', location.coords);
-      } catch (err) {
-        console.error('[AppStateScreen] Error obteniendo ubicación:', err);
-      }
-    })();
-  }, []);
-
-  const handleTestRoute = async () => {
-    if (!currentLocation) {
-      console.log('[AppStateScreen] No se ha obtenido la ubicación actual aún');
-      return;
-    }
-  };
 
   // Mostrar resultado en consola cuando se obtenga y abrir modal automáticamente
   useEffect(() => {
@@ -111,17 +79,6 @@ export const AppStateScreen: React.FC<AppStateScreenProps> = ({
             >
               <Text style={styles.manualRefreshButtonText}>Refrescar entregas</Text>
             </TouchableOpacity>
-
-            {/* Botón para probar ruta OSRM */}
-            <TouchableOpacity
-              style={[styles.manualRefreshButton, styles.testRouteButton]}
-              onPress={handleTestRoute}
-              disabled={routeLoading || !currentLocation}
-            >
-              <Text style={styles.manualRefreshButtonText}>
-                {routeLoading ? 'Consultando ruta...' : !currentLocation ? 'Obteniendo ubicación...' : 'Probar Ruta OSRM'}
-              </Text>
-            </TouchableOpacity>
           </>
         )}
 
@@ -138,12 +95,6 @@ export const AppStateScreen: React.FC<AppStateScreenProps> = ({
                 <Text style={styles.closeButton}>Cerrar</Text>
               </TouchableOpacity>
             </View>
-            
-            <RouteMap 
-              routeData={routeData} 
-              loading={routeLoading} 
-              error={routeError} 
-            />
           </SafeAreaView>
         </Modal>
       </SafeAreaView>
