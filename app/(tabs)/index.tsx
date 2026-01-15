@@ -9,14 +9,13 @@ import {
 import { View } from "@/components/Themed";
 import { socketService, SocketEventType } from "@/services/websocketService";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { CustomColors } from "@/constants/CustomColors";
 import { router } from "expo-router";
 import { AppHeader } from "@/components/AppHeader";
 import { AppStateScreen } from "@/components/states/AppStateScreen";
 import { useActiveDelivery } from "@/context/ActiveDeliveryContext";
 import { useDelivery } from "@/context/DeliveryContext";
-import { useOsrmTrip } from "@/hooks/useOsrmTrip";
 import {
   DeliveryItemAdapter,
   DeliveryGroupAdapter,
@@ -27,8 +26,9 @@ import { DeliveryItemList } from "@/components/delivery-items/DeliveryItemList";
 import { IDeliveryStatus } from "@/interfaces/delivery/deliveryStatus";
 import { TripMap } from "@/components/TripMap";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { RouteProvider, useRouteContext } from "@/contexts/RouteContext";
 
-export default function TabOneScreen() {  
+function TabOneScreenContent() {
   const { canProcessNewDelivery } = useActiveDelivery();  
   const {
     deliveries,
@@ -45,65 +45,27 @@ export default function TabOneScreen() {
     handleDriversGroupAssigned,
   } = useDelivery();
 
-  const { data: tripData, loading: tripLoading, error: tripError, fetchTrip } = useOsrmTrip();
-  const [showTripMap, setShowTripMap] = useState<boolean>(false);
-  const [tripDeliveries, setTripDeliveries] = useState<DeliveryItemAdapter[]>([]);
-
-  // Función para recalcular rutas automáticamente cuando se reciban nuevas asignaciones
-  const handleRecalculateRoutes = async () => {
-    if (!showTripMap) {
-      console.log('[TabOneScreen] TripMap no está visible, no se recalcula ruta');
-      return;
-    }
-
-    console.log('[TabOneScreen] Recalculando rutas debido a nueva asignación...');
-    
-    try {
-      const pendingDeliveries = allDeliveries.filter(delivery => {
-        const isPending = delivery.deliveryStatus.title !== IDeliveryStatus.DELIVERED &&
-                         delivery.deliveryStatus.title !== IDeliveryStatus.CANCELLED &&
-                         delivery.deliveryStatus.title !== IDeliveryStatus.RETURNED;
-        
-        const hasCoordinates = delivery.additionalDataNominatim?.lat && 
-                              delivery.additionalDataNominatim?.lon;
-        
-        return isPending && hasCoordinates;
-      });
-
-      if (pendingDeliveries.length === 0) {
-        console.log('[TabOneScreen] No hay entregas pendientes para recalcular ruta');
-        return;
-      }
-
-      const coordinates = pendingDeliveries.map(delivery => ({
-        latitude: parseFloat(delivery.additionalDataNominatim.lat),
-        longitude: parseFloat(delivery.additionalDataNominatim.lon),
-      }));
-
-      setTripDeliveries(pendingDeliveries);
-
-      await fetchTrip({
-        coordinates,
-        source: 'first',
-        destination: 'last',
-        roundtrip: false,
-        geometries: 'geojson',
-        overview: 'full',
-      });
-    } catch (err) {
-      console.error('[TabOneScreen] Error al recalcular rutas:', err);
-    }
-  };
+  const {
+    tripData,
+    tripLoading,
+    tripError,
+    showTripMap,
+    tripDeliveries,
+    startRoutes,
+    recalculateRoutes,
+    closeTripMap,
+  } = useRouteContext();
 
   // Wrappers para los handlers que también recalculan rutas
   const handleDeliveryAssignedWithRouteUpdate = (data: any) => {
+    console.log(data);    
     handleDeliveryAssigned(data);
-    handleRecalculateRoutes();
+    // recalculateRoutes(allDeliveries);
   };
 
   const handleDriversGroupAssignedWithRouteUpdate = (data: any) => {
     handleDriversGroupAssigned(data);
-    handleRecalculateRoutes();
+    recalculateRoutes(allDeliveries);
   };
 
   // Conectar socket y listeners
@@ -121,7 +83,7 @@ export default function TabOneScreen() {
       socketService.off(SocketEventType.DELIVERY_ASSIGNMENT_UPDATED, handleDeliveryUpdated);  
       socketService.off(SocketEventType.DRIVERS_GROUP_ASSIGNED, handleDriversGroupAssignedWithRouteUpdate);
     };
-  }, [handleDeliveryAssigned, handleDeliveryReordered, handleDeliveryUpdated, handleDriversGroupAssigned, showTripMap, allDeliveries]);
+  }, [handleDeliveryAssigned, handleDeliveryReordered, handleDeliveryUpdated, handleDriversGroupAssigned, allDeliveries]);
 
   // Type guard para verificar si el item es un grupo
   const isDeliveryGroup = (
@@ -200,51 +162,7 @@ export default function TabOneScreen() {
 
   const handleStartRoutes = async () => {
     try {
-      console.log('[TabOneScreen] Iniciando cálculo de rutas...');
-      
-      // const deliveriesToProcess = [deliveries];
-      // Filtrar solo deliveries pendientes con coordenadas válidas
-      const pendingDeliveries = allDeliveries.filter(delivery => {
-        const isPending = delivery.deliveryStatus.title !== IDeliveryStatus.DELIVERED &&
-                         delivery.deliveryStatus.title !== IDeliveryStatus.CANCELLED &&
-                         delivery.deliveryStatus.title !== IDeliveryStatus.RETURNED;
-        
-        const hasCoordinates = delivery.additionalDataNominatim?.lat && 
-                              delivery.additionalDataNominatim?.lon;
-        
-        return isPending && hasCoordinates;
-      });
-
-      if (pendingDeliveries.length === 0) {
-        Alert.alert(
-          "Sin entregas disponibles",
-          "No hay entregas pendientes con coordenadas válidas para calcular la ruta.",
-          [{ text: "Entendido" }]
-        );
-        return;
-      }
-
-      // Adaptar DeliveryItemAdapter[] a coordenadas para OSRM
-      const coordinates = pendingDeliveries.map(delivery => ({
-        latitude: parseFloat(delivery.additionalDataNominatim.lat),
-        longitude: parseFloat(delivery.additionalDataNominatim.lon),
-      }));
-
-      console.log('[TabOneScreen] Coordenadas a enviar:', coordinates);
-
-      // Guardar los deliveries en el orden en que se envían las coordenadas
-      setTripDeliveries(pendingDeliveries);
-
-      // Llamar al endpoint /trip
-      await fetchTrip({
-        coordinates,
-        source: 'first',
-        destination: 'last',
-        roundtrip: false,
-        geometries: 'geojson',
-        overview: 'full',
-      });
-
+      await startRoutes(allDeliveries);
     } catch (err) {
       console.error('[TabOneScreen] Error al iniciar rutas:', err);
       Alert.alert(
@@ -254,24 +172,6 @@ export default function TabOneScreen() {
       );
     }
   };
-
-  // Efecto para imprimir la respuesta del trip en consola y abrir el mapa
-  useEffect(() => {
-    if (tripData) {
-      console.log('========================================');
-      console.log('[TabOneScreen] RUTA OPTIMIZADA RECIBIDA:');
-      console.log('========================================');
-      console.log('Código de respuesta:', tripData.code);
-      console.log('Número de trips:', tripData.trips?.length);
-      console.log('Datos completos del trip:', tripData);
-      console.log('========================================');
-      // Abrir el modal con el mapa
-      setShowTripMap(true);
-    }
-    if (tripError) {
-      console.error('[TabOneScreen] Error en trip OSRM:', tripError);
-    }
-  }, [tripData, tripError]);
 
   const handlePressItem = () => {
     if (isNavigating.current) return;
@@ -426,12 +326,12 @@ export default function TabOneScreen() {
         <Modal
           visible={showTripMap}
           animationType="slide"
-          onRequestClose={() => setShowTripMap(false)}
+          onRequestClose={closeTripMap}
         >
           <SafeAreaView style={{ flex: 1, backgroundColor: CustomColors.backgroundDarkest }}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Ruta Optimizada</Text>
-              <TouchableOpacity onPress={() => setShowTripMap(false)}>
+              <TouchableOpacity onPress={closeTripMap}>
                 <Text style={styles.closeButton}>Cerrar</Text>
               </TouchableOpacity>
             </View>
@@ -443,7 +343,7 @@ export default function TabOneScreen() {
               deliveries={tripDeliveries}
               onProgressDelivery={(delivery) => {
                 const total = (delivery.deliveryCost || 0) + (delivery.amountToBeCharged || 0);
-                setShowTripMap(false);
+                closeTripMap();
                 router.push({
                   pathname: "/(tabs)/status-update",
                   params: {
@@ -459,6 +359,14 @@ export default function TabOneScreen() {
         </Modal>
       </View>
     </GestureHandlerRootView>
+  );
+}
+
+export default function TabOneScreen() {
+  return (
+    <RouteProvider>
+      <TabOneScreenContent />
+    </RouteProvider>
   );
 }
 
