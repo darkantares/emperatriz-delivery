@@ -6,6 +6,7 @@ import {
   Dimensions,
   TouchableOpacity,
 } from "react-native";
+import * as Location from 'expo-location';
 import MapView, { Marker, Polyline, UrlTile } from "react-native-maps";
 import { Text } from "@/components/Themed";
 import { CustomColors } from "@/constants/CustomColors";
@@ -62,8 +63,17 @@ export const TripMap: React.FC<TripMapProps> = ({
     DeliveryItemAdapter[]
   >([]);
   const [showDeliveryModal, setShowDeliveryModal] = useState<boolean>(false);
+  
+  // Courier tracking states
+  const [currentPosition, setCurrentPosition] = useState<Coordinate | null>(null);
+  const [currentIndex, setCurrentIndex] = useState<number>(0);
+  const [isTraveling, setIsTraveling] = useState<boolean>(false);
+  const [remainingDistance, setRemainingDistance] = useState<number>(0);
+  const [remainingDuration, setRemainingDuration] = useState<number>(0);
 
   const mapRef = useRef<MapView>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const locationSubscription = useRef<Location.LocationSubscription | null>(null);
 
   /**
    * Agrupa waypoints que comparten exactamente la misma latitud y longitud
@@ -114,7 +124,7 @@ export const TripMap: React.FC<TripMapProps> = ({
     try {
       const trip = tripData.trips[0];
 
-      console.log("[TripMap] Processing trip data:", trip);
+      // console.log("[TripMap] Processing trip data:", trip);
       console.log("[TripMap] Deliveries recibidos:", deliveries.length);
 
       // Extraer waypoints y asociarlos con deliveries usando waypoint_index
@@ -146,6 +156,11 @@ export const TripMap: React.FC<TripMapProps> = ({
         const grouped = groupWaypointsByCoordinates(waypointsData);
         setGroupedWaypoints(grouped);
         console.log("[TripMap] Grupos creados:", grouped.length);
+        
+        // Establecer posición inicial en el primer waypoint
+        if (waypointsData.length > 0) {
+          setCurrentPosition(waypointsData[0].coordinate);
+        }
       }
 
       // Extraer coordenadas de la geometría (GeoJSON format)
@@ -163,6 +178,10 @@ export const TripMap: React.FC<TripMapProps> = ({
       // Establecer distancia y duración totales
       setTotalDistance(trip.distance);
       setTotalDuration(trip.duration);
+      
+      // Inicializar distancia y duración restantes
+      setRemainingDistance(trip.distance);
+      setRemainingDuration(trip.duration);
 
       // Centrar el mapa en la primera coordenada
       if (waypointsWithDeliveries.length > 0 && mapRef.current) {
@@ -181,6 +200,236 @@ export const TripMap: React.FC<TripMapProps> = ({
       console.error("[TripMap] Error procesando trip data:", err);
     }
   }, [tripData, deliveries]);
+
+  // Calcular distancia entre dos coordenadas (fórmula Haversine)
+  const calculateDistance = (coord1: Coordinate, coord2: Coordinate): number => {
+    const R = 6371e3; // Radio de la Tierra en metros
+    const φ1 = coord1.latitude * Math.PI / 180;
+    const φ2 = coord2.latitude * Math.PI / 180;
+    const Δφ = (coord2.latitude - coord1.latitude) * Math.PI / 180;
+    const Δλ = (coord2.longitude - coord1.longitude) * Math.PI / 180;
+
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c; // Distancia en metros
+  };
+
+  // Simular desvío aleatorio para desarrollo
+  const simulateDeviation = (coord: Coordinate): Coordinate => {
+    if (Math.random() > 0.9) { // 10% probabilidad de desvío
+      const deviationAmount = 0.0005; // ~55 metros
+      return {
+        latitude: coord.latitude + (Math.random() - 0.5) * deviationAmount,
+        longitude: coord.longitude + (Math.random() - 0.5) * deviationAmount,
+      };
+    }
+    return coord;
+  };
+
+  // Detectar si hay desvío significativo
+  const isSignificantDeviation = (actualPos: Coordinate, expectedPos: Coordinate): boolean => {
+    const distance = calculateDistance(actualPos, expectedPos);
+    return distance > 50; // Más de 50 metros se considera desvío
+  };
+
+  // Iniciar viaje
+  const startTrip = async () => {
+    if (routeCoordinates.length === 0) {
+      console.log('[TripMap] No hay ruta para iniciar viaje');
+      return;
+    }
+
+    if (__DEV__) {
+      setIsTraveling(true);
+      setCurrentIndex(0);
+      console.log('[TripMap] Iniciando viaje simulado (DESARROLLO)');
+    } else {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          console.error('[TripMap] Permiso de ubicación denegado');
+          return;
+        }
+        setIsTraveling(true);
+        setCurrentIndex(0);
+        console.log('[TripMap] Iniciando seguimiento GPS (PRODUCCIÓN)');
+      } catch (err) {
+        console.error('[TripMap] Error solicitando permisos:', err);
+      }
+    }
+  };
+
+  // Detener viaje
+  const stopTrip = () => {
+    setIsTraveling(false);
+    
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    
+    if (locationSubscription.current) {
+      locationSubscription.current.remove();
+      locationSubscription.current = null;
+    }
+    
+    console.log('[TripMap] Viaje detenido');
+  };
+
+  /**
+   * Maneja el evento de presión sobre un marker del mapa
+   * @param group Grupo de waypoints asociado al marker presionado
+   */
+  const handleMarkerPress = (group: WaypointGroup) => {
+    setSelectedDeliveries(group.deliveries);
+    setShowDeliveryModal(true);
+  };
+
+  // Efecto para manejar movimiento (simulado en desarrollo, GPS en producción)
+  useEffect(() => {
+    if (!isTraveling || routeCoordinates.length === 0) {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      if (locationSubscription.current) {
+        locationSubscription.current.remove();
+        locationSubscription.current = null;
+      }
+      return;
+    }
+
+    if (__DEV__) {
+      // MODO DESARROLLO: Simulación automática
+      console.log('[TripMap] Iniciando simulación automática');
+      
+      intervalRef.current = setInterval(() => {
+        setCurrentIndex((prevIndex) => {
+          const nextIndex = prevIndex + 1;
+          
+          if (nextIndex >= routeCoordinates.length) {
+            console.log('[TripMap] Destino alcanzado (simulación)');
+            setIsTraveling(false);
+            return prevIndex;
+          }
+
+          const expectedPosition = routeCoordinates[nextIndex];
+          const actualPosition = simulateDeviation(expectedPosition);
+          
+          setCurrentPosition(actualPosition);
+          
+          // Centrar mapa en posición actual
+          if (mapRef.current) {
+            mapRef.current.animateToRegion({
+              latitude: actualPosition.latitude,
+              longitude: actualPosition.longitude,
+              latitudeDelta: 0.01,
+              longitudeDelta: 0.01,
+            }, 1000);
+          }
+
+          // Actualizar distancia y duración restantes
+          const progressPercentage = nextIndex / routeCoordinates.length;
+          setRemainingDistance(totalDistance * (1 - progressPercentage));
+          setRemainingDuration(totalDuration * (1 - progressPercentage));
+
+          return nextIndex;
+        });
+      }, 2000); // Actualizar cada 2 segundos
+    } else {
+      // MODO PRODUCCIÓN: Seguir GPS real
+      console.log('[TripMap] Iniciando seguimiento GPS');
+      
+      (async () => {
+        try {
+          const subscription = await Location.watchPositionAsync(
+            {
+              accuracy: Location.Accuracy.BestForNavigation,
+              timeInterval: 2000,
+              distanceInterval: 10,
+            },
+            (location) => {
+              const actualPosition: Coordinate = {
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude,
+              };
+
+              setCurrentPosition(actualPosition);
+              
+              if (mapRef.current) {
+                mapRef.current.animateToRegion({
+                  latitude: actualPosition.latitude,
+                  longitude: actualPosition.longitude,
+                  latitudeDelta: 0.01,
+                  longitudeDelta: 0.01,
+                }, 1000);
+              }
+
+              // Encontrar punto más cercano en la ruta
+              let closestIndex = 0;
+              let minDistance = Infinity;
+              
+              routeCoordinates.forEach((coord, index) => {
+                const distance = calculateDistance(actualPosition, coord);
+                if (distance < minDistance) {
+                  minDistance = distance;
+                  closestIndex = index;
+                }
+              });
+
+              setCurrentIndex(closestIndex);
+
+              // Actualizar distancia y duración restantes
+              const progressPercentage = closestIndex / routeCoordinates.length;
+              setRemainingDistance(totalDistance * (1 - progressPercentage));
+              setRemainingDuration(totalDuration * (1 - progressPercentage));
+
+              // Verificar si llegamos al destino
+              if (routeCoordinates.length > 0) {
+                const lastPoint = routeCoordinates[routeCoordinates.length - 1];
+                const distanceToDestination = calculateDistance(actualPosition, lastPoint);
+                if (distanceToDestination < 20) {
+                  console.log('[TripMap] Destino alcanzado (GPS)');
+                  setIsTraveling(false);
+                }
+              }
+            }
+          );
+
+          locationSubscription.current = subscription;
+        } catch (err) {
+          console.error('[TripMap] Error iniciando seguimiento GPS:', err);
+          setIsTraveling(false);
+        }
+      })();
+    }
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      if (locationSubscription.current) {
+        locationSubscription.current.remove();
+        locationSubscription.current = null;
+      }
+    };
+  }, [isTraveling, routeCoordinates, totalDistance, totalDuration]);
+
+  // Limpiar recursos al desmontar
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+      if (locationSubscription.current) {
+        locationSubscription.current.remove();
+      }
+    };
+  }, []);
 
   // Renderizar estado de carga
   if (loading) {
@@ -212,15 +461,6 @@ export const TripMap: React.FC<TripMapProps> = ({
     );
   }
 
-  /**
-   * Maneja el evento de presión sobre un marker del mapa
-   * @param group Grupo de waypoints asociado al marker presionado
-   */
-  const handleMarkerPress = (group: WaypointGroup) => {
-    setSelectedDeliveries(group.deliveries);
-    setShowDeliveryModal(true);
-  };
-
   return (
     <View style={styles.container}>
       <MapView
@@ -246,6 +486,15 @@ export const TripMap: React.FC<TripMapProps> = ({
           <Polyline
             coordinates={routeCoordinates}
             strokeColor="#00BFFF" // Azul brillante
+            strokeWidth={5}
+          />
+        )}
+        
+        {/* Polyline del progreso (ruta recorrida) */}
+        {isTraveling && currentIndex > 0 && routeCoordinates.length > 0 && (
+          <Polyline
+            coordinates={routeCoordinates.slice(0, currentIndex + 1)}
+            strokeColor="#FFD700" // Dorado
             strokeWidth={5}
           />
         )}
@@ -282,14 +531,70 @@ export const TripMap: React.FC<TripMapProps> = ({
             </Marker>
           );
         })}
+        
+        {/* Marker de posición actual del mensajero */}
+        {currentPosition && (
+          <Marker
+            coordinate={currentPosition}
+            title="Tu posición"
+            description={isTraveling ? "En movimiento" : ""}
+          >
+            <View style={styles.courierMarker}>
+              <View style={styles.courierMarkerInner}>
+                <Text style={styles.courierMarkerText}>📦</Text>
+              </View>
+            </View>
+          </Marker>
+        )}
       </MapView>
 
+      {/* Controles de viaje */}
+      <View style={styles.controlsContainer}>
+        {!isTraveling ? (
+          <TouchableOpacity 
+            style={[styles.controlButton, styles.startButton]} 
+            onPress={startTrip}
+            disabled={!tripData || routeCoordinates.length === 0}
+          >
+            <Text style={styles.controlButtonText}>
+              {__DEV__ ? '🚗 Iniciar Viaje (Simulado)' : '🚗 Iniciar Viaje'}
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity 
+            style={[styles.controlButton, styles.stopButton]} 
+            onPress={stopTrip}
+          >
+            <Text style={styles.controlButtonText}>⏹️ Detener Viaje</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
       {/* Panel de información */}
-      <RouteInfoPanel
-        pointsCount={groupedWaypoints.length}
-        totalDistance={totalDistance}
-        totalDuration={totalDuration}
-      />
+      <View style={styles.infoPanel}>
+        <View style={styles.infoPanelRow}>
+          <Text style={styles.infoPanelLabel}>Puntos de entrega:</Text>
+          <Text style={styles.infoPanelValue}>{groupedWaypoints.length}</Text>
+        </View>
+        <View style={styles.infoPanelRow}>
+          <Text style={styles.infoPanelLabel}>Distancia {isTraveling ? 'restante' : 'total'}:</Text>
+          <Text style={styles.infoPanelValue}>
+            {((isTraveling ? remainingDistance : totalDistance) / 1000).toFixed(2)} km
+          </Text>
+        </View>
+        <View style={styles.infoPanelRow}>
+          <Text style={styles.infoPanelLabel}>Tiempo {isTraveling ? 'restante' : 'estimado'}:</Text>
+          <Text style={styles.infoPanelValue}>
+            {Math.round((isTraveling ? remainingDuration : totalDuration) / 60)} min
+          </Text>
+        </View>
+        {isTraveling && (
+          <View style={styles.infoPanelRow}>
+            <Text style={styles.infoPanelLabel}>Estado:</Text>
+            <Text style={[styles.infoPanelValue, styles.statusActive]}>🔵 En movimiento</Text>
+          </View>
+        )}
+      </View>
 
       {/* Modal con información del/los delivery(s) */}
       <DeliveryModal
@@ -393,8 +698,95 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
   },
-
-
-
-
+  
+  // Estilos para marker del mensajero
+  courierMarker: {
+    width: 50,
+    height: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  courierMarkerInner: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#2196F3',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  courierMarkerText: {
+    fontSize: 20,
+  },
+  
+  // Estilos para controles
+  controlsContainer: {
+    position: 'absolute',
+    bottom: 200,
+    left: 20,
+    right: 20,
+  },
+  controlButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  startButton: {
+    backgroundColor: '#4CAF50',
+  },
+  stopButton: {
+    backgroundColor: '#F44336',
+  },
+  controlButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  
+  // Estilos para panel de información
+  infoPanel: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: CustomColors.backgroundDark,
+    borderRadius: 12,
+    padding: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  infoPanelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  infoPanelLabel: {
+    color: CustomColors.textLight,
+    fontSize: 14,
+    opacity: 0.8,
+  },
+  infoPanelValue: {
+    color: CustomColors.textLight,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  statusActive: {
+    color: '#4CAF50',
+  },
 });
