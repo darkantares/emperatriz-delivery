@@ -32,8 +32,14 @@ const getApiBaseUrl = () => {
     return `${baseUrl}/api`;
 };
 
+const getProductImageUrl = () => {
+    const baseUrl = getBaseUrl();  
+    return `${baseUrl}/api/products/files/`;
+};
+
 // URL base para todas las peticiones
 export const API_URL = getApiBaseUrl();
+export const PRODUCT_IMAGE_URL = getProductImageUrl();
 
 // Opciones por defecto para fetch
 const defaultOptions = {

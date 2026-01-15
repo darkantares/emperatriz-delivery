@@ -15,6 +15,7 @@ import { OsrmTripResult } from "@/services/osrmService";
 import { DeliveryItemAdapter } from "@/interfaces/delivery/deliveryAdapters";
 import { Capitalize } from "@/utils/capitalize";
 import { AssignmentType } from "@/utils/enum";
+import DeliveryProductsList from '@/components/DeliveryProductsList';
 
 interface TripMapProps {
   tripData: OsrmTripResult | null;
@@ -436,7 +437,12 @@ export const TripMap: React.FC<TripMapProps> = ({
                     </View>
                   )}
 
-                  {/* AGREGAR AQUI COMPONENTE CON PRODUCTOS A RECOGER O ENVIAR */}
+                  {/* Productos asociados (si aplica) */}
+                  { 
+                  selectedDeliveries[activeTabIndex].relatedOrder?.orderDetails && 
+                  selectedDeliveries[activeTabIndex].relatedOrder.orderDetails.length > 0 && (
+                    <DeliveryProductsList orderDetails={selectedDeliveries[activeTabIndex].relatedOrder.orderDetails} />
+                  )}
                 </View>
               )}
             </ScrollView>
@@ -537,7 +543,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     width: "90%",
     maxHeight: "85%",
-    height: "85%",
+    // height removed to allow modal to size to content up to maxHeight
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
@@ -664,8 +670,9 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   modalScrollContent: {
-    flex: 1,
-    maxHeight: 500,
+    // Remove flex so it sizes to content but limit with maxHeight
+    maxHeight: 700,
+    paddingBottom: 12,
   },
   // Estilos para indicador de tipo (copiados de ActiveDeliveryCard)
   typeIndicator: {
