@@ -16,6 +16,7 @@ import { DeliveryItemAdapter } from "@/interfaces/delivery/deliveryAdapters";
 import { Capitalize } from "@/utils/capitalize";
 import { AssignmentType } from "@/utils/enum";
 import DeliveryProductsList from '@/components/DeliveryProductsList';
+import RouteInfoPanel from '@/components/RouteInfoPanel';
 
 interface TripMapProps {
   tripData: OsrmTripResult | null;
@@ -291,24 +292,11 @@ export const TripMap: React.FC<TripMapProps> = ({
       </MapView>
 
       {/* Panel de información */}
-      <View style={styles.infoPanel}>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Puntos de entrega:</Text>
-          <Text style={styles.infoValue}>{groupedWaypoints.length}</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Distancia total:</Text>
-          <Text style={styles.infoValue}>
-            {(totalDistance / 1000).toFixed(2)} km
-          </Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Tiempo estimado:</Text>
-          <Text style={styles.infoValue}>
-            {Math.round(totalDuration / 60)} min
-          </Text>
-        </View>
-      </View>
+      <RouteInfoPanel
+        pointsCount={groupedWaypoints.length}
+        totalDistance={totalDistance}
+        totalDuration={totalDuration}
+      />
 
       {/* Modal con información del/los delivery(s) */}
       <Modal
@@ -500,37 +488,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     opacity: 0.7,
   },
-  infoPanel: {
-    backgroundColor: CustomColors.backgroundDark,
-    padding: 15,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 10,
-  },
-  infoRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginVertical: 5,
-  },
-  infoLabel: {
-    color: CustomColors.textLight,
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  infoValue: {
-    color: CustomColors.secondary,
-    fontSize: 16,
-    fontWeight: "bold",
-  },
+
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.7)",
@@ -700,25 +658,7 @@ const styles = StyleSheet.create({
   infoLabelInline: {
     width: 60,
   },
-  // Estilos deprecados (mantenidos por compatibilidad)
-  deliveryHeader: {
-    backgroundColor: CustomColors.backgroundDarkest,
-    padding: 10,
-    marginTop: 10,
-    borderRadius: 8,
-  },
-  deliveryNumber: {
-    color: CustomColors.primary,
-    fontSize: 16,
-    fontWeight: "bold",
-    textAlign: "center",
-  },
-  deliverySeparator: {
-    height: 2,
-    backgroundColor: CustomColors.primary + "30",
-    marginVertical: 15,
-    marginHorizontal: 15,
-  },
+
   modalFooter: {
     padding: 15,
     borderTopWidth: 1,
