@@ -33,8 +33,8 @@ const getApiBaseUrl = () => {
 };
 
 const getProductImageUrl = () => {
-    const baseUrl = getBaseUrl();  
-    return `${baseUrl}/api/products/files/`;
+    const baseUrl = getApiBaseUrl();  
+    return `${baseUrl}/files/product/`;
 };
 
 // URL base para todas las peticiones

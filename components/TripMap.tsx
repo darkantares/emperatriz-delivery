@@ -5,18 +5,14 @@ import {
   ActivityIndicator,
   Dimensions,
   TouchableOpacity,
-  Modal,
-  ScrollView,
 } from "react-native";
 import MapView, { Marker, Polyline, UrlTile } from "react-native-maps";
 import { Text } from "@/components/Themed";
 import { CustomColors } from "@/constants/CustomColors";
 import { OsrmTripResult } from "@/services/osrmService";
 import { DeliveryItemAdapter } from "@/interfaces/delivery/deliveryAdapters";
-import { Capitalize } from "@/utils/capitalize";
-import { AssignmentType } from "@/utils/enum";
-import DeliveryProductsList from '@/components/DeliveryProductsList';
 import RouteInfoPanel from '@/components/RouteInfoPanel';
+import DeliveryModal from '@/components/DeliveryModal';
 
 interface TripMapProps {
   tripData: OsrmTripResult | null;
@@ -66,11 +62,9 @@ export const TripMap: React.FC<TripMapProps> = ({
     DeliveryItemAdapter[]
   >([]);
   const [showDeliveryModal, setShowDeliveryModal] = useState<boolean>(false);
-  const [activeTabIndex, setActiveTabIndex] = useState<number>(0);
 
   const mapRef = useRef<MapView>(null);
 
-  console.log(deliveries);
   /**
    * Agrupa waypoints que comparten exactamente la misma latitud y longitud
    * @param waypoints Array de waypoints con sus deliveries asociados
@@ -224,7 +218,6 @@ export const TripMap: React.FC<TripMapProps> = ({
    */
   const handleMarkerPress = (group: WaypointGroup) => {
     setSelectedDeliveries(group.deliveries);
-    setActiveTabIndex(0); // Reset al primer tab
     setShowDeliveryModal(true);
   };
 
@@ -299,159 +292,12 @@ export const TripMap: React.FC<TripMapProps> = ({
       />
 
       {/* Modal con información del/los delivery(s) */}
-      <Modal
+      <DeliveryModal
         visible={showDeliveryModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowDeliveryModal(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowDeliveryModal(false)}
-        >
-          <TouchableOpacity activeOpacity={1} style={styles.deliveryModal}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {selectedDeliveries.length > 1
-                  ? `Entregas en este punto (${selectedDeliveries.length})`
-                  : "Información de Entrega"}
-              </Text>
-              <TouchableOpacity onPress={() => setShowDeliveryModal(false)}>
-                <Text style={styles.closeButtonText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Tabs para navegar entre entregas */}
-            {selectedDeliveries.length > 1 && (
-              <ScrollView
-                horizontal
-                style={styles.tabsContainer}
-                showsHorizontalScrollIndicator={false}
-              >
-                {selectedDeliveries.map((delivery, index) => (
-                  <TouchableOpacity
-                    key={delivery.id}
-                    style={[
-                      styles.tab,
-                      activeTabIndex === index && styles.activeTab,
-                    ]}
-                    onPress={() => setActiveTabIndex(index)}
-                  >
-                    <Text
-                      style={[
-                        styles.tabText,
-                        activeTabIndex === index && styles.activeTabText,
-                      ]}
-                    >
-                      Asignacion {index + 1}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            )}
-
-            {/* Contenido del tab activo */}
-            <ScrollView style={styles.modalScrollContent}>
-              {selectedDeliveries[activeTabIndex] && (
-                <View style={styles.modalContent}>
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoItemLabel}>Cliente:</Text>
-                    <Text style={styles.infoItemValue}>
-                      {selectedDeliveries[activeTabIndex].client} (
-                      {selectedDeliveries[activeTabIndex].phone})
-                    </Text>
-                  </View>
-
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoItemLabel}>Ubicación:</Text>
-                    <Text style={styles.infoItemValue}>
-                      {selectedDeliveries[activeTabIndex].title}
-                      {"\n"}
-                      {"\n"}
-                      {selectedDeliveries[activeTabIndex].deliveryAddress}
-                    </Text>
-                  </View>
-
-                  <View style={[styles.infoItem, { flexDirection: 'row', alignItems: 'center' }]}>
-                    <Text style={[styles.infoItemLabel, styles.infoLabelInline]}>Estado:</Text>
-                    <Text style={[styles.infoItemValue, { flex: 1, flexWrap: 'wrap' }]}>
-                      {Capitalize(
-                        selectedDeliveries[activeTabIndex].deliveryStatus.title
-                      )}
-                    </Text>
-                  </View> 
-
-                  <View style={[styles.infoItem, { flexDirection: 'row' }]}>
-                    <Text style={[styles.infoItemLabel, styles.infoLabelInline]}>Tipo:</Text>
-                    <View style={[
-                      styles.typeIndicator,
-                      selectedDeliveries[activeTabIndex].type === AssignmentType.PICKUP
-                        ? styles.pickupIndicator
-                        : selectedDeliveries[activeTabIndex].type === AssignmentType.DELIVERY
-                        ? styles.deliveryIndicator
-                        : styles.groupIndicator,
-                      { alignSelf: 'flex-start' }
-                    ]}>
-                      <Text style={styles.typeText}>
-                        {selectedDeliveries[activeTabIndex].type === AssignmentType.PICKUP
-                          ? 'RECOGIDA'
-                          : selectedDeliveries[activeTabIndex].type === AssignmentType.DELIVERY
-                          ? 'ENTREGA'
-                          : Capitalize(selectedDeliveries[activeTabIndex].type)}
-                      </Text>
-                    </View>
-                  </View>
-                  {selectedDeliveries[activeTabIndex].type ===
-                    AssignmentType.DELIVERY && (
-                    <View style={styles.infoItem}>
-                      <Text style={styles.infoItemLabel}>Monto a cobrar:</Text>
-                      <Text style={styles.infoItemValue}>
-                        RD${" "}
-                        {(
-                          selectedDeliveries[activeTabIndex].amountToBeCharged +
-                          selectedDeliveries[activeTabIndex].deliveryCost
-                        ).toFixed(2)}
-                      </Text>
-                    </View>
-                  )}
-
-                  {selectedDeliveries[activeTabIndex].observations && (
-                    <View style={styles.infoItem}>
-                      <Text style={styles.infoItemLabel}>Observaciones:</Text>
-                      <Text style={styles.infoItemValue}>
-                        {selectedDeliveries[activeTabIndex].observations}
-                      </Text>
-                    </View>
-                  )}
-
-                  {/* Productos asociados (si aplica) */}
-                  { 
-                  selectedDeliveries[activeTabIndex].relatedOrder?.orderDetails && 
-                  selectedDeliveries[activeTabIndex].relatedOrder.orderDetails.length > 0 && (
-                    <DeliveryProductsList orderDetails={selectedDeliveries[activeTabIndex].relatedOrder.orderDetails} />
-                  )}
-                </View>
-              )}
-            </ScrollView>
-
-            {/* Botón de progreso al pie del modal */}
-            {onProgressDelivery && selectedDeliveries[activeTabIndex] && (
-              <View style={styles.modalFooter}>
-                <TouchableOpacity
-                  style={styles.progressButton}
-                  onPress={() => {
-                    onProgressDelivery(selectedDeliveries[activeTabIndex]);
-                    setShowDeliveryModal(false);
-                  }}
-                >
-                  <Text style={styles.progressButtonText}>Progresar Envío</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
+        deliveries={selectedDeliveries}
+        onClose={() => setShowDeliveryModal(false)}
+        onProgressDelivery={onProgressDelivery}
+      />
     </View>
   );
 };
@@ -489,62 +335,8 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
 
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  deliveryModal: {
-    backgroundColor: CustomColors.backgroundDark,
-    borderRadius: 15,
-    width: "90%",
-    maxHeight: "85%",
-    // height removed to allow modal to size to content up to maxHeight
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-    elevation: 10,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: CustomColors.textLight + "20",
-  },
-  modalTitle: {
-    color: CustomColors.textLight,
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  closeButtonText: {
-    color: CustomColors.primary,
-    fontSize: 24,
-    fontWeight: "bold",
-  },
-  modalContent: {
-    padding: 15,
-  },
-  infoItem: {
-    marginBottom: 15,
-  },
-  infoItemLabel: {
-    color: CustomColors.textLight,
-    fontSize: 14,
-    fontWeight: "bold",
-    marginBottom: 5,
-    opacity: 0.7,
-  },
-  infoItemValue: {
-    color: CustomColors.textLight,
-    fontSize: 16,
-    flex: 1,
-    flexWrap: 'wrap',
-  },
+
+
   // Estilos para custom marker con pin circular
   customMarker: {
     alignItems: "center",
@@ -601,86 +393,8 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
   },
-  // Estilos para sistema de tabs
-  tabsContainer: {
-    maxHeight: 50,
-    borderBottomWidth: 1,
-    borderBottomColor: CustomColors.textLight + "20",
-    backgroundColor: CustomColors.backgroundDarkest,
-  },
-  tab: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    marginHorizontal: 5,
-    borderBottomWidth: 3,
-    borderBottomColor: "transparent",
-  },
-  activeTab: {
-    borderBottomColor: CustomColors.primary,
-  },
-  tabText: {
-    color: CustomColors.textLight + "80",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  activeTabText: {
-    color: CustomColors.primary,
-    fontWeight: "bold",
-  },
-  modalScrollContent: {
-    // Remove flex so it sizes to content but limit with maxHeight
-    maxHeight: 700,
-    paddingBottom: 12,
-  },
-  // Estilos para indicador de tipo (copiados de ActiveDeliveryCard)
-  typeIndicator: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pickupIndicator: {
-    backgroundColor: CustomColors.quaternary,
-  },
-  deliveryIndicator: {
-    backgroundColor: CustomColors.secondary,
-  },
-  groupIndicator: {
-    backgroundColor: CustomColors.tertiary,
-  },
-  typeText: {
-    color: CustomColors.textLight,
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  // Inline label width to align values
-  infoLabelInline: {
-    width: 60,
-  },
 
-  modalFooter: {
-    padding: 15,
-    borderTopWidth: 1,
-    borderTopColor: CustomColors.textLight + "20",
-    backgroundColor: CustomColors.backgroundDark,
-  },
-  progressButton: {
-    backgroundColor: CustomColors.secondary,
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  progressButtonText: {
-    color: CustomColors.textLight,
-    fontSize: 16,
-    fontWeight: "bold",
-  },
+
+
+
 });

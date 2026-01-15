@@ -16,11 +16,11 @@ export interface ProductEntity extends IGlobalEntity {
   quantity?: number | null;
   quantityNoTransaction?: number | null;
   tags?: string[];
+  productType: ProductTypeEntity;
   //   productVariations?: SubProductAttributes[];
   //   published?: ProductPublishStatus;
   //   offer_promotion?: OffersPromotionEntity | null;
   //   condition?: ProductConditionEntity | null;
-  //   productType: ProductTypeEntity;
   //   category?: CategoryEntity | null;
   //   sub_category?: SubCategoryEntity | null;
   //   sub_sub_category?: SubSubCategoryEntity | null;
@@ -31,7 +31,16 @@ export interface ProductEntity extends IGlobalEntity {
   //   formarray_product_variations?: ProductVariationEntity[];
   // transactions are excluded from this lightweight interface
 }
+export interface ProductTypeEntity {
+  id: number;
+  title: ProductTypeEnum;
+}
 
+export enum ProductTypeEnum {
+  PHYSICAL = 'physical',
+  SERVICE = 'service',
+  DIGITAL = 'digital',
+}
 export interface FilesProductEntity {
     id: number;
     url: string;

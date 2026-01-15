@@ -1,34 +1,87 @@
 import React from 'react';
-import { View, StyleSheet, Image, ScrollView, TouchableOpacity } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  Image,
+  ScrollView,
+  TouchableOpacity,
+} from 'react-native';
 import { Text } from '@/components/Themed';
 import { CustomColors } from '@/constants/CustomColors';
 import { OrderDetailEntity } from '@/interfaces/delivery/delivery';
 import { PRODUCT_IMAGE_URL } from '@/services/api';
+import { Capitalize } from '@/utils/capitalize';
+import { ProductTypeEnum } from '@/interfaces/product';
 
 interface DeliveryProductsListProps {
   orderDetails: OrderDetailEntity[];
 }
 
-export const DeliveryProductsList: React.FC<DeliveryProductsListProps> = ({ orderDetails }) => {
+export const DeliveryProductsList: React.FC<DeliveryProductsListProps> = ({
+  orderDetails,
+}) => {
   if (!orderDetails || orderDetails.length === 0) return null;
-
+  
+  // Filtrar solo productos físicos
+  const physicalOrderDetails = orderDetails.filter(
+    (od) => od.product?.productType?.title === ProductTypeEnum.PHYSICAL
+  );
+  
+  if (physicalOrderDetails.length === 0) return null;
+  
+  console.log(orderDetails);
+  
   return (
-    <View style={styles.container}>
-      {/* <Text style={styles.header}>Productos</Text> */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.list}>
-        {orderDetails.map((od) => {
+    <View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.list}
+      >
+        {physicalOrderDetails.map((od) => {
           const product = od.product;
-          const imageUri = product?.files && product.files.length > 0 ? (PRODUCT_IMAGE_URL+product.files[0].url) : undefined;
-
+          console.log(product);
+          
+          const images = product.files?.filter((f) => f.url).map((f) => PRODUCT_IMAGE_URL + f.url) || [];
+            
           return (
-            <TouchableOpacity key={od.id} activeOpacity={0.8} style={styles.card}>
-              {imageUri ? (
-                <Image source={{ uri: imageUri }} style={styles.image} resizeMode="cover" />
-              ) : (
-                <View style={[styles.image, styles.imagePlaceholder]} />
-              )}
+            <TouchableOpacity
+              key={od.id}
+              activeOpacity={0.8}
+              style={styles.card}
+            >
+              {/* SLIDER DE IMÁGENES */}
+              <View style={styles.imageContainer}>
+                <ScrollView
+                  horizontal
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.slider}
+                >
+                  {images.length > 0 ? (
+                    images.map((uri, index) => (
+                      <Image
+                        key={index}
+                        source={{ uri }}
+                        style={styles.imageFill}
+                        resizeMode="cover"
+                      />
+                    ))
+                  ) : (
+                    <View
+                      style={[
+                        styles.imageFill,
+                        styles.imagePlaceholder,
+                      ]}
+                    />
+                  )}
+                </ScrollView>
+              </View>
 
-              <Text style={styles.title} numberOfLines={2}>{imageUri}</Text>
+              {/* TÍTULO */}
+              <Text style={styles.title} numberOfLines={2}>
+                {Capitalize(product?.title)}
+              </Text>
             </TouchableOpacity>
           );
         })}
@@ -37,37 +90,40 @@ export const DeliveryProductsList: React.FC<DeliveryProductsListProps> = ({ orde
   );
 };
 
+const CARD_WIDTH = 120;
+const CARD_PADDING = 8;
+const IMAGE_HEIGHT = 96;
+
 const styles = StyleSheet.create({
-  container: {
-    marginTop: 12,
-  },
-  header: {
-    color: CustomColors.textLight,
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
   list: {
     paddingLeft: 5,
     paddingRight: 10,
   },
   card: {
-    width: 120,
+    width: CARD_WIDTH,
     marginRight: 12,
     backgroundColor: CustomColors.backgroundDarkest,
     borderRadius: 8,
-    padding: 8,
+    padding: CARD_PADDING,
     alignItems: 'center',
   },
-  image: {
-    width: 96,
-    height: 96,
+  imageContainer: {
+    width: '100%',
+    height: IMAGE_HEIGHT,
     borderRadius: 8,
     backgroundColor: '#333',
+    overflow: 'hidden',
+  },
+  slider: {
+    width: '100%',
+    height: IMAGE_HEIGHT,
+  },
+  imageFill: {
+    width: CARD_WIDTH - CARD_PADDING * 2,
+    height: IMAGE_HEIGHT,
   },
   imagePlaceholder: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: '#333',
     opacity: 0.4,
   },
   title: {
