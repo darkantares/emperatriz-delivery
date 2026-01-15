@@ -1,10 +1,20 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { View, StyleSheet, ActivityIndicator, Dimensions, TouchableOpacity, Modal, ScrollView } from 'react-native';
-import MapView, { Marker, Polyline, UrlTile } from 'react-native-maps';
-import { Text } from '@/components/Themed';
-import { CustomColors } from '@/constants/CustomColors';
-import { OsrmTripResult } from '@/services/osrmService';
-import { DeliveryItemAdapter } from '@/interfaces/delivery/deliveryAdapters';
+import React, { useEffect, useState, useRef } from "react";
+import {
+  View,
+  StyleSheet,
+  ActivityIndicator,
+  Dimensions,
+  TouchableOpacity,
+  Modal,
+  ScrollView,
+} from "react-native";
+import MapView, { Marker, Polyline, UrlTile } from "react-native-maps";
+import { Text } from "@/components/Themed";
+import { CustomColors } from "@/constants/CustomColors";
+import { OsrmTripResult } from "@/services/osrmService";
+import { DeliveryItemAdapter } from "@/interfaces/delivery/deliveryAdapters";
+import { Capitalize } from "@/utils/capitalize";
+import { AssignmentType } from "@/utils/enum";
 
 interface TripMapProps {
   tripData: OsrmTripResult | null;
@@ -35,16 +45,25 @@ interface WaypointGroup {
   isLastInRoute: boolean;
 }
 
-export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error, deliveries }) => {
-  const [waypointsWithDeliveries, setWaypointsWithDeliveries] = useState<WaypointWithDelivery[]>([]);
+export const TripMap: React.FC<TripMapProps> = ({
+  tripData,
+  loading,
+  error,
+  deliveries,
+}) => {
+  const [waypointsWithDeliveries, setWaypointsWithDeliveries] = useState<
+    WaypointWithDelivery[]
+  >([]);
   const [groupedWaypoints, setGroupedWaypoints] = useState<WaypointGroup[]>([]);
   const [routeCoordinates, setRouteCoordinates] = useState<Coordinate[]>([]);
   const [totalDistance, setTotalDistance] = useState<number>(0);
   const [totalDuration, setTotalDuration] = useState<number>(0);
-  const [selectedDeliveries, setSelectedDeliveries] = useState<DeliveryItemAdapter[]>([]);
+  const [selectedDeliveries, setSelectedDeliveries] = useState<
+    DeliveryItemAdapter[]
+  >([]);
   const [showDeliveryModal, setShowDeliveryModal] = useState<boolean>(false);
   const [activeTabIndex, setActiveTabIndex] = useState<number>(0);
-  
+
   const mapRef = useRef<MapView>(null);
 
   /**
@@ -52,7 +71,9 @@ export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error, deli
    * @param waypoints Array de waypoints con sus deliveries asociados
    * @returns Array de grupos donde cada grupo contiene todos los deliveries del mismo punto
    */
-  const groupWaypointsByCoordinates = (waypoints: WaypointWithDelivery[]): WaypointGroup[] => {
+  const groupWaypointsByCoordinates = (
+    waypoints: WaypointWithDelivery[]
+  ): WaypointGroup[] => {
     // Mapa para agrupar por clave "lat,lng"
     const groupsMap = new Map<string, WaypointGroup>();
 
@@ -79,8 +100,10 @@ export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error, deli
 
     // Convertir el mapa a array
     const groups = Array.from(groupsMap.values());
-    console.log(`[TripMap] Agrupación completa: ${waypoints.length} waypoints -> ${groups.length} grupos`);
-    
+    console.log(
+      `[TripMap] Agrupación completa: ${waypoints.length} waypoints -> ${groups.length} grupos`
+    );
+
     return groups;
   };
 
@@ -91,44 +114,51 @@ export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error, deli
 
     try {
       const trip = tripData.trips[0];
-      
-      console.log('[TripMap] Processing trip data:', trip);
-      console.log('[TripMap] Deliveries recibidos:', deliveries.length);
+
+      console.log("[TripMap] Processing trip data:", trip);
+      console.log("[TripMap] Deliveries recibidos:", deliveries.length);
 
       // Extraer waypoints y asociarlos con deliveries usando waypoint_index
       if (tripData.waypoints && tripData.waypoints.length > 0) {
-        const waypointsData: WaypointWithDelivery[] = tripData.waypoints.map(wp => {
-          // waypoint_index indica el índice original de la coordenada enviada
-          const originalIndex = wp.waypoint_index;
-          const delivery = deliveries[originalIndex];
+        const waypointsData: WaypointWithDelivery[] = tripData.waypoints.map(
+          (wp) => {
+            // waypoint_index indica el índice original de la coordenada enviada
+            const originalIndex = wp.waypoint_index;
+            const delivery = deliveries[originalIndex];
 
-          return {
-            coordinate: {
-              latitude: wp.location[1],
-              longitude: wp.location[0],
-            },
-            delivery: delivery,
-            index: originalIndex,
-          };
-        });
+            return {
+              coordinate: {
+                latitude: wp.location[1],
+                longitude: wp.location[0],
+              },
+              delivery: delivery,
+              index: originalIndex,
+            };
+          }
+        );
 
         setWaypointsWithDeliveries(waypointsData);
-        console.log('[TripMap] Waypoints con deliveries:', waypointsData.length);
+        console.log(
+          "[TripMap] Waypoints con deliveries:",
+          waypointsData.length
+        );
 
         // Agrupar waypoints por coordenadas exactas
         const grouped = groupWaypointsByCoordinates(waypointsData);
         setGroupedWaypoints(grouped);
-        console.log('[TripMap] Grupos creados:', grouped.length);
+        console.log("[TripMap] Grupos creados:", grouped.length);
       }
 
       // Extraer coordenadas de la geometría (GeoJSON format)
       if (trip.geometry && trip.geometry.coordinates) {
-        const coords: Coordinate[] = trip.geometry.coordinates.map((coord: number[]) => ({
-          latitude: coord[1],
-          longitude: coord[0],
-        }));
+        const coords: Coordinate[] = trip.geometry.coordinates.map(
+          (coord: number[]) => ({
+            latitude: coord[1],
+            longitude: coord[0],
+          })
+        );
         setRouteCoordinates(coords);
-        console.log('[TripMap] Coordenadas de ruta extraídas:', coords.length);
+        console.log("[TripMap] Coordenadas de ruta extraídas:", coords.length);
       }
 
       // Establecer distancia y duración totales
@@ -138,15 +168,18 @@ export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error, deli
       // Centrar el mapa en la primera coordenada
       if (waypointsWithDeliveries.length > 0 && mapRef.current) {
         const firstCoord = waypointsWithDeliveries[0].coordinate;
-        mapRef.current.animateToRegion({
-          latitude: firstCoord.latitude,
-          longitude: firstCoord.longitude,
-          latitudeDelta: 0.1,
-          longitudeDelta: 0.1,
-        }, 1000);
+        mapRef.current.animateToRegion(
+          {
+            latitude: firstCoord.latitude,
+            longitude: firstCoord.longitude,
+            latitudeDelta: 0.1,
+            longitudeDelta: 0.1,
+          },
+          1000
+        );
       }
     } catch (err) {
-      console.error('[TripMap] Error procesando trip data:', err);
+      console.error("[TripMap] Error procesando trip data:", err);
     }
   }, [tripData, deliveries]);
 
@@ -173,7 +206,9 @@ export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error, deli
   if (!tripData || groupedWaypoints.length === 0) {
     return (
       <View style={styles.centerContainer}>
-        <Text style={styles.noDataText}>No hay datos de ruta optimizada para mostrar</Text>
+        <Text style={styles.noDataText}>
+          No hay datos de ruta optimizada para mostrar
+        </Text>
       </View>
     );
   }
@@ -220,8 +255,12 @@ export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error, deli
         {/* Markers agrupados por coordenadas con contador visual */}
         {groupedWaypoints.map((group, index) => {
           // Determinar color del marker según posición en la ruta
-          const markerColor = group.isFirstInRoute ? '#4CAF50' : group.isLastInRoute ? '#F44336' : '#FF9800';
-          
+          const markerColor = group.isFirstInRoute
+            ? "#4CAF50"
+            : group.isLastInRoute
+            ? "#F44336"
+            : "#FF9800";
+
           return (
             <Marker
               key={`group-${group.coordinate.latitude}-${group.coordinate.longitude}`}
@@ -229,14 +268,18 @@ export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error, deli
               onPress={() => handleMarkerPress(group)}
             >
               <View style={styles.customMarker}>
-                <View style={[styles.markerPin, { backgroundColor: markerColor }]}>
+                <View
+                  style={[styles.markerPin, { backgroundColor: markerColor }]}
+                >
                   {group.count > 1 && (
                     <View style={styles.markerBadge}>
                       <Text style={styles.markerBadgeText}>{group.count}</Text>
                     </View>
                   )}
                 </View>
-                <View style={[styles.markerArrow, { borderTopColor: markerColor }]} />
+                <View
+                  style={[styles.markerArrow, { borderTopColor: markerColor }]}
+                />
               </View>
             </Marker>
           );
@@ -251,11 +294,15 @@ export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error, deli
         </View>
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Distancia total:</Text>
-          <Text style={styles.infoValue}>{(totalDistance / 1000).toFixed(2)} km</Text>
+          <Text style={styles.infoValue}>
+            {(totalDistance / 1000).toFixed(2)} km
+          </Text>
         </View>
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Tiempo estimado:</Text>
-          <Text style={styles.infoValue}>{Math.round(totalDuration / 60)} min</Text>
+          <Text style={styles.infoValue}>
+            {Math.round(totalDuration / 60)} min
+          </Text>
         </View>
       </View>
 
@@ -266,7 +313,7 @@ export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error, deli
         animationType="fade"
         onRequestClose={() => setShowDeliveryModal(false)}
       >
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.modalOverlay}
           activeOpacity={1}
           onPress={() => setShowDeliveryModal(false)}
@@ -274,9 +321,9 @@ export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error, deli
           <TouchableOpacity activeOpacity={1} style={styles.deliveryModal}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {selectedDeliveries.length > 1 
+                {selectedDeliveries.length > 1
                   ? `Entregas en este punto (${selectedDeliveries.length})`
-                  : 'Información de Entrega'}
+                  : "Información de Entrega"}
               </Text>
               <TouchableOpacity onPress={() => setShowDeliveryModal(false)}>
                 <Text style={styles.closeButtonText}>✕</Text>
@@ -285,8 +332,8 @@ export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error, deli
 
             {/* Tabs para navegar entre entregas */}
             {selectedDeliveries.length > 1 && (
-              <ScrollView 
-                horizontal 
+              <ScrollView
+                horizontal
                 style={styles.tabsContainer}
                 showsHorizontalScrollIndicator={false}
               >
@@ -295,14 +342,16 @@ export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error, deli
                     key={delivery.id}
                     style={[
                       styles.tab,
-                      activeTabIndex === index && styles.activeTab
+                      activeTabIndex === index && styles.activeTab,
                     ]}
                     onPress={() => setActiveTabIndex(index)}
                   >
-                    <Text style={[
-                      styles.tabText,
-                      activeTabIndex === index && styles.activeTabText
-                    ]}>
+                    <Text
+                      style={[
+                        styles.tabText,
+                        activeTabIndex === index && styles.activeTabText,
+                      ]}
+                    >
                       Asignacion {index + 1}
                     </Text>
                   </TouchableOpacity>
@@ -316,43 +365,57 @@ export const TripMap: React.FC<TripMapProps> = ({ tripData, loading, error, deli
                 <View style={styles.modalContent}>
                   <View style={styles.infoItem}>
                     <Text style={styles.infoItemLabel}>Cliente:</Text>
-                    <Text style={styles.infoItemValue}>{selectedDeliveries[activeTabIndex].client}</Text>
-                  </View>
-
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoItemLabel}>Teléfono:</Text>
-                    <Text style={styles.infoItemValue}>{selectedDeliveries[activeTabIndex].phone}</Text>
-                  </View>
-
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoItemLabel}>Dirección:</Text>
-                    <Text style={styles.infoItemValue}>{selectedDeliveries[activeTabIndex].deliveryAddress}</Text>
+                    <Text style={styles.infoItemValue}>
+                      {selectedDeliveries[activeTabIndex].client} (
+                      {selectedDeliveries[activeTabIndex].phone})
+                    </Text>
                   </View>
 
                   <View style={styles.infoItem}>
                     <Text style={styles.infoItemLabel}>Ubicación:</Text>
-                    <Text style={styles.infoItemValue}>{selectedDeliveries[activeTabIndex].title}</Text>
+                    <Text style={styles.infoItemValue}>
+                      {selectedDeliveries[activeTabIndex].title}
+                      {"\n"}
+                      {"\n"}
+                      {selectedDeliveries[activeTabIndex].deliveryAddress}
+                    </Text>
                   </View>
 
                   <View style={styles.infoItem}>
                     <Text style={styles.infoItemLabel}>Estado:</Text>
-                    <Text style={styles.infoItemValue}>{selectedDeliveries[activeTabIndex].deliveryStatus.title}</Text>
+                    <Text style={styles.infoItemValue}>
+                      {Capitalize(
+                        selectedDeliveries[activeTabIndex].deliveryStatus.title
+                      )}
+                    </Text>
                   </View>
 
                   <View style={styles.infoItem}>
-                    <Text style={styles.infoItemLabel}>Costo de envío:</Text>
-                    <Text style={styles.infoItemValue}>RD$ {selectedDeliveries[activeTabIndex].deliveryCost.toFixed(2)}</Text>
+                    <Text style={styles.infoItemLabel}>Tipo:</Text>
+                    <Text style={styles.infoItemValue}>
+                      {selectedDeliveries[activeTabIndex].type === AssignmentType.PICKUP ? 'RECOGIDA' : selectedDeliveries[activeTabIndex].type === AssignmentType.DELIVERY ? 'ENTREGA' : Capitalize(selectedDeliveries[activeTabIndex].type)}
+                    </Text>
                   </View>
-
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoItemLabel}>Monto a cobrar:</Text>
-                    <Text style={styles.infoItemValue}>RD$ {selectedDeliveries[activeTabIndex].amountToBeCharged.toFixed(2)}</Text>
-                  </View>
+                  {selectedDeliveries[activeTabIndex].type ===
+                    AssignmentType.DELIVERY && (
+                    <View style={styles.infoItem}>
+                      <Text style={styles.infoItemLabel}>Monto a cobrar:</Text>
+                      <Text style={styles.infoItemValue}>
+                        RD${" "}
+                        {(
+                          selectedDeliveries[activeTabIndex].amountToBeCharged +
+                          selectedDeliveries[activeTabIndex].deliveryCost
+                        ).toFixed(2)}
+                      </Text>
+                    </View>
+                  )}
 
                   {selectedDeliveries[activeTabIndex].observations && (
                     <View style={styles.infoItem}>
                       <Text style={styles.infoItemLabel}>Observaciones:</Text>
-                      <Text style={styles.infoItemValue}>{selectedDeliveries[activeTabIndex].observations}</Text>
+                      <Text style={styles.infoItemValue}>
+                        {selectedDeliveries[activeTabIndex].observations}
+                      </Text>
                     </View>
                   )}
                 </View>
@@ -371,13 +434,13 @@ const styles = StyleSheet.create({
     backgroundColor: CustomColors.backgroundDarkest,
   },
   map: {
-    width: Dimensions.get('window').width,
-    height: Dimensions.get('window').height,
+    width: Dimensions.get("window").width,
+    height: Dimensions.get("window").height,
   },
   centerContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: CustomColors.backgroundDarkest,
     padding: 20,
   },
@@ -389,12 +452,12 @@ const styles = StyleSheet.create({
   errorText: {
     color: CustomColors.primary,
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
   noDataText: {
     color: CustomColors.textLight,
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
     opacity: 0.7,
   },
   infoPanel: {
@@ -402,68 +465,68 @@ const styles = StyleSheet.create({
     padding: 15,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.3,
     shadowRadius: 5,
     elevation: 10,
   },
   infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginVertical: 5,
   },
   infoLabel: {
     color: CustomColors.textLight,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   infoValue: {
     color: CustomColors.secondary,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   deliveryModal: {
     backgroundColor: CustomColors.backgroundDark,
     borderRadius: 15,
-    width: '90%',
-    maxHeight: '80%',
-    height: '80%',
-    shadowColor: '#000',
+    width: "90%",
+    maxHeight: "85%",
+    height: "85%",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
     shadowRadius: 10,
     elevation: 10,
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: CustomColors.textLight + '20',
+    borderBottomColor: CustomColors.textLight + "20",
   },
   modalTitle: {
     color: CustomColors.textLight,
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   closeButtonText: {
     color: CustomColors.primary,
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   modalContent: {
     padding: 15,
@@ -474,7 +537,7 @@ const styles = StyleSheet.create({
   infoItemLabel: {
     color: CustomColors.textLight,
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 5,
     opacity: 0.7,
   },
@@ -484,17 +547,19 @@ const styles = StyleSheet.create({
   },
   // Estilos para custom marker con pin circular
   customMarker: {
-    alignItems: 'center',
+    alignItems: "center",
+    width: 60,
+    height: 60,
   },
   markerPin: {
     width: 40,
     height: 40,
     borderRadius: 20,
     borderWidth: 3,
-    borderColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
+    borderColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.4,
     shadowRadius: 4,
@@ -506,40 +571,41 @@ const styles = StyleSheet.create({
     borderLeftWidth: 8,
     borderRightWidth: 8,
     borderTopWidth: 12,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
+    borderLeftColor: "transparent",
+    borderRightColor: "transparent",
     marginTop: -1,
   },
   // Estilos para el badge de contador en markers
   markerBadge: {
-    position: 'absolute',
-    top: -8,
-    right: -8,
-    backgroundColor: '#DC143C',
+    position: "absolute",
+    top: -5,
+    right: -5,
+    backgroundColor: "#DC143C",
     borderRadius: 12,
     minWidth: 24,
     height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
+    paddingHorizontal: 6,
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 2,
-    borderColor: '#FFFFFF',
-    shadowColor: '#000',
+    borderColor: "#FFFFFF",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
     shadowRadius: 3,
     elevation: 8,
   },
   markerBadgeText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 11,
-    fontWeight: 'bold',
-    textAlign: 'center',
+    fontWeight: "bold",
+    textAlign: "center",
   },
   // Estilos para sistema de tabs
   tabsContainer: {
     maxHeight: 50,
     borderBottomWidth: 1,
-    borderBottomColor: CustomColors.textLight + '20',
+    borderBottomColor: CustomColors.textLight + "20",
     backgroundColor: CustomColors.backgroundDarkest,
   },
   tab: {
@@ -547,19 +613,19 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     marginHorizontal: 5,
     borderBottomWidth: 3,
-    borderBottomColor: 'transparent',
+    borderBottomColor: "transparent",
   },
   activeTab: {
     borderBottomColor: CustomColors.primary,
   },
   tabText: {
-    color: CustomColors.textLight + '80',
+    color: CustomColors.textLight + "80",
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   activeTabText: {
     color: CustomColors.primary,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   modalScrollContent: {
     flex: 1,
@@ -575,12 +641,12 @@ const styles = StyleSheet.create({
   deliveryNumber: {
     color: CustomColors.primary,
     fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'center',
+    fontWeight: "bold",
+    textAlign: "center",
   },
   deliverySeparator: {
     height: 2,
-    backgroundColor: CustomColors.primary + '30',
+    backgroundColor: CustomColors.primary + "30",
     marginVertical: 15,
     marginHorizontal: 15,
   },
