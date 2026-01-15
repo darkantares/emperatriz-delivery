@@ -1,4 +1,4 @@
-import { AdditionalDataNominatimEntity, IDeliveryAssignmentEntity } from "../delivery/delivery";
+import { AdditionalDataNominatimEntity, IDeliveryAssignmentEntity, OrderEntity } from "../delivery/delivery";
 import { AssignmentType } from "@/utils/enum";
 import { IProvincia, IMunicipio, ISector } from "@/interfaces/location";
 import { IDeliveryStatusEntity } from "../delivery/delivery";
@@ -20,6 +20,7 @@ export interface DeliveryItemAdapter {
   destiny?: ISector;
   isGroup: boolean;
   additionalDataNominatim: AdditionalDataNominatimEntity;
+  relatedOrder?: OrderEntity;
   shipmentId: string;
   deliveryCost: number;
   amountToBeCharged: number;
@@ -56,6 +57,7 @@ export function adaptDeliveriesToAdapter(deliveries: IDeliveryAssignmentEntity[]
       shipmentId: delivery.shipmentId,
       deliveryCost: Number(delivery.deliveryCost),
       amountToBeCharged: Number((delivery as any).amountToBeCharged ?? (delivery as any).cost ?? 0),
+      relatedOrder: delivery.relatedOrder,
       enterprise: delivery.enterprise.title,
     }));    
   } catch (error) {

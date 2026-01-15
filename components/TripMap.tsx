@@ -21,6 +21,7 @@ interface TripMapProps {
   loading?: boolean;
   error?: string | null;
   deliveries: DeliveryItemAdapter[];
+  onProgressDelivery?: (delivery: DeliveryItemAdapter) => void;
 }
 
 interface Coordinate {
@@ -50,6 +51,7 @@ export const TripMap: React.FC<TripMapProps> = ({
   loading,
   error,
   deliveries,
+  onProgressDelivery,
 }) => {
   const [waypointsWithDeliveries, setWaypointsWithDeliveries] = useState<
     WaypointWithDelivery[]
@@ -66,6 +68,7 @@ export const TripMap: React.FC<TripMapProps> = ({
 
   const mapRef = useRef<MapView>(null);
 
+  console.log(deliveries);
   /**
    * Agrupa waypoints que comparten exactamente la misma latitud y longitud
    * @param waypoints Array de waypoints con sus deliveries asociados
@@ -381,20 +384,34 @@ export const TripMap: React.FC<TripMapProps> = ({
                     </Text>
                   </View>
 
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoItemLabel}>Estado:</Text>
-                    <Text style={styles.infoItemValue}>
+                  <View style={[styles.infoItem, { flexDirection: 'row', alignItems: 'center' }]}>
+                    <Text style={[styles.infoItemLabel, styles.infoLabelInline]}>Estado:</Text>
+                    <Text style={[styles.infoItemValue, { flex: 1, flexWrap: 'wrap' }]}>
                       {Capitalize(
                         selectedDeliveries[activeTabIndex].deliveryStatus.title
                       )}
                     </Text>
-                  </View>
+                  </View> 
 
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoItemLabel}>Tipo:</Text>
-                    <Text style={styles.infoItemValue}>
-                      {selectedDeliveries[activeTabIndex].type === AssignmentType.PICKUP ? 'RECOGIDA' : selectedDeliveries[activeTabIndex].type === AssignmentType.DELIVERY ? 'ENTREGA' : Capitalize(selectedDeliveries[activeTabIndex].type)}
-                    </Text>
+                  <View style={[styles.infoItem, { flexDirection: 'row' }]}>
+                    <Text style={[styles.infoItemLabel, styles.infoLabelInline]}>Tipo:</Text>
+                    <View style={[
+                      styles.typeIndicator,
+                      selectedDeliveries[activeTabIndex].type === AssignmentType.PICKUP
+                        ? styles.pickupIndicator
+                        : selectedDeliveries[activeTabIndex].type === AssignmentType.DELIVERY
+                        ? styles.deliveryIndicator
+                        : styles.groupIndicator,
+                      { alignSelf: 'flex-start' }
+                    ]}>
+                      <Text style={styles.typeText}>
+                        {selectedDeliveries[activeTabIndex].type === AssignmentType.PICKUP
+                          ? 'RECOGIDA'
+                          : selectedDeliveries[activeTabIndex].type === AssignmentType.DELIVERY
+                          ? 'ENTREGA'
+                          : Capitalize(selectedDeliveries[activeTabIndex].type)}
+                      </Text>
+                    </View>
                   </View>
                   {selectedDeliveries[activeTabIndex].type ===
                     AssignmentType.DELIVERY && (
@@ -418,9 +435,26 @@ export const TripMap: React.FC<TripMapProps> = ({
                       </Text>
                     </View>
                   )}
+
+                  {/* AGREGAR AQUI COMPONENTE CON PRODUCTOS A RECOGER O ENVIAR */}
                 </View>
               )}
             </ScrollView>
+
+            {/* Botón de progreso al pie del modal */}
+            {onProgressDelivery && selectedDeliveries[activeTabIndex] && (
+              <View style={styles.modalFooter}>
+                <TouchableOpacity
+                  style={styles.progressButton}
+                  onPress={() => {
+                    onProgressDelivery(selectedDeliveries[activeTabIndex]);
+                    setShowDeliveryModal(false);
+                  }}
+                >
+                  <Text style={styles.progressButtonText}>Progresar Envío</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
@@ -544,6 +578,8 @@ const styles = StyleSheet.create({
   infoItemValue: {
     color: CustomColors.textLight,
     fontSize: 16,
+    flex: 1,
+    flexWrap: 'wrap',
   },
   // Estilos para custom marker con pin circular
   customMarker: {
@@ -631,6 +667,32 @@ const styles = StyleSheet.create({
     flex: 1,
     maxHeight: 500,
   },
+  // Estilos para indicador de tipo (copiados de ActiveDeliveryCard)
+  typeIndicator: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pickupIndicator: {
+    backgroundColor: CustomColors.quaternary,
+  },
+  deliveryIndicator: {
+    backgroundColor: CustomColors.secondary,
+  },
+  groupIndicator: {
+    backgroundColor: CustomColors.tertiary,
+  },
+  typeText: {
+    color: CustomColors.textLight,
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  // Inline label width to align values
+  infoLabelInline: {
+    width: 60,
+  },
   // Estilos deprecados (mantenidos por compatibilidad)
   deliveryHeader: {
     backgroundColor: CustomColors.backgroundDarkest,
@@ -649,5 +711,29 @@ const styles = StyleSheet.create({
     backgroundColor: CustomColors.primary + "30",
     marginVertical: 15,
     marginHorizontal: 15,
+  },
+  modalFooter: {
+    padding: 15,
+    borderTopWidth: 1,
+    borderTopColor: CustomColors.textLight + "20",
+    backgroundColor: CustomColors.backgroundDark,
+  },
+  progressButton: {
+    backgroundColor: CustomColors.secondary,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  progressButtonText: {
+    color: CustomColors.textLight,
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });

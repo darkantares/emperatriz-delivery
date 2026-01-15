@@ -5,6 +5,7 @@ import { IDeliveryPerson } from "../carrier";
 import { IEnterpriseEntity } from "../auth";
 import { IDeliveryStatus } from "./deliveryStatus";
 import { IPaymentMethodEntity } from "../payment/payment";
+import { ProductEntity } from "../product";
 
 export interface IUpdateDelivery extends Partial<ICreateDeliveryAssigment>{}
 
@@ -63,6 +64,7 @@ export interface IDeliveryAssignmentEntity extends IGlobalEntity {
   assignedAt: Date;
   acceptedAt: Date;
   completedAt: Date;
+  relatedOrder?: OrderEntity;
   driver: IDeliveryPerson;
   isGroup: boolean;
   origin?: ISector;
@@ -70,6 +72,36 @@ export interface IDeliveryAssignmentEntity extends IGlobalEntity {
   enterprise:IEnterpriseEntity;
 }
 
+export interface OrderEntity extends IGlobalEntity {
+  id: number;
+  shipmentId: string
+  deliveryAddress: string
+  deliveryDate?: Date
+  isDelivered?: boolean
+  observations?: string
+  statusObservations?: string
+  orderDetails: OrderDetailEntity[]
+  // type: OnlineStoreAssignmentType
+  // provincia: Provincia
+  // municipio: Municipio
+  // sector: Sector
+  // seller: AuthUserEntity
+  // orderStatus: DeliveryStatusEntity
+  // client: ClientEntity
+  // enterprise: EnterpriseEntity
+}
+
+export interface OrderDetailEntity {
+  id: number;
+  shipmentId: string;
+  quantity: number;
+  unitPrice: number;
+  additionalAmount?: number;
+  productTitle: string;
+  product: ProductEntity;
+  order: OrderEntity;
+}
+// agregar aqui interfaz de ProductEntity
 export interface AdditionalDataNominatimEntity {
   id: number;
   place_id: number

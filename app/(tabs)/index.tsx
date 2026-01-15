@@ -384,6 +384,19 @@ export default function TabOneScreen() {
               loading={tripLoading} 
               error={tripError}
               deliveries={tripDeliveries}
+              onProgressDelivery={(delivery) => {
+                const total = (delivery.deliveryCost || 0) + (delivery.amountToBeCharged || 0);
+                setShowTripMap(false);
+                router.push({
+                  pathname: "/(tabs)/status-update",
+                  params: {
+                    itemId: delivery.id,
+                    itemTitle: delivery.client,
+                    currentStatus: delivery.deliveryStatus.title,
+                    totalAmmount: String(total),
+                  },
+                });
+              }}
             />
           </SafeAreaView>
         </Modal>
