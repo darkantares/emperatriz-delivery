@@ -64,8 +64,9 @@ function TabOneScreenContent() {
   };
 
   const handleDriversGroupAssignedWithRouteUpdate = (data: any) => {
+    console.log(data); 
     handleDriversGroupAssigned(data);
-    recalculateRoutes(allDeliveries);
+    // recalculateRoutes(allDeliveries);
   };
 
   // Conectar socket y listeners
