@@ -513,6 +513,7 @@ export const TripMap: React.FC<TripMapProps> = ({
               key={`group-${group.coordinate.latitude}-${group.coordinate.longitude}`}
               coordinate={group.coordinate}
               onPress={() => handleMarkerPress(group)}
+              zIndex={1000}
             >
               <View style={styles.customMarker}>
                 <View
@@ -535,13 +536,15 @@ export const TripMap: React.FC<TripMapProps> = ({
         {/* Marker de posición actual del mensajero */}
         {currentPosition && (
           <Marker
+            key="courier-position"
             coordinate={currentPosition}
             title="Tu posición"
             description={isTraveling ? "En movimiento" : ""}
+            zIndex={0}
           >
             <View style={styles.courierMarker}>
               <View style={styles.courierMarkerInner}>
-                <Text style={styles.courierMarkerText}>📦</Text>
+                <Text style={styles.courierMarkerText}>🏍️</Text>
               </View>
             </View>
           </Marker>
