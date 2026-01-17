@@ -7,7 +7,7 @@ import { BackendUrls } from '@/utils/enum';
 /**
  * Servicio para gestionar las operaciones relacionadas con las entregas (deliveries)
  */
-export const deliveryService = {
+export const DeliveryService = {
     
     getDeliveries: async (filters?: Partial<IDeliveryAssignmentEntity>): Promise<{
         success: boolean;
@@ -370,7 +370,7 @@ export const deliveryService = {
         try {
             // Si no hay imágenes, usar el método normal
             if (!imageUris || imageUris.length === 0) {                
-                return await deliveryService.updateDeliveryStatus(id, status, note, amountPaid, paymentMethodId);
+                return await DeliveryService.updateDeliveryStatus(id, status, note, amountPaid, paymentMethodId);
             }
 
             // Crear FormData para envío con imágenes (una o múltiples)

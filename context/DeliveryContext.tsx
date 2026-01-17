@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { IDeliveryAssignmentEntity } from '@/interfaces/delivery/delivery';
 import { DeliveryItemAdapter, adaptDeliveriesToAdapter } from '@/interfaces/delivery/deliveryAdapters';
-import { deliveryService } from '@/services/deliveryService';
+import { DeliveryService } from '@/services/deliveryService';
 import { IDeliveryStatus } from '@/interfaces/delivery/deliveryStatus';
 import { useActiveDelivery } from './ActiveDeliveryContext';
 import { useAuth } from '@/context/AuthContext';
@@ -66,7 +66,7 @@ export const DeliveryProvider: React.FC<DeliveryProviderProps> = ({ children }) 
         setError(null);
 
         try {
-            const response = await deliveryService.getDeliveries();
+            const response = await DeliveryService.getDeliveries();
 
             if (response.success && response.data) {
                 const adaptedDeliveries = adaptDeliveriesToAdapter(response.data);

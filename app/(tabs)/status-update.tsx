@@ -18,7 +18,7 @@ import {
   getStatusIdFromTitle,
 } from "@/interfaces/delivery/deliveryStatus";
 import { CustomColors } from "@/constants/CustomColors";
-import { deliveryService } from "@/services/deliveryService";
+import { DeliveryService } from "@/services/deliveryService";
 import {
   IDeliveryStatusEntity,
   IUpdateDeliveryStatusData,
@@ -295,11 +295,11 @@ export default function StatusUpdateScreen() {
                 ? selectedPaymentMethod
                 : undefined,
           };
-          result = await deliveryService.updateDeliveryStatusWithImages(updateData);
+          result = await DeliveryService.updateDeliveryStatusWithImages(updateData);
           console.log('updateData:', updateData);
           
         } else {
-          result = await deliveryService.updateDeliveryStatus(
+          result = await DeliveryService.updateDeliveryStatus(
             itemId,
             statusId,
             requiresNote ? note.trim() : undefined,
