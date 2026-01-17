@@ -25,9 +25,13 @@ export interface IUserEntity extends IGlobalEntity {
   firstname: string;
   lastname: string;
   avatar?: string;
+  carrier:DeliveryPersonEntity;
   enterprise: IEnterpriseEntity;
 }
 
+export interface DeliveryPersonEntity {
+  id: number;
+}
 // export interface IProgramEntity {
 //   // Define según necesites
 //   id: number;

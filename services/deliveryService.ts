@@ -1,4 +1,4 @@
-import { IDeliveryAssignmentEntity, IUpdateDelivery, ICreateDeliveryAssigment, IDeliveryStatusEntity, IUpdateDeliveryStatusData } from '@/interfaces/delivery/delivery';
+import { IDeliveryAssignmentEntity, IUpdateDelivery, IUpdateDeliveryStatusData } from '@/interfaces/delivery/delivery';
 import { api, extractDataFromResponse } from './api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ResponseDataAPI } from '@/interfaces/response';
@@ -434,6 +434,67 @@ export const DeliveryService = {
             };
         } catch (error) {
             console.log(`Error updating delivery status with image for ID ${id}:`, error);
+            return {
+                success: false,
+                error: `Error de conexión: ${error instanceof Error ? error.message : String(error)}`
+            };
+        }
+    },
+
+    /**
+     * Obtiene la ruta optimizada para el courier autenticado
+     * @param courierId ID del courier
+     * @param currentLocation Ubicación actual del courier (lat, lng)
+     * @returns Ruta optimizada con waypoints ordenados y ETAs
+     */
+    getOptimizedRoute: async (
+        courierId: number,
+        currentLocation: { lat: number; lng: number }
+    ): Promise<{
+        success: boolean;
+        data?: any;
+        error?: string;
+        details?: any;
+    }> => {
+        // Verificar token antes de hacer la solicitud
+        const token = await AsyncStorage.getItem('auth_token');
+        if (!token) {
+            return {
+                success: false,
+                error: 'No autenticado: token no encontrado',
+            };
+        }
+
+        try {
+            const response = await api.post<ResponseDataAPI<any>>(
+                `${BackendUrls.DeliveryAssignments}/courier/${courierId}/optimized-route`,
+                { currentLocation }
+            );
+
+            if (response.error || !response.data) {
+                return {
+                    success: false,
+                    error: response.error || 'Error al obtener ruta optimizada',
+                    details: response.details
+                };
+            }
+
+            // Extraer los datos del ResponseAPI
+            if (!response) {
+                console.log('Error: No se pudo extraer datos de ruta optimizada', response);
+                return {
+                    success: false,
+                    error: 'No se pudo extraer datos de ruta optimizada',
+                    details: response
+                };
+            }
+
+            return {
+                success: true,
+                data: response.data.data
+            };
+        } catch (error) {
+            console.log(`Error getting optimized route for courier ${courierId}:`, error);
             return {
                 success: false,
                 error: `Error de conexión: ${error instanceof Error ? error.message : String(error)}`

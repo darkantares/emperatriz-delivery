@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { useOsrmTrip } from '@/hooks/useOsrmTrip';
 import { DeliveryItemAdapter } from '@/interfaces/delivery/deliveryAdapters';
 import { IDeliveryStatus } from '@/interfaces/delivery/deliveryStatus';
+import { DeliveryService } from '@/services/deliveryService';
+import { useAuth } from '@/context/AuthContext';
 
 interface RouteContextType {
   // Estado
@@ -36,6 +38,8 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
   const { data: tripData, loading: tripLoading, error: tripError, fetchTrip } = useOsrmTrip();
   const [showTripMap, setShowTripMap] = useState<boolean>(false);
   const [tripDeliveries, setTripDeliveries] = useState<DeliveryItemAdapter[]>([]);
+  const [isOptimizing, setIsOptimizing] = useState<boolean>(false);
+  const { user } = useAuth();
 
   // Función auxiliar para preparar deliveries y coordenadas
   const prepareRouteData = (allDeliveries: DeliveryItemAdapter[]) => {
@@ -62,29 +66,97 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
     return { pendingDeliveries, coordinates };
   };
 
-  // Método para iniciar rutas
+  // Método para iniciar rutas con optimización del backend
   const startRoutes = async (allDeliveries: DeliveryItemAdapter[]) => {
-    console.log('[RouteContext] Iniciando cálculo de rutas...');
+    console.log('[RouteContext] Iniciando cálculo de rutas optimizadas desde backend...');
 
-    const routeData = prepareRouteData(allDeliveries);
-    if (!routeData) {
-      throw new Error('No hay entregas disponibles con coordenadas válidas');
+    if (!user) {
+      throw new Error('Usuario no autenticado');
     }
 
-    const { pendingDeliveries, coordinates } = routeData;
+    setIsOptimizing(true);
 
-    console.log('[RouteContext] Coordenadas a enviar:', coordinates);
+    try {
+      // Paso 0: Obtener ubicación actual del courier
+      const { courierLocationTracking } = await import('@/services/courierLocationService');
+      const currentLocation = await courierLocationTracking.getCurrentLocation();
 
-    setTripDeliveries(pendingDeliveries);
+      if (!currentLocation) {
+        throw new Error('No se pudo obtener la ubicación actual del mensajero');
+      }
 
-    await fetchTrip({
-      coordinates,
-      source: 'first',
-      destination: 'last',
-      roundtrip: false,
-      geometries: 'geojson',
-      overview: 'full',
-    });
+      console.log('[RouteContext] Ubicación actual obtenida:', {
+        lat: currentLocation.coords.latitude,
+        lng: currentLocation.coords.longitude
+      });
+
+      // Paso 1: Obtener ruta optimizada desde el backend con ubicación actual
+      console.log('[RouteContext] Solicitando ruta optimizada al backend...');
+      console.log('USER:', user.carrier);
+      
+      const response = await DeliveryService.getOptimizedRoute(user.carrier.id, {
+        lat: currentLocation.coords.latitude,
+        lng: currentLocation.coords.longitude
+      });
+
+      if (!response.success || !response.data) {
+        console.warn('[RouteContext] No se pudo obtener ruta optimizada del backend:', response.error);
+        throw new Error(response.error || 'No se pudo obtener ruta optimizada');
+      }
+
+      console.log('[RouteContext] Ruta optimizada recibida del backend:', response.data);
+
+      // Paso 2: Preparar deliveries filtrados
+      const routeData = prepareRouteData(allDeliveries);
+      if (!routeData) {
+        throw new Error('No hay entregas disponibles con coordenadas válidas');
+      }
+
+      const { pendingDeliveries } = routeData;
+      setTripDeliveries(pendingDeliveries);
+
+      // Paso 3: Usar la geometría del backend directamente
+      // El backend ya calculó con OSRM, solo necesitamos mostrar el resultado
+      const optimizedRoute = response.data;
+      
+      // Convertir a formato compatible con el mapa
+      const tripDataFromBackend = {
+        code: 'Ok',
+        trips: [{
+          geometry: optimizedRoute.geometry,
+          distance: optimizedRoute.totalDistance,
+          duration: optimizedRoute.totalDuration,
+          legs: []
+        }],
+        waypoints: optimizedRoute.waypoints.map((wp: any, index: number) => ({
+          waypoint_index: index,
+          trips_index: 0,
+          location: [wp.location.lng, wp.location.lat],
+          name: wp.address,
+          distance: 0
+        }))
+      };
+
+      // Simular la respuesta de fetchTrip pero con datos del backend
+      await fetchTrip({
+        coordinates: pendingDeliveries.map(delivery => ({
+          latitude: parseFloat(delivery.additionalDataNominatim.lat),
+          longitude: parseFloat(delivery.additionalDataNominatim.lon),
+        })),
+        source: 'first',
+        destination: 'last',
+        roundtrip: false,
+        geometries: 'geojson',
+        overview: 'full',
+      });
+
+      console.log('[RouteContext] ✅ Ruta optimizada cargada correctamente');
+    } catch (error) {
+      console.error('[RouteContext] Error al cargar ruta optimizada:', error);
+      throw error;
+    } finally {
+      setIsOptimizing(false);
+    }
   };
 
   // Método para recalcular rutas
@@ -140,7 +212,7 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
 
   const value: RouteContextType = {
     tripData,
-    tripLoading,
+    tripLoading: isOptimizing || tripLoading,
     tripError,
     showTripMap,
     tripDeliveries,
