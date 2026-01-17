@@ -65,44 +65,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (isAuthenticated && user) {
       console.log('[AuthContext] Usuario autenticado, configurando location tracking');
+      console.log('[AuthContext] User ID:', user.id);
       
       // Configurar el servicio con el userId
       courierLocationTracking.setUserId(user.id);
       
       // Escuchar cambios en la conexión del WebSocket
       const handleConnectionChange = async (connected: boolean) => {
+        console.log('[AuthContext] WebSocket connection changed:', connected);
+        
         if (connected) {
           console.log('[AuthContext] WebSocket conectado, iniciando location tracking');
           
           // Esperar un poco para asegurar que la conexión está estable
           setTimeout(async () => {
-            const started = await courierLocationTracking.startTracking();
-            if (started) {
-              console.log('[AuthContext] Location tracking iniciado correctamente');
-            } else {
-              console.warn('[AuthContext] No se pudo iniciar location tracking');
+            try {
+              const started = await courierLocationTracking.startTracking();
+              if (started) {
+                console.log('[AuthContext] ✅ Location tracking iniciado correctamente');
+                
+                // Verificar el estado del tracking
+                const status = courierLocationTracking.getTrackingStatus();
+                console.log('[AuthContext] Tracking status:', status);
+              } else {
+                console.warn('[AuthContext] ❌ No se pudo iniciar location tracking');
+              }
+            } catch (error) {
+              console.error('[AuthContext] Error al iniciar tracking:', error);
             }
           }, 1000);
         } else {
-          console.log('[AuthContext] WebSocket desconectado, deteniendo location tracking');
+          console.log('[AuthContext] WebSocket desconectado, pausando location tracking');
           await courierLocationTracking.stopTracking();
         }
       };
 
+      // Registrar el listener
       socketService.onConnectionChange(handleConnectionChange);
+      console.log('[AuthContext] Listener de conexión registrado');
 
-      // Si ya está conectado, iniciar tracking
-      if (socketService.isConnected()) {
+      // Si ya está conectado, iniciar tracking inmediatamente
+      const isConnected = socketService.isConnected();
+      console.log('[AuthContext] WebSocket connected status:', isConnected);
+      
+      if (isConnected) {
+        console.log('[AuthContext] WebSocket ya conectado, iniciando tracking inmediatamente');
         handleConnectionChange(true);
       }
 
       // Cleanup
       return () => {
+        console.log('[AuthContext] Limpiando listeners y deteniendo tracking');
         socketService.offConnectionChange(handleConnectionChange);
         courierLocationTracking.stopTracking();
       };
     } else {
       // Si no está autenticado, detener tracking
+      console.log('[AuthContext] Usuario no autenticado, deteniendo tracking');
       courierLocationTracking.stopTracking();
     }
   }, [isAuthenticated, user]);

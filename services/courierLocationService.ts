@@ -37,11 +37,21 @@ interface LocationTrackingConfig {
   autoStart: boolean;
 }
 
-const DEFAULT_CONFIG: LocationTrackingConfig = {
-  updateInterval: 15000, // 15 segundos
-  minDistance: 10, // 10 metros
-  autoStart: true,
-};
+// Configuración para DESARROLLO: se dispara cada 10 segundos sin necesidad de moverse
+// Configuración para PRODUCCIÓN: 15 segundos + 10 metros de movimiento
+const IS_DEVELOPMENT = __DEV__; // Expo define __DEV__ automáticamente
+
+const DEFAULT_CONFIG: LocationTrackingConfig = IS_DEVELOPMENT 
+  ? {
+      updateInterval: 10000, // 10 segundos (más rápido para testing)
+      minDistance: 0, // 0 = se dispara solo por tiempo, sin necesidad de moverse
+      autoStart: true,
+    }
+  : {
+      updateInterval: 15000, // 15 segundos
+      minDistance: 10, // 10 metros
+      autoStart: true,
+    };
 
 /**
  * Servicio para gestionar el tracking de ubicación del mensajero
@@ -67,6 +77,15 @@ class CourierLocationTrackingService {
   initialize(config?: Partial<LocationTrackingConfig>) {
     this.config = { ...DEFAULT_CONFIG, ...config };
     console.log('[LocationTracking] Inicializado con config:', this.config);
+    
+    // Registrar listeners para respuestas del backend
+    socketService.on('courier.location.ack', (data: any) => {
+      console.log('[LocationTracking] ✅ ACK recibido del backend:', data);
+    });
+    
+    socketService.on('courier.location.error', (error: any) => {
+      console.error('[LocationTracking] ❌ Error recibido del backend:', error);
+    });
   }
 
   /**
@@ -118,51 +137,67 @@ class CourierLocationTrackingService {
    */
   async startTracking(): Promise<boolean> {
     try {
+      console.log('[LocationTracking] startTracking() llamado');
+      
       if (this.isTracking) {
         console.log('[LocationTracking] Ya está en tracking');
         return true;
       }
 
       if (!this.userId) {
-        console.warn('[LocationTracking] No se puede iniciar tracking sin userId');
+        console.warn('[LocationTracking] ❌ No se puede iniciar tracking sin userId');
         return false;
       }
+      console.log('[LocationTracking] ✅ userId configurado:', this.userId);
 
       // Verificar permisos
       const hasPermissions = await this.hasPermissions();
+      console.log('[LocationTracking] hasPermissions:', hasPermissions);
+      
       if (!hasPermissions) {
+        console.log('[LocationTracking] Solicitando permisos...');
         const granted = await this.requestPermissions();
         if (!granted) {
-          console.warn('[LocationTracking] No se puede iniciar sin permisos');
+          console.warn('[LocationTracking] ❌ No se puede iniciar sin permisos');
           return false;
         }
+        console.log('[LocationTracking] ✅ Permisos otorgados');
       }
 
       // Verificar que el WebSocket esté conectado
-      if (!socketService.isConnected()) {
-        console.warn('[LocationTracking] WebSocket no conectado, no se inicia tracking');
+      const isSocketConnected = socketService.isConnected();
+      console.log('[LocationTracking] WebSocket conectado:', isSocketConnected);
+      
+      if (!isSocketConnected) {
+        console.warn('[LocationTracking] ❌ WebSocket no conectado, no se inicia tracking');
         return false;
       }
 
       console.log('[LocationTracking] Iniciando tracking de ubicación...');
+      console.log('[LocationTracking] Config:', {
+        timeInterval: this.config.updateInterval,
+        distanceInterval: this.config.minDistance,
+        accuracy: 'Balanced'
+      });
 
       // Iniciar tracking de ubicación
       this.locationSubscription = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.Balanced, // Balance entre precisión y batería
           timeInterval: this.config.updateInterval,
-          distanceInterval: this.config.minDistance,
+          distanceInterval: this.config.minDistance, // 0 en dev = se dispara solo por tiempo
         },
         (location) => {
+          console.log('[LocationTracking] 📍 Nueva ubicación recibida del GPS');
           this.handleLocationUpdate(location);
         }
       );
 
       this.isTracking = true;
-      console.log('[LocationTracking] Tracking iniciado correctamente');
+      console.log('[LocationTracking] ✅ Tracking iniciado correctamente');
       return true;
     } catch (error) {
-      console.error('[LocationTracking] Error al iniciar tracking:', error);
+      console.error('[LocationTracking] ❌ Error al iniciar tracking:', error);
       this.isTracking = false;
       return false;
     }
@@ -200,9 +235,16 @@ class CourierLocationTrackingService {
    */
   private handleLocationUpdate(location: Location.LocationObject) {
     try {
+      console.log('[LocationTracking] 🔄 handleLocationUpdate() llamado');
+      console.log('[LocationTracking] Coordenadas:', {
+        lat: location.coords.latitude.toFixed(6),
+        lng: location.coords.longitude.toFixed(6),
+        accuracy: location.coords.accuracy?.toFixed(1)
+      });
+      
       // Verificar que el WebSocket esté conectado
       if (!socketService.isConnected()) {
-        console.log('[LocationTracking] WebSocket desconectado, no se envía ubicación');
+        console.log('[LocationTracking] ⚠️ WebSocket desconectado, no se envía ubicación');
         return;
       }
 
@@ -210,8 +252,13 @@ class CourierLocationTrackingService {
       const now = Date.now();
       const timeSinceLastSent = now - this.lastSentTime;
 
+      console.log('[LocationTracking] Verificando throttling por tiempo:', {
+        timeSinceLastSent: `${(timeSinceLastSent / 1000).toFixed(1)}s`,
+        updateInterval: `${(this.config.updateInterval / 1000).toFixed(1)}s`
+      });
+
       if (timeSinceLastSent < this.config.updateInterval) {
-        console.log('[LocationTracking] Throttling por tiempo, omitiendo envío');
+        console.log('[LocationTracking] ⏭️ Throttling por tiempo, omitiendo envío');
         return;
       }
 
@@ -224,20 +271,26 @@ class CourierLocationTrackingService {
           location.coords.longitude
         );
 
+        console.log('[LocationTracking] Verificando throttling por distancia:', {
+          distance: `${distance.toFixed(1)}m`,
+          minDistance: `${this.config.minDistance}m`
+        });
+
         if (distance < this.config.minDistance) {
-          console.log('[LocationTracking] Throttling por distancia, omitiendo envío');
+          console.log('[LocationTracking] ⏭️ Throttling por distancia, omitiendo envío');
           return;
         }
       }
 
       // Enviar ubicación al backend
+      console.log('[LocationTracking] ✅ Pasó throttling, enviando al backend...');
       this.sendLocationToBackend(location);
 
       // Actualizar estado
       this.lastSentLocation = location;
       this.lastSentTime = now;
     } catch (error) {
-      console.error('[LocationTracking] Error al manejar actualización de ubicación:', error);
+      console.error('[LocationTracking] ❌ Error al manejar actualización de ubicación:', error);
     }
   }
 
@@ -246,8 +299,10 @@ class CourierLocationTrackingService {
    */
   private sendLocationToBackend(location: Location.LocationObject) {
     try {
+      console.log('[LocationTracking] 📤 sendLocationToBackend() llamado');
+      
       if (!this.userId) {
-        console.warn('[LocationTracking] No se puede enviar ubicación sin userId');
+        console.warn('[LocationTracking] ❌ No se puede enviar ubicación sin userId');
         return;
       }
 
@@ -261,18 +316,21 @@ class CourierLocationTrackingService {
         heading: location.coords.heading ?? undefined,
       };
 
+      console.log('[LocationTracking] Payload preparado:', payload);
+      console.log('[LocationTracking] Emitiendo evento courier.location.update...');
+
       const sent = socketService.emit('courier.location.update', payload);
 
       if (sent) {
         console.log(
-          `[LocationTracking] Ubicación enviada: (${payload.lat.toFixed(6)}, ${payload.lng.toFixed(6)}) ` +
+          `[LocationTracking] ✅ Ubicación enviada exitosamente: (${payload.lat.toFixed(6)}, ${payload.lng.toFixed(6)}) ` +
           `accuracy: ${payload.accuracy.toFixed(1)}m`
         );
       } else {
-        console.warn('[LocationTracking] No se pudo enviar ubicación');
+        console.warn('[LocationTracking] ⚠️ No se pudo enviar ubicación (emit retornó false)');
       }
     } catch (error) {
-      console.error('[LocationTracking] Error al enviar ubicación:', error);
+      console.error('[LocationTracking] ❌ Error al enviar ubicación:', error);
     }
   }
 
@@ -340,4 +398,8 @@ class CourierLocationTrackingService {
   }
 }
 
+// Crear instancia del servicio
 export const courierLocationTracking = new CourierLocationTrackingService();
+
+// Inicializar con configuración por defecto
+courierLocationTracking.initialize();
