@@ -6,10 +6,7 @@ export interface IEnterpriseEntity {
     document_verification: string;
     phone: string;
     email: string;
-    contact: string;
-    contact_phone: string;
     files: string;
-    address: string;
     web: string;
 }
 
