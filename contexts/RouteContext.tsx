@@ -4,6 +4,7 @@ import { DeliveryItemAdapter } from '@/interfaces/delivery/deliveryAdapters';
 import { IDeliveryStatus } from '@/interfaces/delivery/deliveryStatus';
 import { DeliveryService } from '@/services/deliveryService';
 import { useAuth } from '@/context/AuthContext';
+import { OsrmTripResult } from '@/services/osrmService';
 
 interface RouteContextType {
   // Estado
@@ -35,7 +36,7 @@ interface RouteProviderProps {
 }
 
 export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
-  const { data: tripData, loading: tripLoading, error: tripError, fetchTrip } = useOsrmTrip();
+  const { data: tripData, loading: tripLoading, error: tripError, fetchTrip, setTripData } = useOsrmTrip();
   const [showTripMap, setShowTripMap] = useState<boolean>(false);
   const [tripDeliveries, setTripDeliveries] = useState<DeliveryItemAdapter[]>([]);
   const [isOptimizing, setIsOptimizing] = useState<boolean>(false);
@@ -69,9 +70,19 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
   // Método para iniciar rutas con optimización del backend
   const startRoutes = async (allDeliveries: DeliveryItemAdapter[]) => {
     console.log('[RouteContext] Iniciando cálculo de rutas optimizadas desde backend...');
-
+    console.log('USER: ', user);
+    
     if (!user) {
       throw new Error('Usuario no autenticado');
+    }
+
+    const carrierId = user?.carrier?.id;
+    if (!carrierId) {
+      console.error('[RouteContext] Usuario autenticado sin carrier válido:', {
+        userId: user.id,
+        carrier: user.carrier,
+      });
+      throw new Error('El usuario autenticado no tiene un carrier/courier asociado.');
     }
 
     setIsOptimizing(true);
@@ -94,7 +105,7 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
       console.log('[RouteContext] Solicitando ruta optimizada al backend...');
       console.log('USER:', user.carrier);
       
-      const response = await DeliveryService.getOptimizedRoute(user.carrier.id, {
+      const response = await DeliveryService.getOptimizedRoute(carrierId, {
         lat: currentLocation.coords.latitude,
         lng: currentLocation.coords.longitude
       });
@@ -120,40 +131,36 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
       const optimizedRoute = response.data;
       
       // Convertir a formato compatible con el mapa
-      const tripDataFromBackend = {
+      const tripDataFromBackend: OsrmTripResult = {
         code: 'Ok',
         trips: [{
           geometry: optimizedRoute.geometry,
           distance: optimizedRoute.totalDistance,
           duration: optimizedRoute.totalDuration,
-          legs: []
+          legs: [],
+          weight_name: 'routability',
+          weight: optimizedRoute.totalDuration,
         }],
         waypoints: optimizedRoute.waypoints.map((wp: any, index: number) => ({
           waypoint_index: index,
           trips_index: 0,
           location: [wp.location.lng, wp.location.lat],
           name: wp.address,
-          distance: 0
+          distance: 0,
+          hint: '',
         }))
       };
 
-      // Simular la respuesta de fetchTrip pero con datos del backend
-      await fetchTrip({
-        coordinates: pendingDeliveries.map(delivery => ({
-          latitude: parseFloat(delivery.additionalDataNominatim.lat),
-          longitude: parseFloat(delivery.additionalDataNominatim.lon),
-        })),
-        source: 'first',
-        destination: 'last',
-        roundtrip: false,
-        geometries: 'geojson',
-        overview: 'full',
-      });
+      setTripData(tripDataFromBackend);
 
       console.log('[RouteContext] ✅ Ruta optimizada cargada correctamente');
     } catch (error) {
-      console.error('[RouteContext] Error al cargar ruta optimizada:', error);
-      throw error;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('[RouteContext] Error al cargar ruta optimizada:', {
+        errorMessage,
+        error,
+      });
+      throw new Error(errorMessage);
     } finally {
       setIsOptimizing(false);
     }

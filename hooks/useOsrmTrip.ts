@@ -10,12 +10,18 @@ interface UseOsrmTripReturn {
   loading: boolean;
   error: string | null;
   fetchTrip: (params: OsrmTripParams) => Promise<void>;
+  setTripData: (tripData: OsrmTripResult | null) => void;
 }
 
 export const useOsrmTrip = (): UseOsrmTripReturn => {
   const [data, setData] = useState<OsrmTripResult | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  const setTripData = useCallback((tripData: OsrmTripResult | null) => {
+    setError(null);
+    setData(tripData);
+  }, []);
 
   const fetchTrip = useCallback(async (params: OsrmTripParams) => {
     setLoading(true);
@@ -48,5 +54,6 @@ export const useOsrmTrip = (): UseOsrmTripReturn => {
     loading,
     error,
     fetchTrip,
+    setTripData,
   };
 };
