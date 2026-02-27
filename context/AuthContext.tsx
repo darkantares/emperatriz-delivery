@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useToast } from 'react-native-toast-notifications';
 
-import { IUserEntity, IRolesAllowedEntity } from '@/interfaces/auth';
+import { IUserEntity, IRolesAllowedEntity, DeliveryPersonEntity } from '@/interfaces/auth';
 import { authService } from '@/services/authService';
 import { socketService } from '@/services/websocketService';
 import { courierLocationTracking } from '@/services/courierLocationService';
@@ -11,6 +11,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   user: IUserEntity | null;
+  carrier: DeliveryPersonEntity | null;
   roles: IRolesAllowedEntity[] | null;
   login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => Promise<void>;
@@ -29,6 +30,7 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<IUserEntity | null>(null);
+  const [carrier, setCarrier] = useState<DeliveryPersonEntity | null>(null);
   const [roles, setRoles] = useState<IRolesAllowedEntity[] | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -48,6 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           
           if (authData.user) {
             setUser(authData.user);
+            setCarrier(authData.carrier || null);
             setRoles(authData.roles || []);
           }
         }
@@ -55,6 +58,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('Error checking authentication:', error);
         setIsAuthenticated(false);
         setUser(null);
+        setCarrier(null);
         setRoles(null);
       } finally {
         setIsLoading(false);
@@ -150,7 +154,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Actualizar estado
       setIsAuthenticated(true);
       setUser(result.data.user);
-      setRoles(result.data.roles);
+      setCarrier(result.data.carrier || null);
+      setRoles(result.data.roles || []);
 
       return { success: true };
     } catch (error) {
@@ -167,6 +172,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await authService.logout();
     setIsAuthenticated(false);
     setUser(null);
+    setCarrier(null);
     setRoles(null);
   };
 
@@ -183,6 +189,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await authService.logout();
       setIsAuthenticated(false);
       setUser(null);
+      setCarrier(null);
       setRoles(null);
     });
 
@@ -197,6 +204,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthenticated,
         isLoading,
         user,
+        carrier,
         roles,
         login,
         logout,

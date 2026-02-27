@@ -17,7 +17,7 @@ export interface ResponseAPI<T> {
   data: T;
   message: string;
   statusCode: number;
-  success: boolean;
+  success?: boolean;
 }
 
 // Interfaz especializada para respuestas paginadas

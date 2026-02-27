@@ -22,12 +22,17 @@ export interface IUserEntity extends IGlobalEntity {
   firstname: string;
   lastname: string;
   avatar?: string;
-  carrier:DeliveryPersonEntity;
+  carrier?: DeliveryPersonEntity | null;
   enterprise: IEnterpriseEntity;
+  userRoles?: IRolesAllowedEntity[];
 }
 
 export interface DeliveryPersonEntity {
   id: number;
+  firstname?: string;
+  lastname?: string;
+  phone?: string;
+  address?: string;
 }
 // export interface IProgramEntity {
 //   // Define según necesites
@@ -67,7 +72,8 @@ export interface IRolesAllowedEntity {
 // Interfaces de respuesta de autenticación
 export interface LoginResponse {
   user: IUserEntity;
-  roles: IRolesAllowedEntity[];
+  roles?: IRolesAllowedEntity[];
+  carrier?: DeliveryPersonEntity | null;
   access_token: string;
   refresh_token: string;
 }

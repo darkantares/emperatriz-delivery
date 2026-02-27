@@ -1,12 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LoginResponse, IUserEntity, IRolesAllowedEntity } from '@/interfaces/auth';
-import { API_URL, api, extractDataFromResponse } from './api';
+import { LoginResponse, IUserEntity, IRolesAllowedEntity, DeliveryPersonEntity } from '@/interfaces/auth';
+import { api, extractDataFromResponse } from './api';
 
 // Keys para almacenamiento
 const AUTH_TOKEN_KEY = 'auth_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
 const USER_DATA_KEY = 'user_data';
 const USER_ROLES_KEY = 'user_roles';
+const CARRIER_DATA_KEY = 'carrier_data';
 
 // Servicio de autenticación
 export const authService = {
@@ -17,49 +18,6 @@ export const authService = {
         details?: any;
     }> => {
         try {            
-            // Prueba directa con fetch para asegurarnos de que estamos usando el endpoint correcto
-            const directFetchOptions = {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ email, password })
-            };
-            
-            try {
-                const directResponse = await fetch(`${API_URL}/auth/login`, directFetchOptions);                
-                if (directResponse.ok) {
-                    const loginData = await directResponse.json();                    
-                    if (!loginData) {
-                        console.log('Error parsing login response data structure:', loginData);
-                        return {
-                            success: false,
-                            error: 'Error al procesar la respuesta del servidor',
-                            details: {
-                                message: 'La estructura de datos recibida no es válida',
-                                rawData: loginData
-                            }
-                        };
-                    }
-                    
-                    // Guardar tokens                    
-                    await AsyncStorage.setItem(AUTH_TOKEN_KEY, loginData.data.access_token);
-                    await AsyncStorage.setItem(REFRESH_TOKEN_KEY, loginData.data.refresh_token);
-
-                    // // Guardar datos del usuario y roles
-                    await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(loginData.data.user));
-                    await AsyncStorage.setItem(USER_ROLES_KEY, JSON.stringify(loginData.data.user.userRoles));
-                    
-                    return {
-                        success: true,
-                        data: loginData.data
-                    };
-                }
-            } catch (directFetchError) {
-                console.log('Error en fetch directo:', directFetchError);
-            }
-            
-            // Si el fetch directo falló, intentamos con nuestro método de API
             const response = await api.post<LoginResponse>('auth/login-delivery', { email, password });
 
             if (response.error || !response.data) {
@@ -71,7 +29,8 @@ export const authService = {
             }
 
             // Extraer los datos del LoginResponse de dentro de ResponseAPI
-            const loginData = extractDataFromResponse<LoginResponse>(response);
+            const loginData = response.data.data;
+            console.log('LoginData: ', loginData);
             
             if (!loginData) {
                 console.log('Error parsing login response data structure from API:', response);
@@ -85,17 +44,26 @@ export const authService = {
                 };
             }
 
+            const normalizedRoles = loginData.roles ?? loginData.user?.userRoles ?? [];
+            const normalizedCarrier = loginData.carrier ?? null;
+
             // Guardar tokens
             await AsyncStorage.setItem(AUTH_TOKEN_KEY, loginData.access_token);
             await AsyncStorage.setItem(REFRESH_TOKEN_KEY, loginData.refresh_token);
 
             // Guardar datos del usuario y roles
             await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(loginData.user));
-            await AsyncStorage.setItem(USER_ROLES_KEY, JSON.stringify(loginData.roles));
+            await AsyncStorage.setItem(USER_ROLES_KEY, JSON.stringify(normalizedRoles));
+            await AsyncStorage.setItem(CARRIER_DATA_KEY, JSON.stringify(normalizedCarrier));
 
             return {
                 success: true,
-                data: loginData
+                data: {
+                    ...loginData,
+                    user: loginData.user,
+                    roles: normalizedRoles,
+                    carrier: normalizedCarrier,
+                }
             };
         } catch (error) {
             console.log('Login error:', error);
@@ -112,7 +80,8 @@ export const authService = {
             AUTH_TOKEN_KEY,
             REFRESH_TOKEN_KEY,
             USER_DATA_KEY,
-            USER_ROLES_KEY
+            USER_ROLES_KEY,
+            CARRIER_DATA_KEY
         ]);
         return { success: true };
     },
@@ -125,23 +94,26 @@ export const authService = {
     getAuthData: async (): Promise<{
         user: IUserEntity | null;
         roles: IRolesAllowedEntity[] | null;
+        carrier: DeliveryPersonEntity | null;
         token: string | null;
     }> => {
         try {
-            const [userJson, rolesJson, token] = await Promise.all([
+            const [userJson, rolesJson, carrierJson, token] = await Promise.all([
                 AsyncStorage.getItem(USER_DATA_KEY),
                 AsyncStorage.getItem(USER_ROLES_KEY),
+                AsyncStorage.getItem(CARRIER_DATA_KEY),
                 AsyncStorage.getItem(AUTH_TOKEN_KEY)
             ]);
 
             return {
                 user: userJson ? JSON.parse(userJson) : null,
                 roles: rolesJson ? JSON.parse(rolesJson) : null,
+                carrier: carrierJson ? JSON.parse(carrierJson) : null,
                 token
             };
         } catch (error) {
             console.log('Error getting auth data:', error);
-            return { user: null, roles: null, token: null };
+            return { user: null, roles: null, carrier: null, token: null };
         }
     },
 
@@ -186,5 +158,6 @@ export {
     AUTH_TOKEN_KEY,
     REFRESH_TOKEN_KEY,
     USER_DATA_KEY,
-    USER_ROLES_KEY
+    USER_ROLES_KEY,
+    CARRIER_DATA_KEY
 };

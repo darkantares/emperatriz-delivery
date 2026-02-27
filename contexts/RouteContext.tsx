@@ -40,7 +40,7 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
   const [showTripMap, setShowTripMap] = useState<boolean>(false);
   const [tripDeliveries, setTripDeliveries] = useState<DeliveryItemAdapter[]>([]);
   const [isOptimizing, setIsOptimizing] = useState<boolean>(false);
-  const { user } = useAuth();
+  const { user, carrier } = useAuth();
 
   // Función auxiliar para preparar deliveries y coordenadas
   const prepareRouteData = (allDeliveries: DeliveryItemAdapter[]) => {
@@ -76,11 +76,11 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
       throw new Error('Usuario no autenticado');
     }
 
-    const carrierId = user?.carrier?.id;
+    const carrierId = carrier?.id;
     if (!carrierId) {
       console.error('[RouteContext] Usuario autenticado sin carrier válido:', {
         userId: user.id,
-        carrier: user.carrier,
+        carrier,
       });
       throw new Error('El usuario autenticado no tiene un carrier/courier asociado.');
     }
@@ -103,7 +103,7 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
 
       // Paso 1: Obtener ruta optimizada desde el backend con ubicación actual
       console.log('[RouteContext] Solicitando ruta optimizada al backend...');
-      console.log('USER:', user.carrier);
+      console.log('CARRIER:', carrier);
       
       const response = await DeliveryService.getOptimizedRoute(carrierId, {
         lat: currentLocation.coords.latitude,
