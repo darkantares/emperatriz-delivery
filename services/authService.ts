@@ -151,7 +151,7 @@ export const authService = {
 
         try {
             // Implementa la lógica para refrescar el token usando el refresh_token
-            const response = await api.post<{ access_token: string; refresh_token?: string }>('/auth/refresh', { refresh_token: refreshToken });
+            const response = await api.post<{ access_token: string; refresh_token?: string }>('/auth/refresh-token', { refresh_token: refreshToken });
 
             if (response.error || !response.data) {
                 return { success: false };

@@ -1,9 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useToast } from 'react-native-toast-notifications';
 
 import { IUserEntity, IRolesAllowedEntity } from '@/interfaces/auth';
 import { authService } from '@/services/authService';
 import { socketService } from '@/services/websocketService';
 import { courierLocationTracking } from '@/services/courierLocationService';
+import { setAuthFailureHandler } from '@/services/api';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -30,6 +32,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [roles, setRoles] = useState<IRolesAllowedEntity[] | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const toast = useToast();
 
   // Verificar autenticación al inicio
   useEffect(() => {
@@ -166,6 +169,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     setRoles(null);
   };
+
+  useEffect(() => {
+    // when the API signals authentication failure (401 + no refresh or refresh rejected)
+    // we show a toast and then clear state so UI can redirect to login
+    setAuthFailureHandler(async () => {
+      if (toast) {
+        toast.show('Tu sesión ha expirado. Por favor inicia sesión nuevamente.', {
+          type: 'danger',
+          duration: 4000,
+        });
+      }
+      await authService.logout();
+      setIsAuthenticated(false);
+      setUser(null);
+      setRoles(null);
+    });
+
+    return () => {
+      setAuthFailureHandler(null);
+    };
+  }, [toast]);
 
   return (
     <AuthContext.Provider

@@ -7,6 +7,14 @@ import { Platform } from 'react-native';
 export const AUTH_TOKEN_KEY = 'auth_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
 
+let authFailureHandler: (() => void | Promise<void>) | null = null;
+
+export const setAuthFailureHandler = (
+    handler: (() => void | Promise<void>) | null
+) => {
+    authFailureHandler = handler;
+};
+
 // Obtener la URL del API según el entorno (development o production)
 // Obtiene la URL base sin /api
 export const getBaseUrl = () => {
@@ -119,7 +127,7 @@ const refreshToken = async (): Promise<{ success: boolean }> => {
         }
 
         // Endpoint para refrescar el token
-        const refreshEndpoint = '/auth/refresh';
+        const refreshEndpoint = '/auth/refresh-token';
         const url = `${API_URL}${refreshEndpoint}`;
 
         const response = await fetch(url, {
@@ -201,7 +209,14 @@ export const apiRequest = async <T>(endpoint: string, options: ApiOptions = {}):
                     const newAuthOptions = await getAuthOptions(options);
                     const retryRequestOptions = isFormData 
                         ? { ...newAuthOptions }
-                        : { ...defaultOptions, ...newAuthOptions };
+                        : {
+                            ...defaultOptions,
+                            ...newAuthOptions,
+                            headers: {
+                                ...defaultOptions.headers,
+                                ...((newAuthOptions as any).headers || {})
+                            }
+                        };
                     
                     const retryResponse = await fetch(url, retryRequestOptions);
 
@@ -210,6 +225,11 @@ export const apiRequest = async <T>(endpoint: string, options: ApiOptions = {}):
                     }
                 } else {
                     console.log('No se pudo refrescar el token, usuario debe iniciar sesión nuevamente');
+                    try {
+                        await authFailureHandler?.();
+                    } catch (handlerError) {
+                        console.log('Error al ejecutar authFailureHandler:', handlerError);
+                    }
                 }
             }
 
