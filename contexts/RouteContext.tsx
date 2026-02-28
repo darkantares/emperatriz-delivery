@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { useOsrmTrip } from '@/hooks/useOsrmTrip';
-import { DeliveryItemAdapter } from '@/interfaces/delivery/deliveryAdapters';
+import { DeliveryItemAdapter, adaptDeliveriesToAdapter } from '@/interfaces/delivery/deliveryAdapters';
 import { IDeliveryStatus } from '@/interfaces/delivery/deliveryStatus';
 import { DeliveryService } from '@/services/deliveryService';
 import { useAuth } from '@/context/AuthContext';
@@ -45,6 +45,8 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
   // Función auxiliar para preparar deliveries y coordenadas
   const prepareRouteData = (allDeliveries: DeliveryItemAdapter[]) => {
     const pendingDeliveries = allDeliveries.filter(delivery => {
+      console.log('delivery: ', delivery);
+      
       const isPending = delivery.deliveryStatus.title !== IDeliveryStatus.DELIVERED &&
                        delivery.deliveryStatus.title !== IDeliveryStatus.CANCELLED &&
                        delivery.deliveryStatus.title !== IDeliveryStatus.RETURNED;
@@ -57,7 +59,7 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
 
     if (pendingDeliveries.length === 0) {
       return null;
-    }
+    } 
 
     const coordinates = pendingDeliveries.map(delivery => ({
       latitude: parseFloat(delivery.additionalDataNominatim.lat),
@@ -119,7 +121,22 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
       console.log('allDeliveries: ',allDeliveries);
       
       // Paso 2: Preparar deliveries filtrados
-      const routeData = prepareRouteData(allDeliveries);
+      let routeData = prepareRouteData(allDeliveries);
+
+      if (!routeData) {
+        console.warn('[RouteContext] allDeliveries vacío o sin coordenadas; intentando recargar asignaciones desde backend...');
+        const deliveriesResponse = await DeliveryService.getDeliveries();
+
+        if (deliveriesResponse.success && deliveriesResponse.data) {
+          const refreshedDeliveries = adaptDeliveriesToAdapter(deliveriesResponse.data);
+          routeData = prepareRouteData(refreshedDeliveries);
+          console.log('[RouteContext] Resultado tras recargar deliveries:', {
+            total: refreshedDeliveries.length,
+            pendingWithCoordinates: routeData?.pendingDeliveries.length || 0,
+          });
+        }
+      }
+
       if (!routeData) {
         throw new Error('No hay entregas disponibles con coordenadas válidas');
       }

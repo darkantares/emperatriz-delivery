@@ -30,6 +30,7 @@ import { RouteProvider, useRouteContext } from "@/contexts/RouteContext";
 
 function TabOneScreenContent() {
   const { canProcessNewDelivery } = useActiveDelivery();  
+  const pendingRouteRefreshRef = useRef(false);
   const {
     deliveries,
     inProgressDelivery,
@@ -56,35 +57,84 @@ function TabOneScreenContent() {
     closeTripMap,
   } = useRouteContext();
 
-  // Wrappers para los handlers que también recalculan rutas
-  const handleDeliveryAssignedWithRouteUpdate = (data: any) => {
-    console.log(data);    
-    handleDeliveryAssigned(data);
-    // recalculateRoutes(allDeliveries);
-  };
+  const handlersRef = useRef({
+    onDriverAssigned: (data: any) => {
+      console.log(data);
+      handleDeliveryAssigned(data);
+      pendingRouteRefreshRef.current = true;
+    },
+    onDriversGroupAssigned: (data: any) => {
+      console.log(data);
+      handleDriversGroupAssigned(data);
+      pendingRouteRefreshRef.current = true;
+    },
+    onDeliveryReordered: (data: any) => {
+      handleDeliveryReordered(data);
+    },
+    onDeliveryUpdated: (data: any) => {
+      handleDeliveryUpdated(data);
+    },
+  });
 
-  const handleDriversGroupAssignedWithRouteUpdate = (data: any) => {
-    console.log(data); 
-    handleDriversGroupAssigned(data);
-    // recalculateRoutes(allDeliveries);
-  };
+  useEffect(() => {
+    handlersRef.current = {
+      onDriverAssigned: (data: any) => {
+        console.log(data);
+        handleDeliveryAssigned(data);
+        pendingRouteRefreshRef.current = true;
+      },
+      onDriversGroupAssigned: (data: any) => {
+        console.log(data);
+        handleDriversGroupAssigned(data);
+        pendingRouteRefreshRef.current = true;
+      },
+      onDeliveryReordered: (data: any) => {
+        handleDeliveryReordered(data);
+      },
+      onDeliveryUpdated: (data: any) => {
+        handleDeliveryUpdated(data);
+      },
+    };
+  }, [
+    handleDeliveryAssigned,
+    handleDriversGroupAssigned,
+    handleDeliveryReordered,
+    handleDeliveryUpdated,
+  ]);
 
-  // Conectar socket y listeners
+  // Conectar socket y listeners una sola vez
   useEffect(() => {
     socketService.connect();
-    
-    socketService.on(SocketEventType.DRIVER_ASSIGNED, handleDeliveryAssignedWithRouteUpdate);
-    socketService.on(SocketEventType.DELIVERY_REORDERED, handleDeliveryReordered); 
-    socketService.on(SocketEventType.DELIVERY_ASSIGNMENT_UPDATED, handleDeliveryUpdated);
-    socketService.on(SocketEventType.DRIVERS_GROUP_ASSIGNED, handleDriversGroupAssignedWithRouteUpdate);
+
+    const onDriverAssigned = (data: any) => handlersRef.current.onDriverAssigned(data);
+    const onDeliveryReordered = (data: any) => handlersRef.current.onDeliveryReordered(data);
+    const onDeliveryUpdated = (data: any) => handlersRef.current.onDeliveryUpdated(data);
+    const onDriversGroupAssigned = (data: any) => handlersRef.current.onDriversGroupAssigned(data);
+
+    socketService.on(SocketEventType.DRIVER_ASSIGNED, onDriverAssigned);
+    socketService.on(SocketEventType.DELIVERY_REORDERED, onDeliveryReordered);
+    socketService.on(SocketEventType.DELIVERY_ASSIGNMENT_UPDATED, onDeliveryUpdated);
+    socketService.on(SocketEventType.DRIVERS_GROUP_ASSIGNED, onDriversGroupAssigned);
 
     return () => {
-      socketService.off(SocketEventType.DRIVER_ASSIGNED, handleDeliveryAssignedWithRouteUpdate);
-      socketService.off(SocketEventType.DELIVERY_REORDERED, handleDeliveryReordered);
-      socketService.off(SocketEventType.DELIVERY_ASSIGNMENT_UPDATED, handleDeliveryUpdated);  
-      socketService.off(SocketEventType.DRIVERS_GROUP_ASSIGNED, handleDriversGroupAssignedWithRouteUpdate);
+      socketService.off(SocketEventType.DRIVER_ASSIGNED, onDriverAssigned);
+      socketService.off(SocketEventType.DELIVERY_REORDERED, onDeliveryReordered);
+      socketService.off(SocketEventType.DELIVERY_ASSIGNMENT_UPDATED, onDeliveryUpdated);
+      socketService.off(SocketEventType.DRIVERS_GROUP_ASSIGNED, onDriversGroupAssigned);
     };
-  }, [handleDeliveryAssigned, handleDeliveryReordered, handleDeliveryUpdated, handleDriversGroupAssigned, allDeliveries]);
+  }, []);
+
+  useEffect(() => {
+    if (!showTripMap || !pendingRouteRefreshRef.current) {
+      return;
+    }
+
+    pendingRouteRefreshRef.current = false;
+
+    recalculateRoutes(allDeliveries).catch((error) => {
+      console.error("[TabOneScreen] Error al recalcular ruta por evento websocket:", error);
+    });
+  }, [allDeliveries, showTripMap, recalculateRoutes]);
 
   // Type guard para verificar si el item es un grupo
   const isDeliveryGroup = (

@@ -46,6 +46,21 @@ export const DeliveryProvider: React.FC<DeliveryProviderProps> = ({ children }) 
     const [refreshing, setRefreshing] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
 
+    const upsertById = useCallback(
+        (currentDeliveries: DeliveryItemAdapter[], incomingDeliveries: DeliveryItemAdapter[]) => {
+            const deliveriesMap = new Map(
+                currentDeliveries.map((delivery) => [delivery.id, delivery])
+            );
+
+            incomingDeliveries.forEach((delivery) => {
+                deliveriesMap.set(delivery.id, delivery);
+            });
+
+            return Array.from(deliveriesMap.values());
+        },
+        [],
+    );
+
     useEffect(() => {
         const init = async () => {
             if (isLoading) return;
@@ -126,6 +141,12 @@ export const DeliveryProvider: React.FC<DeliveryProviderProps> = ({ children }) 
     const handleDeliveryUpdated = (data: IDeliveryAssignmentEntity) => {
         const updatedDelivery = adaptDeliveriesToAdapter([data])[0];
 
+        setAllDeliveries((currentDeliveries) =>
+            currentDeliveries.map((delivery) =>
+                delivery.id === updatedDelivery.id ? updatedDelivery : delivery
+            )
+        );
+
         // Verificar si la entrega actualizada está en progreso
         if (updatedDelivery.deliveryStatus.title === IDeliveryStatus.IN_PROGRESS) {
             // Si está en progreso, actualizar el estado de la entrega en progreso
@@ -152,11 +173,17 @@ export const DeliveryProvider: React.FC<DeliveryProviderProps> = ({ children }) 
     };
 
     const handleDeliveryAssigned = (data: IDeliveryAssignmentEntity) => {        
-        setDeliveries(currentDeliveries => [...currentDeliveries, adaptDeliveriesToAdapter([data])[0]]);
+        const [adaptedDelivery] = adaptDeliveriesToAdapter([data]);
+
+        setDeliveries((currentDeliveries) => upsertById(currentDeliveries, [adaptedDelivery]));
+        setAllDeliveries((currentDeliveries) => upsertById(currentDeliveries, [adaptedDelivery]));
     };
 
     const handleDriversGroupAssigned = (data: IDeliveryAssignmentEntity[]) => {
-        setDeliveries(currentDeliveries => [...currentDeliveries, ...adaptDeliveriesToAdapter(data)]);
+        const adaptedDeliveries = adaptDeliveriesToAdapter(data);
+
+        setDeliveries((currentDeliveries) => upsertById(currentDeliveries, adaptedDeliveries));
+        setAllDeliveries((currentDeliveries) => upsertById(currentDeliveries, adaptedDeliveries));
     };
 
     const handleDeliveryReordered = (data: IDeliveryAssignmentEntity[]) => {
