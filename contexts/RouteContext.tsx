@@ -116,7 +116,8 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
       }
 
       console.log('[RouteContext] Ruta optimizada recibida del backend:', response.data);
-
+      console.log('allDeliveries: ',allDeliveries);
+      
       // Paso 2: Preparar deliveries filtrados
       const routeData = prepareRouteData(allDeliveries);
       if (!routeData) {
