@@ -18,12 +18,6 @@ export function useEvidenceFlags(
     (isAmountPaidZero ||
     (selectedPaymentTitle ?? "").toLowerCase() === 
     IPaymentValidMethods.Transferencia.toLowerCase());
-
-  // console.log('*********************************')
-  // console.log('showEvidence:', showEvidence);      
-  // console.log('isAmountPaidZero:', isAmountPaidZero);
-  // console.log('selectedPaymentTitle:', selectedPaymentTitle);
-  // console.log('requiresGalleryImage:', requiresGalleryImage);
       
   return {
     requiresCameraPhoto,
