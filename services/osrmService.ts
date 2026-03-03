@@ -134,7 +134,7 @@ export const osrmService = {
                 };
             }
 
-            if (!response.data.data) {
+            if (!response.data.value) {
                 console.log('Error processing OSRM route response:', response);
                 return {
                     success: false,
@@ -145,7 +145,7 @@ export const osrmService = {
 
             return {
                 success: true,
-                data: response.data.data
+                data: response.data.value
             };
         } catch (error) {
             console.log('Error getting OSRM route:', error);
@@ -217,7 +217,7 @@ export const osrmService = {
                 };
             }
 
-            if (!response.data.data) {
+            if (!response.data.value) {
                 console.log('Error processing OSRM trip response:', response);
                 return {
                     success: false,
@@ -228,7 +228,7 @@ export const osrmService = {
 
             return {
                 success: true,
-                data: response.data.data
+                data: response.data.value
             };
         } catch (error) {
             console.log('Error getting OSRM trip:', error);

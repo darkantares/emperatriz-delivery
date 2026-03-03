@@ -50,9 +50,8 @@ export const DeliveryService = {
                 };
             }
 
-            // Verificamos la estructura de la respuesta directamente, sin usar extractDataFromResponse
-            // Sabemos que la estructura es: response -> data -> data -> data (array) y total
-            if (!response.data || !response.data.data) {
+            // Verificamos la estructura de la respuesta OkResult { ok: true, value: T }
+            if (!response.data || !response.data.value) {
                 console.log('Error: Estructura de respuesta inesperada', response);
                 return {
                     success: false,
@@ -61,9 +60,9 @@ export const DeliveryService = {
                 };
             }
 
-            // Accedemos a los datos y total directamente de la estructura conocida
-            const deliveriesArray = response.data.data;
-            const total = response.data.data.total || 0;
+            // Accedemos a los datos directamente de la estructura OkResult
+            const deliveriesArray = response.data.value;
+            const total = 0;
 
             // Verificamos que realmente tengamos un array de entregas
             if (!Array.isArray(deliveriesArray)) {
@@ -491,7 +490,7 @@ export const DeliveryService = {
 
             return {
                 success: true,
-                data: response.data.data
+                data: response.data.value
             };
         } catch (error) {
             console.log(`Error getting optimized route for courier ${courierId}:`, error);

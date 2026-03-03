@@ -14,3 +14,8 @@ export interface ResponseDataAPI<T>{
     data: T,
     total:number
 }
+
+export interface OkResult<T> {
+    ok: true;
+    value: T;
+}

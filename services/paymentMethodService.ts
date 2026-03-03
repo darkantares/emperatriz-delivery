@@ -50,7 +50,7 @@ export const paymentMethodService = {
 
             return {
                 success: true,
-                data: response.data.data.data
+                data: response.data.value
             };
         } catch (error) {
             console.log('Error getting payment methods:', error);

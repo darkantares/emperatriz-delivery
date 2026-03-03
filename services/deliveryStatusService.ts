@@ -30,15 +30,7 @@ export const deliveryStatusService = {
         try {
             const response = await api.get<IDeliveryStatusEntity[]>(`${BackendUrls.DeliveryStatus}`);
             
-            if (response.error || !response.data.data) {
-                return {
-                    success: false,
-                    error: response.error || 'Error al obtener estados de entrega',
-                    details: response.details
-                };
-            }
-
-            if (!response.data.data) {
+            if (response.error || !response.data.value) {
                 console.log('Error processing delivery statuses response:', response);
                 return {
                     success: false,
@@ -49,7 +41,7 @@ export const deliveryStatusService = {
 
             return {
                 success: true,
-                data: response.data.data
+                data: response.data.value
             };
         } catch (error) {
             console.log('Error getting delivery statuses:', error);

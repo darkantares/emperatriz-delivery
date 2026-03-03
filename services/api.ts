@@ -354,6 +354,12 @@ export const checkApiConnectivity = async () => {
 export const extractDataFromResponse = <T>(response: any): T | null => {
     if (!response) return null;
 
+    // Caso 0: OkResult { ok: true, value: T } - nuevo patrón del backend
+    if (typeof response === 'object' && 'data' in response && response.data &&
+        'ok' in response.data && response.data.ok === true && 'value' in response.data) {
+        return response.data.value as T;
+    }
+
     // Caso 1: La respuesta ya es directamente del tipo esperado
     if (typeof response === 'object' && !('data' in response) && !('success' in response)) {
         return response as T;

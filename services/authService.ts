@@ -28,8 +28,8 @@ export const authService = {
                 };
             }
 
-            // Extraer los datos del LoginResponse de dentro de ResponseAPI
-            const loginData = response.data.data;
+            // Extraer los datos del LoginResponse del OkResult
+            const loginData = response.data.value;
             console.log('LoginData: ', loginData);
             
             if (!loginData) {
