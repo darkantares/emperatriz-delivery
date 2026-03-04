@@ -4,7 +4,7 @@ import { Text } from '@/components/Themed';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CustomColors } from '@/constants/CustomColors';
-import { useOsrmRoute } from '@/hooks/useOsrmRoute';
+import { useOsrmRoute } from '@/core/hooks/useOsrmRoute';
 
 interface AppStateScreenProps {
   type: 'loading' | 'error' | 'noDeliveries';

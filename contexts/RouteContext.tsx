@@ -1,10 +1,10 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { useOsrmTrip } from '@/hooks/useOsrmTrip';
+import { useOsrmTrip } from '@/core/hooks/useOsrmTrip';
 import { DeliveryItemAdapter, adaptDeliveriesToAdapter } from '@/interfaces/delivery/deliveryAdapters';
 import { IDeliveryStatus } from '@/interfaces/delivery/deliveryStatus';
-import { DeliveryService } from '@/services/deliveryService';
+import { getDeliveries, getOptimizedRoute } from '@/core/actions/delivery.actions';
 import { useAuth } from '@/context/AuthContext';
-import { OsrmTripResult } from '@/services/osrmService';
+import { OsrmTripResult } from '@/core/actions/osrm.actions';
 
 interface RouteContextType {
   // Estado
@@ -107,34 +107,25 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
       console.log('[RouteContext] Solicitando ruta optimizada al backend...');
       console.log('CARRIER:', carrier);
       
-      const response = await DeliveryService.getOptimizedRoute(carrierId, {
+      const optimizedRoute = await getOptimizedRoute(carrierId, {
         lat: currentLocation.coords.latitude,
-        lng: currentLocation.coords.longitude
+        lng: currentLocation.coords.longitude,
       });
 
-      if (!response.success || !response.data) {
-        console.warn('[RouteContext] No se pudo obtener ruta optimizada del backend:', response.error);
-        throw new Error(response.error || 'No se pudo obtener ruta optimizada');
-      }
+      console.log('[RouteContext] Ruta optimizada recibida del backend:', optimizedRoute);
+      console.log('allDeliveries: ', allDeliveries);
 
-      console.log('[RouteContext] Ruta optimizada recibida del backend:', response.data);
-      console.log('allDeliveries: ',allDeliveries);
-      
       // Paso 2: Preparar deliveries filtrados
       let routeData = prepareRouteData(allDeliveries);
 
       if (!routeData) {
         console.warn('[RouteContext] allDeliveries vacío o sin coordenadas; intentando recargar asignaciones desde backend...');
-        const deliveriesResponse = await DeliveryService.getDeliveries();
-
-        if (deliveriesResponse.success && deliveriesResponse.data) {
-          const refreshedDeliveries = adaptDeliveriesToAdapter(deliveriesResponse.data);
-          routeData = prepareRouteData(refreshedDeliveries);
-          console.log('[RouteContext] Resultado tras recargar deliveries:', {
-            total: refreshedDeliveries.length,
-            pendingWithCoordinates: routeData?.pendingDeliveries.length || 0,
-          });
-        }
+        const refreshedDeliveries = adaptDeliveriesToAdapter(await getDeliveries());
+        routeData = prepareRouteData(refreshedDeliveries);
+        console.log('[RouteContext] Resultado tras recargar deliveries:', {
+          total: refreshedDeliveries.length,
+          pendingWithCoordinates: routeData?.pendingDeliveries.length || 0,
+        });
       }
 
       if (!routeData) {
@@ -146,7 +137,6 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
 
       // Paso 3: Usar la geometría del backend directamente
       // El backend ya calculó con OSRM, solo necesitamos mostrar el resultado
-      const optimizedRoute = response.data;
       
       // Convertir a formato compatible con el mapa
       const tripDataFromBackend: OsrmTripResult = {

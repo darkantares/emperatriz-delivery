@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { IDeliveryAssignmentEntity } from '@/interfaces/delivery/delivery';
 import { DeliveryItemAdapter, adaptDeliveriesToAdapter } from '@/interfaces/delivery/deliveryAdapters';
-import { DeliveryService } from '@/services/deliveryService';
+import { getDeliveries } from '@/core/actions/delivery.actions';
 import { IDeliveryStatus } from '@/interfaces/delivery/deliveryStatus';
 import { useActiveDelivery } from './ActiveDeliveryContext';
 import { useAuth } from '@/context/AuthContext';
@@ -38,7 +38,7 @@ interface DeliveryProviderProps {
 
 export const DeliveryProvider: React.FC<DeliveryProviderProps> = ({ children }) => {
     const { setActiveDelivery } = useActiveDelivery();
-    const { isAuthenticated, isLoading, logout } = useAuth();
+    const { isAuthenticated, isLoading } = useAuth();
     const [deliveries, setDeliveries] = useState<DeliveryItemAdapter[]>([]);
     const [allDeliveries, setAllDeliveries] = useState<DeliveryItemAdapter[]>([]);
     const [inProgressDelivery, setInProgressDelivery] = useState<DeliveryItemAdapter | null>(null);
@@ -81,47 +81,33 @@ export const DeliveryProvider: React.FC<DeliveryProviderProps> = ({ children }) 
         setError(null);
 
         try {
-            const response = await DeliveryService.getDeliveries();
+            const deliveriesData = await getDeliveries();
+            const adaptedDeliveries = adaptDeliveriesToAdapter(deliveriesData);
 
-            if (response.success && response.data) {
-                const adaptedDeliveries = adaptDeliveriesToAdapter(response.data);
-                
-                // Guardar todos los deliveries tal como vienen del backend
-                setAllDeliveries(adaptedDeliveries);
-                                
-                // Verificar si hay algún envío en progreso (IN_PROGRESS)
-                const inProgressIndex = adaptedDeliveries.findIndex(delivery =>
-                    delivery.deliveryStatus.title === IDeliveryStatus.IN_PROGRESS
-                );
+            // Guardar todos los deliveries tal como vienen del backend
+            setAllDeliveries(adaptedDeliveries);
 
-                if (inProgressIndex !== -1) {
-                    // Si hay solo un elemento y está IN_PROGRESS, mostrarlo como inProgressDelivery y no eliminar el array principal
-                    if (adaptedDeliveries.length === 1) {
-                        setDeliveries([]);
-                        setInProgressDelivery(adaptedDeliveries[0]);
-                        setActiveDelivery(adaptedDeliveries[0]);
-                    } else {
-                        // Extraer el envío en progreso
-                        const inProgress = adaptedDeliveries[inProgressIndex];
-                        // Eliminar el envío en progreso del array principal
-                        const remainingDeliveries = adaptedDeliveries.filter((_, index) => index !== inProgressIndex);
-                        // Actualizar los estados
-                        setDeliveries(remainingDeliveries);
-                        setInProgressDelivery(inProgress);
-                        setActiveDelivery(inProgress);
-                    }
+            // Verificar si hay algún envío en progreso (IN_PROGRESS)
+            const inProgressIndex = adaptedDeliveries.findIndex(delivery =>
+                delivery.deliveryStatus.title === IDeliveryStatus.IN_PROGRESS
+            );
+
+            if (inProgressIndex !== -1) {
+                if (adaptedDeliveries.length === 1) {
+                    setDeliveries([]);
+                    setInProgressDelivery(adaptedDeliveries[0]);
+                    setActiveDelivery(adaptedDeliveries[0]);
                 } else {
-                    // Si no hay envío en progreso, simplemente actualizar las entregas
-                    setDeliveries(adaptedDeliveries);
-                    setInProgressDelivery(null);
-                    setActiveDelivery(null);
+                    const inProgress = adaptedDeliveries[inProgressIndex];
+                    const remainingDeliveries = adaptedDeliveries.filter((_, index) => index !== inProgressIndex);
+                    setDeliveries(remainingDeliveries);
+                    setInProgressDelivery(inProgress);
+                    setActiveDelivery(inProgress);
                 }
             } else {
-                if (response.error === 'Unauthorized') {
-                    logout();
-                }
-                setError(response.error || 'Error al cargar las entregas');
-                console.log('Error al cargar entregas: 1', response.error);
+                setDeliveries(adaptedDeliveries);
+                setInProgressDelivery(null);
+                setActiveDelivery(null);
             }
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Error desconocido';

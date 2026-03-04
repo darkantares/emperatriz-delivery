@@ -18,7 +18,10 @@ import {
   getStatusIdFromTitle,
 } from "@/interfaces/delivery/deliveryStatus";
 import { CustomColors } from "@/constants/CustomColors";
-import { DeliveryService } from "@/services/deliveryService";
+import {
+  updateDeliveryStatus,
+  updateDeliveryStatusWithImages,
+} from '@/core/actions/delivery.actions';
 import {
   IDeliveryStatusEntity,
   IUpdateDeliveryStatusData,
@@ -29,9 +32,9 @@ import { EvidenceSection } from "@/components/status-update/EvidenceSection";
 import { NoteInput } from "@/components/status-update/NoteInput";
 import { PaymentControls } from "@/components/status-update/PaymentControls";
 import { StatusList } from "@/components/status-update/StatusList";
-import { useEvidenceFlags } from "@/hooks/useEvidenceFlags";
-import { usePaymentMethods } from "@/hooks/usePaymentMethods";
-import { useStatusData } from "@/hooks/useStatusData";
+import { useEvidenceFlags } from "@/core/hooks/useEvidenceFlags";
+import { usePaymentMethods } from "@/core/hooks/usePaymentMethods";
+import { useStatusData } from "@/core/hooks/useStatusData";
 import { Capitalize } from "@/utils/capitalize";
 
 export default function StatusUpdateScreen() {
@@ -256,7 +259,6 @@ export default function StatusUpdateScreen() {
 
       setLoading(true);
       try {
-        let result;
         const evidenceUris: string[] = [];
         if (photoUri) evidenceUris.push(photoUri);
         if (imageUri) evidenceUris.push(imageUri);
@@ -295,11 +297,11 @@ export default function StatusUpdateScreen() {
                 ? selectedPaymentMethod
                 : undefined,
           };
-          result = await DeliveryService.updateDeliveryStatusWithImages(updateData);
+          await updateDeliveryStatusWithImages(updateData);
           console.log('updateData:', updateData);
           
         } else {
-          result = await DeliveryService.updateDeliveryStatus(
+          await updateDeliveryStatus(
             itemId,
             statusId,
             requiresNote ? note.trim() : undefined,
@@ -315,14 +317,8 @@ export default function StatusUpdateScreen() {
           );
         }
 
-        if (result.success) {
-          await fetchDeliveries();
-          router.back();
-        } else {
-          Alert.alert("Error", `No se pudo actualizar el estado: ${result.error}`, [
-            { text: "OK" },
-          ]);
-        }
+        await fetchDeliveries();
+        router.back();
       } catch (error) {
         Alert.alert(
           "Error",
