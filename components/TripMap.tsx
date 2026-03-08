@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   Dimensions,
   TouchableOpacity,
+  Switch,
 } from "react-native";
 import * as Location from 'expo-location';
 import MapView, { Marker, Polyline, UrlTile } from "react-native-maps";
@@ -70,6 +71,10 @@ export const TripMap: React.FC<TripMapProps> = ({
   const [isTraveling, setIsTraveling] = useState<boolean>(false);
   const [remainingDistance, setRemainingDistance] = useState<number>(0);
   const [remainingDuration, setRemainingDuration] = useState<number>(0);
+
+  // dev-only flags
+  const [hideCourierIcon, setHideCourierIcon] = useState<boolean>(false);
+  const [hideOtherIcons, setHideOtherIcons] = useState<boolean>(false);
 
   const mapRef = useRef<MapView>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -500,7 +505,7 @@ export const TripMap: React.FC<TripMapProps> = ({
         )}
 
         {/* Markers agrupados por coordenadas con contador visual */}
-        {groupedWaypoints.map((group, index) => {
+        {!hideOtherIcons && groupedWaypoints.map((group, index) => {
           // Determinar color del marker según posición en la ruta
           const markerColor = group.isFirstInRoute
             ? "#4CAF50"
@@ -534,7 +539,7 @@ export const TripMap: React.FC<TripMapProps> = ({
         })}
         
         {/* Marker de posición actual del mensajero */}
-        {currentPosition && (
+        {currentPosition && !hideCourierIcon && (
           <Marker
             key="courier-position"
             coordinate={currentPosition}
@@ -550,6 +555,20 @@ export const TripMap: React.FC<TripMapProps> = ({
           </Marker>
         )}
       </MapView>
+
+      {/* Development toggles */}
+      {__DEV__ && (
+        <View style={styles.devControls}>
+          <View style={styles.checkboxRow}>
+            <Text style={styles.devLabel}>Ocultar icono conductor</Text>
+            <Switch value={hideCourierIcon} onValueChange={setHideCourierIcon} />
+          </View>
+          <View style={styles.checkboxRow}>
+            <Text style={styles.devLabel}>Ocultar otros iconos</Text>
+            <Switch value={hideOtherIcons} onValueChange={setHideOtherIcons} />
+          </View>
+        </View>
+      )}
 
       {/* Controles de viaje */}
       <View style={styles.controlsContainer}>
@@ -740,5 +759,25 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  // development-only checkbox panel
+  devControls: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    right: 10,
+    backgroundColor: '#00000080',
+    padding: 8,
+    borderRadius: 8,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginVertical: 4,
+  },
+  devLabel: {
+    color: '#FFFFFF',
+    fontSize: 14,
   },
 });
