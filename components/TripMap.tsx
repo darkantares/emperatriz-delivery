@@ -10,10 +10,10 @@ import * as Location from 'expo-location';
 import MapView, { Marker, Polyline, UrlTile } from "react-native-maps";
 import { Text } from "@/components/Themed";
 import { CustomColors } from "@/constants/CustomColors";
-import { OsrmTripResult } from "@/services/osrmService";
 import { DeliveryItemAdapter } from "@/interfaces/delivery/deliveryAdapters";
 import RouteInfoPanel from '@/components/RouteInfoPanel';
 import DeliveryModal from '@/components/DeliveryModal';
+import { OsrmTripResult } from "@/core/actions/osrm.actions";
 
 interface TripMapProps {
   tripData: OsrmTripResult | null;
@@ -715,7 +715,7 @@ const styles = StyleSheet.create({
   // Estilos para controles
   controlsContainer: {
     position: 'absolute',
-    bottom: 200,
+    bottom: 150,
     left: 20,
     right: 20,
   },

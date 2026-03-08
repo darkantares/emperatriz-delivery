@@ -4,8 +4,8 @@ import {
   Alert,
   TouchableOpacity,
   Text,
-  Modal,
 } from "react-native";
+import { TripMapModal } from "./TripMapModal";
 import { View } from "@/components/Themed";
 import { socketService, SocketEventType } from "@/services/websocketService";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -375,40 +375,27 @@ function TabOneScreenContent() {
         </View>
 
         {/* Modal con el mapa de ruta optimizada (Trip) */}
-        <Modal
+        <TripMapModal
           visible={showTripMap}
-          animationType="slide"
           onRequestClose={closeTripMap}
-        >
-          <SafeAreaView style={{ flex: 1, backgroundColor: CustomColors.backgroundDarkest }}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Ruta Optimizada</Text>
-              <TouchableOpacity onPress={closeTripMap}>
-                <Text style={styles.closeButton}>Cerrar</Text>
-              </TouchableOpacity>
-            </View>
-            
-            <TripMap 
-              tripData={tripData} 
-              loading={tripLoading} 
-              error={tripError}
-              deliveries={tripDeliveries}
-              onProgressDelivery={(delivery) => {
-                const total = (delivery.deliveryCost || 0) + (delivery.amountToBeCharged || 0);
-                closeTripMap();
-                router.push({
-                  pathname: "/(tabs)/status-update",
-                  params: {
-                    itemId: delivery.id,
-                    itemTitle: delivery.client,
-                    currentStatus: delivery.deliveryStatus.title,
-                    totalAmmount: String(total),
-                  },
-                });
-              }}
-            />
-          </SafeAreaView>
-        </Modal>
+          tripData={tripData}
+          loading={tripLoading}
+          error={tripError}
+          deliveries={tripDeliveries}
+          onProgressDelivery={(delivery) => {
+            const total = (delivery.deliveryCost || 0) + (delivery.amountToBeCharged || 0);
+            closeTripMap();
+            router.push({
+              pathname: "/(tabs)/status-update",
+              params: {
+                itemId: delivery.id,
+                itemTitle: delivery.client,
+                currentStatus: delivery.deliveryStatus.title,
+                totalAmmount: String(total),
+              },
+            });
+          }}
+        />
       </View>
     </GestureHandlerRootView>
   );
