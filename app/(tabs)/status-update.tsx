@@ -206,7 +206,7 @@ export default function StatusUpdateScreen() {
   };
 
   const handleClose = () => {
-    router.back();
+    // router.back();
     setLoading(false);
   };
 
@@ -318,7 +318,7 @@ export default function StatusUpdateScreen() {
         }
 
         await fetchDeliveries();
-        router.back();
+        // router.back();
       } catch (error) {
         Alert.alert(
           "Error",

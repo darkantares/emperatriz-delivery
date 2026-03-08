@@ -215,7 +215,7 @@ function TabOneScreenContent() {
     try {
       await startRoutes(allDeliveries);
     } catch (err) {
-      console.error('[TabOneScreen] Error al iniciar rutas:', err);
+      console.log('[TabOneScreen] Error al iniciar rutas:', err);
       const errorMessage = err instanceof Error ? err.message : 'Ocurrió un error desconocido al calcular la ruta optimizada.';
       Alert.alert(
         "Error",

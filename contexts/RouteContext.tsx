@@ -72,12 +72,11 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
   // Método para iniciar rutas con optimización del backend
   const startRoutes = async (allDeliveries: DeliveryItemAdapter[]) => {
     console.log('[RouteContext] Iniciando cálculo de rutas optimizadas desde backend...');
-    console.log('USER: ', user);
     
     if (!user) {
       throw new Error('Usuario no autenticado');
     }
-
+    console.log('paso 2:', 2);
     const carrierId = carrier?.id;
     if (!carrierId) {
       console.error('[RouteContext] Usuario autenticado sin carrier válido:', {
@@ -88,7 +87,7 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
     }
 
     setIsOptimizing(true);
-
+    console.log('paso 3:', 3);
     try {
       // Paso 0: Obtener ubicación actual del courier
       const { courierLocationTracking } = await import('@/services/courierLocationService');
@@ -97,7 +96,8 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
       if (!currentLocation) {
         throw new Error('No se pudo obtener la ubicación actual del mensajero');
       }
-
+      console.log('currentLocation: ',currentLocation);
+      
       console.log('[RouteContext] Ubicación actual obtenida:', {
         lat: currentLocation.coords.latitude,
         lng: currentLocation.coords.longitude
@@ -106,7 +106,7 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
       // Paso 1: Obtener ruta optimizada desde el backend con ubicación actual
       console.log('[RouteContext] Solicitando ruta optimizada al backend...');
       console.log('CARRIER:', carrier);
-      
+      console.log('paso 4:', 4);
       const optimizedRoute = await getOptimizedRoute(carrierId, {
         lat: currentLocation.coords.latitude,
         lng: currentLocation.coords.longitude,
@@ -116,8 +116,9 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
       console.log('allDeliveries: ', allDeliveries);
 
       // Paso 2: Preparar deliveries filtrados
+      console.log('[RouteContext] Preparando datos de entregas para mostrar en el mapa...');
       let routeData = prepareRouteData(allDeliveries);
-
+      console.log('paso 5:', 5);
       if (!routeData) {
         console.warn('[RouteContext] allDeliveries vacío o sin coordenadas; intentando recargar asignaciones desde backend...');
         const refreshedDeliveries = adaptDeliveriesToAdapter(await getDeliveries());
