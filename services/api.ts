@@ -2,6 +2,7 @@ import { API_URLS } from '@/utils/constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ResponseAPI, FetchResponse } from '@/interfaces/global';
 import { Platform } from 'react-native';
+import { findSchema } from '@/src/api/schemaRegistry';
 
 // Keys para almacenamiento
 export const AUTH_TOKEN_KEY = 'auth_token';
@@ -262,7 +263,19 @@ export const apiRequest = async <T>(endpoint: string, options: ApiOptions = {}):
         }
 
         // Procesar la respuesta exitosa
-        return handleSuccessResponse<T>(response);
+        const fetchResult = await handleSuccessResponse<T>(response);
+
+        // Validate the parsed data against any registered Zod schema for this endpoint
+        const schema = findSchema(formattedEndpoint);
+        if (schema && fetchResult.data) {
+            const result = schema.safeParse(fetchResult.data);
+            if (!result.success) {
+                console.error('[api] Invalid API response for', formattedEndpoint, result.error);
+                throw new Error('Invalid API response structure');
+            }
+        }
+
+        return fetchResult;
     } catch (error) {
         console.log('API Request Error:', error);
         return {
