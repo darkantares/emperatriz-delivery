@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  Modal,
   TextInput,
   ScrollView,
 } from "react-native";
@@ -21,7 +22,7 @@ import { CustomColors } from "@/constants/CustomColors";
 import {
   updateDeliveryStatus,
   updateDeliveryStatusWithImages,
-} from '@/core/actions/delivery.actions';
+} from "@/core/actions/delivery.actions";
 import {
   IDeliveryStatusEntity,
   IUpdateDeliveryStatusData,
@@ -37,7 +38,15 @@ import { usePaymentMethods } from "@/core/hooks/usePaymentMethods";
 import { useStatusData } from "@/core/hooks/useStatusData";
 import { Capitalize } from "@/utils/capitalize";
 
-export default function StatusUpdateScreen() {
+interface StatusUpdateScreenProps {
+  visible?: boolean;
+  onClose?: () => void;
+}
+
+export default function StatusUpdateScreen({
+  visible = true,
+  onClose,
+}: StatusUpdateScreenProps) {
   const params = useLocalSearchParams<{
     itemId: string;
     itemTitle: string;
@@ -87,18 +96,22 @@ export default function StatusUpdateScreen() {
     selectedStatus &&
     statusesRequiringNote.includes(selectedStatus as IDeliveryStatus);
 
-  const requiresPaymentInfo =
-    isDelivered && !isPickupType;
+  const requiresPaymentInfo = isDelivered && !isPickupType;
 
   const selectedPaymentTitle: string | null = selectedPaymentMethod
-    ? (paymentMethods.find((pm) => pm.id === selectedPaymentMethod)?.title?.toLowerCase() ?? null)
+    ? (paymentMethods
+        .find((pm) => pm.id === selectedPaymentMethod)
+        ?.title?.toLowerCase() ?? null)
     : null;
-  const isPaymentMethodDisabled = totalAmmount === 0 && isDelivered && !isPickupType;
-  const {
-    requiresCameraPhoto,
-    requiresGalleryImage,
-    showEvidence,
-  } = useEvidenceFlags(selectedStatus, isPickupType, selectedPaymentTitle, amountPaid);
+  const isPaymentMethodDisabled =
+    totalAmmount === 0 && isDelivered && !isPickupType;
+  const { requiresCameraPhoto, requiresGalleryImage, showEvidence } =
+    useEvidenceFlags(
+      selectedStatus,
+      isPickupType,
+      selectedPaymentTitle,
+      amountPaid,
+    );
 
   useEffect(() => {
     if (isPickupType && isDelivered) {
@@ -107,20 +120,24 @@ export default function StatusUpdateScreen() {
   }, [isPickupType, selectedStatus]);
 
   useEffect(() => {
-    if (
-      isDelivered &&
-      !isPickupType &&
-      !amountPaidEdited
-    ) {
+    if (isDelivered && !isPickupType && !amountPaidEdited) {
       setAmountPaid(totalAmmount.toFixed(2));
       if (totalAmmount === 0) {
-        const transferencia = paymentMethods.find(pm => pm.title?.toLowerCase() === 'transferencia');
+        const transferencia = paymentMethods.find(
+          (pm) => pm.title?.toLowerCase() === "transferencia",
+        );
         if (transferencia) {
           setSelectedPaymentMethod(transferencia.id);
         }
       }
     }
-  }, [selectedStatus, isPickupType, totalAmmount, amountPaidEdited, paymentMethods]);
+  }, [
+    selectedStatus,
+    isPickupType,
+    totalAmmount,
+    amountPaidEdited,
+    paymentMethods,
+  ]);
 
   const isFormValid =
     selectedStatus &&
@@ -128,7 +145,8 @@ export default function StatusUpdateScreen() {
     (!requiresNote || note.trim() !== "") &&
     (!requiresCameraPhoto || photoUri) &&
     (!requiresGalleryImage || imageUri) &&
-    (!requiresPaymentInfo || (amountPaid.trim() !== "" && selectedPaymentMethod));
+    (!requiresPaymentInfo ||
+      (amountPaid.trim() !== "" && selectedPaymentMethod));
 
   useEffect(() => {
     setSelectedStatus(null);
@@ -149,7 +167,7 @@ export default function StatusUpdateScreen() {
         Alert.alert(
           "Permiso denegado",
           "Se requiere permiso de cámara para tomar la foto de evidencia.",
-          [{ text: "OK" }]
+          [{ text: "OK" }],
         );
         return;
       }
@@ -176,7 +194,7 @@ export default function StatusUpdateScreen() {
         Alert.alert(
           "Permiso denegado",
           "Se requiere permiso para acceder a la galería de imágenes.",
-          [{ text: "OK" }]
+          [{ text: "OK" }],
         );
         return;
       }
@@ -193,7 +211,7 @@ export default function StatusUpdateScreen() {
       Alert.alert(
         "Error",
         "No se pudo seleccionar la imagen. Inténtalo de nuevo.",
-        [{ text: "OK" }]
+        [{ text: "OK" }],
       );
     }
   };
@@ -206,8 +224,9 @@ export default function StatusUpdateScreen() {
   };
 
   const handleClose = () => {
-    // router.back();
     setLoading(false);
+    if (onClose) onClose();
+    else router.back();
   };
 
   const handleConfirm = async () => {
@@ -216,16 +235,16 @@ export default function StatusUpdateScreen() {
         Alert.alert(
           "Campo requerido",
           "Debes escribir una nota para este estado.",
-          [{ text: "OK" }]
+          [{ text: "OK" }],
         );
         return;
       }
 
-      if (!isPickupType && isDelivered && (!photoUri && !imageUri)) {
+      if (!isPickupType && isDelivered && !photoUri && !imageUri) {
         Alert.alert(
           "Evidencia requerida",
           "Debes tomar una foto o seleccionar una imagen para el estado DELIVERED.",
-          [{ text: "OK" }]
+          [{ text: "OK" }],
         );
         return;
       }
@@ -235,7 +254,7 @@ export default function StatusUpdateScreen() {
           Alert.alert(
             "Monto requerido",
             "Debes ingresar el monto pagado para el estado DELIVERED.",
-            [{ text: "OK" }]
+            [{ text: "OK" }],
           );
           return;
         }
@@ -243,7 +262,7 @@ export default function StatusUpdateScreen() {
           Alert.alert(
             "Método de pago requerido",
             "Debes seleccionar un método de pago para el estado DELIVERED.",
-            [{ text: "OK" }]
+            [{ text: "OK" }],
           );
           return;
         }
@@ -251,9 +270,11 @@ export default function StatusUpdateScreen() {
 
       const statusId = getStatusIdFromTitle(selectedStatus);
       if (!statusId) {
-        Alert.alert("Error", "No se pudo obtener el ID del estado seleccionado.", [
-          { text: "OK" },
-        ]);
+        Alert.alert(
+          "Error",
+          "No se pudo obtener el ID del estado seleccionado.",
+          [{ text: "OK" }],
+        );
         return;
       }
 
@@ -264,16 +285,18 @@ export default function StatusUpdateScreen() {
         if (imageUri) evidenceUris.push(imageUri);
 
         if (requiresCameraPhoto && !photoUri) {
-          Alert.alert("Evidencia requerida", "Debes tomar una foto con la cámara.", [
-            { text: "OK" },
-          ]);
+          Alert.alert(
+            "Evidencia requerida",
+            "Debes tomar una foto con la cámara.",
+            [{ text: "OK" }],
+          );
           return;
         }
         if (requiresGalleryImage && !imageUri) {
           Alert.alert(
             "Evidencia requerida",
             "Debes seleccionar una imagen de galería para pagos por transferencia.",
-            [{ text: "OK" }]
+            [{ text: "OK" }],
           );
           return;
         }
@@ -298,8 +321,7 @@ export default function StatusUpdateScreen() {
                 : undefined,
           };
           await updateDeliveryStatusWithImages(updateData);
-          console.log('updateData:', updateData);
-          
+          console.log("updateData:", updateData);
         } else {
           await updateDeliveryStatus(
             itemId,
@@ -313,19 +335,20 @@ export default function StatusUpdateScreen() {
               : undefined,
             isPickupType && isDelivered && additionalAmount.trim()
               ? parseFloat(additionalAmount)
-              : undefined
+              : undefined,
           );
         }
 
         await fetchDeliveries();
-        // router.back();
+        if (onClose) onClose();
+        else router.back();
       } catch (error) {
         Alert.alert(
           "Error",
           `Ocurrió un error inesperado: ${
             error instanceof Error ? error.message : "Error desconocido"
           }`,
-          [{ text: "OK" }]
+          [{ text: "OK" }],
         );
       } finally {
         setLoading(false);
@@ -334,112 +357,125 @@ export default function StatusUpdateScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: CustomColors.backgroundDarkest }}>
-      <AppHeader />
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+    <Modal visible={visible} animationType="slide" transparent>
+      <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
-        <View style={styles.modalHeader}>
-          <Text style={styles.modalTitle}>Actualizar Estado</Text>
-          <Text style={styles.deliveryTitle}>Cliente: {itemTitle}</Text>
-          {!isPickupType && (
-            <Text style={styles.deliveryTitle}>
-              Total: ${totalAmmount.toFixed(2)}
-            </Text>
-          )}
-          <Text style={styles.currentStatus}>
-            Estado actual:{" "}
-            <Text
-              style={[styles.statusValue, { color: getStatusColor(currentStatus) }]}
-            >
-              {Capitalize(currentStatus)}
-            </Text>
-          </Text>
-        </View>
+          <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Actualizar Estado</Text>
+              <Text style={styles.deliveryTitle}>Cliente: {itemTitle}</Text>
+              {!isPickupType && (
+                <Text style={styles.deliveryTitle}>
+                  Total: ${totalAmmount.toFixed(2)}
+                </Text>
+              )}
+              <Text style={styles.currentStatus}>
+                Estado actual:{" "}
+                <Text
+                  style={[
+                    styles.statusValue,
+                    { color: getStatusColor(currentStatus) },
+                  ]}
+                >
+                  {Capitalize(currentStatus)}
+                </Text>
+              </Text>
+            </View>
 
-        <StatusList
-          availableStatuses={availableStatuses as any}
-          selectedStatus={selectedStatus}
-          onSelectStatus={setSelectedStatus}
-          loadingStatuses={loadingStatuses}
-          styles={styles}
-        />
-
-        {requiresNote && <NoteInput value={note} onChange={setNote} styles={styles} />}
-
-        {isDelivered && !isPickupType && (
-          <PaymentControls
-            selectedPaymentMethod={selectedPaymentMethod}
-            paymentMethods={paymentMethods}
-            showPicker={showPaymentMethodPicker}
-            setShowPicker={setShowPaymentMethodPicker}
-            onSelect={setSelectedPaymentMethod}
-            styles={styles}
-            disabled={isPaymentMethodDisabled}
-          />
-        )}
-        
-        <EvidenceSection
-          showEvidence={showEvidence}
-          requiresCameraPhoto={requiresCameraPhoto}
-          requiresGalleryImage={requiresGalleryImage}
-          photoUri={photoUri}
-          imageUri={imageUri}
-          takePhoto={takePhoto}
-          selectImageFromGallery={selectImageFromGallery}
-          removePhoto={removePhoto}
-          removeImage={removeImage}
-          styles={styles}
-        />
-
-        {selectedStatus === IDeliveryStatus.DELIVERED && !isPickupType && (
-          <View style={styles.paymentContainer}>
-            <Text style={styles.paymentLabel}>Monto Pagado (Obligatorio):</Text>
-            <TextInput
-              style={styles.paymentInput}
-              placeholder="Ingrese el monto pagado..."
-              placeholderTextColor={CustomColors.divider}
-              value={amountPaid}
-              editable={false}
-              selectTextOnFocus={false}
+            <StatusList
+              availableStatuses={availableStatuses as any}
+              selectedStatus={selectedStatus}
+              onSelectStatus={setSelectedStatus}
+              loadingStatuses={loadingStatuses}
+              styles={styles}
             />
-          </View>
-        )}
 
-        {selectedStatus === IDeliveryStatus.DELIVERED && isPickupType && (
-          <View style={styles.paymentContainer}>
-            <Text style={styles.paymentLabel}>Monto Adicional (Opcional):</Text>
-            <TextInput
-              style={styles.paymentInput}
-              placeholder="Ingrese el monto adicional..."
-              placeholderTextColor={CustomColors.divider}
-              value={additionalAmount}
-              onChangeText={setAdditionalAmount}
-              keyboardType="numeric"
-            />
-          </View>
-        )}
-
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={handleClose}>
-            <Text style={styles.buttonText}>Cancelar</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.button, styles.confirmButton, !isFormValid && styles.disabledButton]}
-            onPress={handleConfirm}
-            disabled={!isFormValid || loading}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Confirmar</Text>
+            {requiresNote && (
+              <NoteInput value={note} onChange={setNote} styles={styles} />
             )}
-          </TouchableOpacity>
-        </View>
-        </View>
-      </ScrollView>
 
-      
-    </View>
+            {isDelivered && !isPickupType && (
+              <PaymentControls
+                selectedPaymentMethod={selectedPaymentMethod}
+                paymentMethods={paymentMethods}
+                showPicker={showPaymentMethodPicker}
+                setShowPicker={setShowPaymentMethodPicker}
+                onSelect={setSelectedPaymentMethod}
+                styles={styles}
+                disabled={isPaymentMethodDisabled}
+              />
+            )}
+
+            <EvidenceSection
+              showEvidence={showEvidence}
+              requiresCameraPhoto={requiresCameraPhoto}
+              requiresGalleryImage={requiresGalleryImage}
+              photoUri={photoUri}
+              imageUri={imageUri}
+              takePhoto={takePhoto}
+              selectImageFromGallery={selectImageFromGallery}
+              removePhoto={removePhoto}
+              removeImage={removeImage}
+              styles={styles}
+            />
+
+            {selectedStatus === IDeliveryStatus.DELIVERED && !isPickupType && (
+              <View style={styles.paymentContainer}>
+                <Text style={styles.paymentLabel}>
+                  Monto Pagado (Obligatorio):
+                </Text>
+                <TextInput
+                  style={styles.paymentInput}
+                  placeholder="Ingrese el monto pagado..."
+                  placeholderTextColor={CustomColors.divider}
+                  value={amountPaid}
+                  editable={false}
+                  selectTextOnFocus={false}
+                />
+              </View>
+            )}
+
+            {selectedStatus === IDeliveryStatus.DELIVERED && isPickupType && (
+              <View style={styles.paymentContainer}>
+                <Text style={styles.paymentLabel}>
+                  Monto Adicional (Opcional):
+                </Text>
+                <TextInput
+                  style={styles.paymentInput}
+                  placeholder="Ingrese el monto adicional..."
+                  placeholderTextColor={CustomColors.divider}
+                  value={additionalAmount}
+                  onChangeText={setAdditionalAmount}
+                  keyboardType="numeric"
+                />
+              </View>
+            )}
+
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={[styles.button, styles.cancelButton]}
+                onPress={handleClose}
+              >
+                <Text style={styles.buttonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.button,
+                  styles.confirmButton,
+                  !isFormValid && styles.disabledButton,
+                ]}
+                onPress={handleConfirm}
+                disabled={!isFormValid || loading}
+              >
+                {loading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.buttonText}>Confirmar</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+    </Modal>
   );
 }
 
@@ -458,7 +494,8 @@ const styles = StyleSheet.create({
     backgroundColor: CustomColors.backgroundDark,
     borderRadius: 10,
     padding: 20,
-    width: "100%",
+    width: "90%",
+    maxWidth: 500,
   },
   modalHeader: {
     marginBottom: 20,
