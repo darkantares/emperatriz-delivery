@@ -39,7 +39,7 @@ interface WaypointGroup {
 }
 
 export default function TripMapScreen() {
-  const { tripData, tripLoading, tripError, tripDeliveries, closeTripMap } = useRouteContext();
+  const { tripData, tripLoading, tripError, tripDeliveries } = useRouteContext();
 
   const [waypointsWithDeliveries, setWaypointsWithDeliveries] = useState<WaypointWithDelivery[]>([]);
   const [groupedWaypoints, setGroupedWaypoints] = useState<WaypointGroup[]>([]);
@@ -69,11 +69,6 @@ export default function TripMapScreen() {
   const mapRef = useRef<MapView>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const locationSubscription = useRef<Location.LocationSubscription | null>(null);
-
-  const handleClose = () => {
-    closeTripMap();
-    router.back();
-  };
 
   const handleProgressDelivery = (delivery: DeliveryItemAdapter) => {
     setShowDeliveryModal(false);
@@ -363,13 +358,6 @@ export default function TripMapScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Ruta Optimizada</Text>
-        <TouchableOpacity onPress={handleClose}>
-          <Text style={styles.closeButton}>Cerrar</Text>
-        </TouchableOpacity>
-      </View>
-
       <View style={styles.container}>
         <MapView
           ref={mapRef}
@@ -453,7 +441,10 @@ export default function TripMapScreen() {
           </View>
         )}
 
-        <View style={styles.controlsContainer}>
+        <View style={[
+            styles.controlsContainer,
+            isTraveling && { bottom: 180 } /* move up 10px when traveling */
+          ]}>
           {!isTraveling ? (
             <TouchableOpacity
               style={[styles.controlButton, styles.startButton]}

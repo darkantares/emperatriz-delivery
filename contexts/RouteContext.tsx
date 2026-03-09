@@ -12,13 +12,11 @@ interface RouteContextType {
   tripData: any;
   tripLoading: boolean;
   tripError: string | null;
-  showTripMap: boolean;
   tripDeliveries: DeliveryItemAdapter[];
 
   // Métodos
   startRoutes: (allDeliveries: DeliveryItemAdapter[]) => Promise<void>;
   recalculateRoutes: (allDeliveries: DeliveryItemAdapter[]) => Promise<void>;
-  closeTripMap: () => void;
   setTripDeliveries: (deliveries: DeliveryItemAdapter[]) => void;
 }
 
@@ -38,7 +36,6 @@ interface RouteProviderProps {
 
 export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
   const { data: tripData, loading: tripLoading, error: tripError, fetchTrip, setTripData } = useOsrmTrip();
-  const [showTripMap, setShowTripMap] = useState<boolean>(false);
   const [tripDeliveries, setTripDeliveries] = useState<DeliveryItemAdapter[]>([]);
   const [isOptimizing, setIsOptimizing] = useState<boolean>(false);
   const { user, carrier } = useAuth();
@@ -179,10 +176,6 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
 
   // Método para recalcular rutas
   const recalculateRoutes = async (allDeliveries: DeliveryItemAdapter[]) => {
-    if (!showTripMap) {
-      console.log('[RouteContext] TripMap no está visible, no se recalcula ruta');
-      return;
-    }
 
     console.log('[RouteContext] Recalculando rutas debido a nueva asignación...');
 
@@ -206,12 +199,8 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
     });
   };
 
-  // Método para cerrar el mapa
-  const closeTripMap = () => {
-    setShowTripMap(false);
-  };
 
-  // Efecto para abrir el mapa cuando se recibe tripData
+  // Efecto para loguear cuando tripData llega
   React.useEffect(() => {
     if (tripData) {
       console.log('========================================');
@@ -221,7 +210,6 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
       console.log('Número de trips:', tripData.trips?.length);
       console.log('Datos completos del trip:', tripData);
       console.log('========================================');
-      setShowTripMap(true);
     }
     if (tripError) {
       console.error('[RouteContext] Error en trip OSRM:', tripError);
@@ -232,11 +220,9 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
     tripData,
     tripLoading: isOptimizing || tripLoading,
     tripError,
-    showTripMap,
     tripDeliveries,
     startRoutes,
     recalculateRoutes,
-    closeTripMap,
     setTripDeliveries,
   };
 
