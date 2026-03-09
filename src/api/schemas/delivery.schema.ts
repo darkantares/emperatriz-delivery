@@ -3,8 +3,8 @@ import { OkResultOf } from './global.schema';
 
 export const DeliveryStatusEntitySchema = z.object({
     id: z.number(),
-    name: z.string(),
-}).passthrough();
+    title: z.string(),
+}).loose();
 
 export const DeliveryAssignmentSchema = z.object({
     id: z.number(),
@@ -17,7 +17,7 @@ export const DeliveryAssignmentSchema = z.object({
     deliveryAddress: z.string(),
     isGroup: z.boolean(),
     deliveryStatus: DeliveryStatusEntitySchema,
-}).passthrough();
+}).loose();
 
 export const DeliveryAssignmentArraySchema = z.array(DeliveryAssignmentSchema);
 

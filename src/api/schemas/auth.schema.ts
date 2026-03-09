@@ -1,31 +1,34 @@
-import { z } from 'zod';
-import { OkResultOf } from './global.schema';
+import { z } from "zod";
+import { OkResultOf } from "./global.schema";
 
-export const EnterpriseSchema = z.object({
+export const EnterpriseSchema = z
+  .object({
     id: z.number(),
     title: z.string(),
-    document_verification: z.string(),
-    phone: z.string(),
     email: z.string(),
-    files: z.string(),
-    web: z.string(),
-}).loose();
+  })
+  .loose();
 
-export const DeliveryPersonSchema = z.object({
+export const DeliveryPersonSchema = z
+  .object({
     id: z.number(),
     firstname: z.string().optional(),
     lastname: z.string().optional(),
     phone: z.string().optional(),
     address: z.string().optional(),
-}).loose();
+  })
+  .loose();
 
-export const RoleSchema = z.object({
+export const RoleSchema = z
+  .object({
     id: z.number(),
     title: z.string(),
     order: z.number(),
-}).loose();
+  })
+  .loose();
 
-export const UserEntitySchema = z.object({
+export const UserEntitySchema = z
+  .object({
     id: z.number(),
     isActive: z.boolean(),
     isAuthenticated: z.boolean(),
@@ -33,22 +36,23 @@ export const UserEntitySchema = z.object({
     phone: z.string(),
     firstname: z.string(),
     lastname: z.string(),
-    // `name`, `email`, `avatar` may be null in the interface
     name: z.string().nullable().optional(),
     email: z.string().nullable().optional(),
     avatar: z.string().nullable().optional(),
-    // backend uses `userRoles` field instead of `roles`
-    userRoles: z.array(z.string()),
+    // userRoles: z.array(z.string()),
     enterprise: EnterpriseSchema,
-}).loose();
+  })
+  .loose();
 
-export const LoginResponseSchema = z.object({
+export const LoginResponseSchema = z
+  .object({
     user: UserEntitySchema,
     access_token: z.string(),
     refresh_token: z.string(),
-    roles: z.array(RoleSchema).optional(),
+    // roles: z.array(RoleSchema).optional(),
     carrier: DeliveryPersonSchema.nullable().optional(),
-}).loose();
+  })
+  .loose();
 
 /** Full OkResult wrapping a LoginResponse */
 export const OkLoginResponseSchema = OkResultOf(LoginResponseSchema);
