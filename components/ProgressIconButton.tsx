@@ -15,7 +15,7 @@ export const ProgressIconButton: React.FC<ProgressIconButtonProps> = ({ onPress,
       onPress={onPress}
       disabled={disabled}
       activeOpacity={0.7}
-      accessibilityLabel="Progresar envío"
+      accessibilityLabel="Progresar Enviox"
     >
       <FontAwesome name="play" size={30} color={CustomColors.textLight} />
     </TouchableOpacity>

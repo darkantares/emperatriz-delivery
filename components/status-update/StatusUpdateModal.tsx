@@ -8,10 +8,9 @@ import {
   Alert,
   Modal,
   TextInput,
-  ScrollView,
 } from "react-native";
-import { useLocalSearchParams, router } from "expo-router";
-import { AppHeader } from "@/components/AppHeader";
+// moved to modal component; routing no longer needed
+
 import * as ImagePicker from "expo-image-picker";
 import {
   getStatusColor,
@@ -23,10 +22,7 @@ import {
   updateDeliveryStatus,
   updateDeliveryStatusWithImages,
 } from "@/core/actions/delivery.actions";
-import {
-  IDeliveryStatusEntity,
-  IUpdateDeliveryStatusData,
-} from "@/interfaces/delivery/delivery";
+import { IUpdateDeliveryStatusData } from "@/interfaces/delivery/delivery";
 import { useDelivery } from "@/context/DeliveryContext";
 import { AssignmentType } from "@/utils/enum";
 import { EvidenceSection } from "@/components/status-update/EvidenceSection";
@@ -38,26 +34,25 @@ import { usePaymentMethods } from "@/core/hooks/usePaymentMethods";
 import { useStatusData } from "@/core/hooks/useStatusData";
 import { Capitalize } from "@/utils/capitalize";
 
-interface StatusUpdateScreenProps {
-  visible?: boolean;
-  onClose?: () => void;
+export interface StatusUpdateModalProps {
+  visible: boolean;
+  onClose: () => void;
+  itemId: string;
+  itemTitle: string;
+  currentStatus: string;
+  totalAmount: number;
 }
 
-export default function StatusUpdateScreen({
-  visible = true,
+export default function StatusUpdateModal({
+  visible,
   onClose,
-}: StatusUpdateScreenProps) {
-  const params = useLocalSearchParams<{
-    itemId: string;
-    itemTitle: string;
-    currentStatus: string;
-    totalAmmount: string;
-  }>();
-
-  const itemId = String(params.itemId || "");
-  const itemTitle = String(params.itemTitle || "");
-  const currentStatus = String(params.currentStatus || "");
-  const totalAmmount = parseFloat(String(params.totalAmmount || "0")) || 0;
+  itemId,
+  itemTitle,
+  currentStatus,
+  totalAmount,
+}: StatusUpdateModalProps) {
+  // route params removed; values are passed via props
+  const totalAmmount = totalAmount;
 
   const { fetchDeliveries, deliveries, inProgressDelivery } = useDelivery();
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
@@ -225,8 +220,7 @@ export default function StatusUpdateScreen({
 
   const handleClose = () => {
     setLoading(false);
-    if (onClose) onClose();
-    else router.back();
+    onClose();
   };
 
   const handleConfirm = async () => {
@@ -340,8 +334,7 @@ export default function StatusUpdateScreen({
         }
 
         await fetchDeliveries();
-        if (onClose) onClose();
-        else router.back();
+        onClose();
       } catch (error) {
         Alert.alert(
           "Error",
@@ -361,120 +354,120 @@ export default function StatusUpdateScreen({
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Actualizar Estado</Text>
-              <Text style={styles.deliveryTitle}>Cliente: {itemTitle}</Text>
-              {!isPickupType && (
-                <Text style={styles.deliveryTitle}>
-                  Total: ${totalAmmount.toFixed(2)}
-                </Text>
-              )}
-              <Text style={styles.currentStatus}>
-                Estado actual:{" "}
-                <Text
-                  style={[
-                    styles.statusValue,
-                    { color: getStatusColor(currentStatus) },
-                  ]}
-                >
-                  {Capitalize(currentStatus)}
-                </Text>
+            <Text style={styles.modalTitle}>Actualizar Estado</Text>
+            <Text style={styles.deliveryTitle}>Cliente: {itemTitle}</Text>
+            {!isPickupType && (
+              <Text style={styles.deliveryTitle}>
+                Total: ${totalAmmount.toFixed(2)}
               </Text>
-            </View>
-
-            <StatusList
-              availableStatuses={availableStatuses as any}
-              selectedStatus={selectedStatus}
-              onSelectStatus={setSelectedStatus}
-              loadingStatuses={loadingStatuses}
-              styles={styles}
-            />
-
-            {requiresNote && (
-              <NoteInput value={note} onChange={setNote} styles={styles} />
             )}
-
-            {isDelivered && !isPickupType && (
-              <PaymentControls
-                selectedPaymentMethod={selectedPaymentMethod}
-                paymentMethods={paymentMethods}
-                showPicker={showPaymentMethodPicker}
-                setShowPicker={setShowPaymentMethodPicker}
-                onSelect={setSelectedPaymentMethod}
-                styles={styles}
-                disabled={isPaymentMethodDisabled}
-              />
-            )}
-
-            <EvidenceSection
-              showEvidence={showEvidence}
-              requiresCameraPhoto={requiresCameraPhoto}
-              requiresGalleryImage={requiresGalleryImage}
-              photoUri={photoUri}
-              imageUri={imageUri}
-              takePhoto={takePhoto}
-              selectImageFromGallery={selectImageFromGallery}
-              removePhoto={removePhoto}
-              removeImage={removeImage}
-              styles={styles}
-            />
-
-            {selectedStatus === IDeliveryStatus.DELIVERED && !isPickupType && (
-              <View style={styles.paymentContainer}>
-                <Text style={styles.paymentLabel}>
-                  Monto Pagado (Obligatorio):
-                </Text>
-                <TextInput
-                  style={styles.paymentInput}
-                  placeholder="Ingrese el monto pagado..."
-                  placeholderTextColor={CustomColors.divider}
-                  value={amountPaid}
-                  editable={false}
-                  selectTextOnFocus={false}
-                />
-              </View>
-            )}
-
-            {selectedStatus === IDeliveryStatus.DELIVERED && isPickupType && (
-              <View style={styles.paymentContainer}>
-                <Text style={styles.paymentLabel}>
-                  Monto Adicional (Opcional):
-                </Text>
-                <TextInput
-                  style={styles.paymentInput}
-                  placeholder="Ingrese el monto adicional..."
-                  placeholderTextColor={CustomColors.divider}
-                  value={additionalAmount}
-                  onChangeText={setAdditionalAmount}
-                  keyboardType="numeric"
-                />
-              </View>
-            )}
-
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity
-                style={[styles.button, styles.cancelButton]}
-                onPress={handleClose}
-              >
-                <Text style={styles.buttonText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
+            <Text style={styles.currentStatus}>
+              Estado actual:{" "}
+              <Text
                 style={[
-                  styles.button,
-                  styles.confirmButton,
-                  !isFormValid && styles.disabledButton,
+                  styles.statusValue,
+                  { color: getStatusColor(currentStatus) },
                 ]}
-                onPress={handleConfirm}
-                disabled={!isFormValid || loading}
               >
-                {loading ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={styles.buttonText}>Confirmar</Text>
-                )}
-              </TouchableOpacity>
+                {Capitalize(currentStatus)}
+              </Text>
+            </Text>
+          </View>
+
+          <StatusList
+            availableStatuses={availableStatuses as any}
+            selectedStatus={selectedStatus}
+            onSelectStatus={setSelectedStatus}
+            loadingStatuses={loadingStatuses}
+            styles={styles}
+          />
+
+          {requiresNote && (
+            <NoteInput value={note} onChange={setNote} styles={styles} />
+          )}
+
+          {isDelivered && !isPickupType && (
+            <PaymentControls
+              selectedPaymentMethod={selectedPaymentMethod}
+              paymentMethods={paymentMethods}
+              showPicker={showPaymentMethodPicker}
+              setShowPicker={setShowPaymentMethodPicker}
+              onSelect={setSelectedPaymentMethod}
+              styles={styles}
+              disabled={isPaymentMethodDisabled}
+            />
+          )}
+
+          <EvidenceSection
+            showEvidence={showEvidence}
+            requiresCameraPhoto={requiresCameraPhoto}
+            requiresGalleryImage={requiresGalleryImage}
+            photoUri={photoUri}
+            imageUri={imageUri}
+            takePhoto={takePhoto}
+            selectImageFromGallery={selectImageFromGallery}
+            removePhoto={removePhoto}
+            removeImage={removeImage}
+            styles={styles}
+          />
+
+          {selectedStatus === IDeliveryStatus.DELIVERED && !isPickupType && (
+            <View style={styles.paymentContainer}>
+              <Text style={styles.paymentLabel}>
+                Monto Pagado (Obligatorio):
+              </Text>
+              <TextInput
+                style={styles.paymentInput}
+                placeholder="Ingrese el monto pagado..."
+                placeholderTextColor={CustomColors.divider}
+                value={amountPaid}
+                editable={false}
+                selectTextOnFocus={false}
+              />
             </View>
+          )}
+
+          {selectedStatus === IDeliveryStatus.DELIVERED && isPickupType && (
+            <View style={styles.paymentContainer}>
+              <Text style={styles.paymentLabel}>
+                Monto Adicional (Opcional):
+              </Text>
+              <TextInput
+                style={styles.paymentInput}
+                placeholder="Ingrese el monto adicional..."
+                placeholderTextColor={CustomColors.divider}
+                value={additionalAmount}
+                onChangeText={setAdditionalAmount}
+                keyboardType="numeric"
+              />
+            </View>
+          )}
+
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={[styles.button, styles.cancelButton]}
+              onPress={handleClose}
+            >
+              <Text style={styles.buttonText}>Cancelar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.button,
+                styles.confirmButton,
+                !isFormValid && styles.disabledButton,
+              ]}
+              onPress={handleConfirm}
+              disabled={!isFormValid || loading}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Confirmar</Text>
+              )}
+            </TouchableOpacity>
           </View>
         </View>
+      </View>
     </Modal>
   );
 }

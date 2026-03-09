@@ -152,7 +152,7 @@ const DeliveryModal: React.FC<DeliveryModalProps> = ({
                   onClose();
                 }}
               >
-                <Text style={styles.progressButtonText}>Progresar Envío</Text>
+                <Text style={styles.progressButtonText}>Progresar Envioz</Text>
               </TouchableOpacity>
             </View>
           )}

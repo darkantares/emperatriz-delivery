@@ -9,9 +9,9 @@ import { TripMapModal } from "./TripMapModal";
 import { View } from "@/components/Themed";
 import { socketService, SocketEventType } from "@/services/websocketService";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CustomColors } from "@/constants/CustomColors";
-import { router } from "expo-router";
+// router import removed – navigation replaced by modal state
 import { AppHeader } from "@/components/AppHeader";
 import { AppStateScreen } from "@/components/states/AppStateScreen";
 import { useActiveDelivery } from "@/context/ActiveDeliveryContext";
@@ -24,9 +24,8 @@ import {
 import { ActiveDeliveryCard } from "@/components/ActiveDeliveryCard";
 import { DeliveryItemList } from "@/components/delivery-items/DeliveryItemList";
 import { IDeliveryStatus } from "@/interfaces/delivery/deliveryStatus";
-import { TripMap } from "@/components/TripMap";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { RouteProvider, useRouteContext } from "@/contexts/RouteContext";
+import StatusUpdateModal from '@/components/status-update/StatusUpdateModal';
 
 function TabOneScreenContent() {
   const { canProcessNewDelivery } = useActiveDelivery();  
@@ -225,23 +224,38 @@ function TabOneScreenContent() {
     }
   };
 
+  // Modal state for status update
+  const [statusModalVisible, setStatusModalVisible] = useState(false);
+  const [statusModalParams, setStatusModalParams] = useState<{
+    itemId: string;
+    itemTitle: string;
+    currentStatus: string;
+    totalAmount: number;
+  } | null>(null);
+
+  const openStatusModal = (delivery: DeliveryItemAdapter) => {
+    const total = (delivery.deliveryCost || 0) + (delivery.amountToBeCharged || 0);
+    setStatusModalParams({
+      itemId: delivery.id,
+      itemTitle: delivery.client,
+      currentStatus: delivery.deliveryStatus.title,
+      totalAmount: total,
+    });
+    setStatusModalVisible(true);
+  };
+
+  const closeStatusModal = () => {
+    setStatusModalVisible(false);
+    setStatusModalParams(null);
+  };
+
   const handlePressItem = () => {
     if (isNavigating.current) return;
     isNavigating.current = true;
 
     // Si hay un envío en progreso, abrir modal para continuar ese envío
     if (inProgressDelivery) {
-      const total =
-        (inProgressDelivery.deliveryCost || 0) + (inProgressDelivery.amountToBeCharged || 0);
-      router.push({
-        pathname: "/(tabs)/status-update",
-        params: {
-          itemId: inProgressDelivery.id,
-          itemTitle: inProgressDelivery.client,
-          currentStatus: inProgressDelivery.deliveryStatus.title,
-          totalAmmount: String(total),
-        },
-      });
+      openStatusModal(inProgressDelivery);
       setTimeout(() => {
         isNavigating.current = false;
       }, 500);
@@ -273,16 +287,7 @@ function TabOneScreenContent() {
     }
 
     // Guardar el delivery seleccionado y mostrar el modal de actualización de estado
-    const total = (nextDelivery.deliveryCost || 0) + (nextDelivery.amountToBeCharged || 0);
-    router.push({
-      pathname: "/(tabs)/status-update",
-      params: {
-        itemId: nextDelivery.id,
-        itemTitle: nextDelivery.client,
-        currentStatus: nextDelivery.deliveryStatus.title,
-        totalAmmount: String(total),
-      },
-    });
+    openStatusModal(nextDelivery);
 
     // Restablecer la bandera de navegación
     setTimeout(() => {
@@ -333,18 +338,7 @@ function TabOneScreenContent() {
             inProgressDelivery={inProgressDelivery}
             onViewTask={() => {
               if (inProgressDelivery) {
-                const total =
-                  (inProgressDelivery.deliveryCost || 0) +
-                  (inProgressDelivery.amountToBeCharged || 0);
-                router.push({
-                  pathname: "/(tabs)/status-update",
-                  params: {
-                    itemId: inProgressDelivery.id,
-                    itemTitle: inProgressDelivery.client,
-                    currentStatus: inProgressDelivery.deliveryStatus.title,
-                    totalAmmount: String(total),
-                  },
-                });
+                openStatusModal(inProgressDelivery);
               }
             }}
           />
@@ -383,19 +377,21 @@ function TabOneScreenContent() {
           error={tripError}
           deliveries={tripDeliveries}
           onProgressDelivery={(delivery) => {
-            const total = (delivery.deliveryCost || 0) + (delivery.amountToBeCharged || 0);
             closeTripMap();
-            router.push({
-              pathname: "/(tabs)/status-update",
-              params: {
-                itemId: delivery.id,
-                itemTitle: delivery.client,
-                currentStatus: delivery.deliveryStatus.title,
-                totalAmmount: String(total),
-              },
-            });
+            openStatusModal(delivery);
           }}
         />
+
+        {statusModalParams && (
+          <StatusUpdateModal
+            visible={statusModalVisible}
+            onClose={closeStatusModal}
+            itemId={statusModalParams.itemId}
+            itemTitle={statusModalParams.itemTitle}
+            currentStatus={statusModalParams.currentStatus}
+            totalAmount={statusModalParams.totalAmount}
+          />
+        )}
       </View>
     </GestureHandlerRootView>
   );
