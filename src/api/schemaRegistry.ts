@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { OkLoginResponseSchema } from './schemas/auth.schema';
-import { OkDeliveryArraySchema, OkDeliverySchema } from './schemas/delivery.schema';
+import { OkDeliveryArraySchema, OkOptimizedRouteSchema } from './schemas/delivery.schema';
 import { OkDeliveryStatusArraySchema } from './schemas/deliveryStatus.schema';
 import { OkPaymentMethodArraySchema } from './schemas/paymentMethod.schema';
 import { OkOsrmTripSchema, OkOsrmRouteSchema } from './schemas/osrm.schema';
@@ -20,8 +20,9 @@ type AnySchema = z.ZodTypeAny;
  * Existing interfaces are preserved — schemas enforce the same contract at runtime.
  */
 export const schemaRegistry: Record<string, AnySchema> = {
-    '/auth/login-delivery':  OkLoginResponseSchema,
-    '/delivery-assignments': OkDeliveryArraySchema,
+    '/auth/login-delivery':                OkLoginResponseSchema,
+    '/delivery-assignments/courier':       OkOptimizedRouteSchema,
+    '/delivery-assignments':               OkDeliveryArraySchema,
     '/delivery-status':      OkDeliveryStatusArraySchema,
     '/payment-methods':      OkPaymentMethodArraySchema,
     '/admin/osrm/trip':      OkOsrmTripSchema,
