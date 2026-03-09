@@ -5,13 +5,12 @@ import {
   TouchableOpacity,
   Text,
 } from "react-native";
-import { TripMapModal } from "./TripMapModal";
 import { View } from "@/components/Themed";
 import { socketService, SocketEventType } from "@/services/websocketService";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useEffect, useRef, useState } from "react";
 import { CustomColors } from "@/constants/CustomColors";
-// router import removed – navigation replaced by modal state
+import { useLocalSearchParams } from "expo-router";
 import { AppHeader } from "@/components/AppHeader";
 import { AppStateScreen } from "@/components/states/AppStateScreen";
 import { useActiveDelivery } from "@/context/ActiveDeliveryContext";
@@ -24,7 +23,7 @@ import {
 import { ActiveDeliveryCard } from "@/components/ActiveDeliveryCard";
 import { DeliveryItemList } from "@/components/delivery-items/DeliveryItemList";
 import { IDeliveryStatus } from "@/interfaces/delivery/deliveryStatus";
-import { RouteProvider, useRouteContext } from "@/contexts/RouteContext";
+import { useRouteContext } from "@/contexts/RouteContext";
 import StatusUpdateModal from '@/components/status-update/StatusUpdateModal';
 
 function TabOneScreenContent() {
@@ -46,14 +45,9 @@ function TabOneScreenContent() {
   } = useDelivery();
 
   const {
-    tripData,
     tripLoading,
-    tripError,
-    showTripMap,
-    tripDeliveries,
     startRoutes,
     recalculateRoutes,
-    closeTripMap,
   } = useRouteContext();
 
   const handlersRef = useRef({
@@ -122,18 +116,6 @@ function TabOneScreenContent() {
       socketService.off(SocketEventType.DRIVERS_GROUP_ASSIGNED, onDriversGroupAssigned);
     };
   }, []);
-
-  useEffect(() => {
-    if (!showTripMap || !pendingRouteRefreshRef.current) {
-      return;
-    }
-
-    pendingRouteRefreshRef.current = false;
-
-    recalculateRoutes(allDeliveries).catch((error) => {
-      console.error("[TabOneScreen] Error al recalcular ruta por evento websocket:", error);
-    });
-  }, [allDeliveries, showTripMap, recalculateRoutes]);
 
   // Type guard para verificar si el item es un grupo
   const isDeliveryGroup = (
@@ -232,6 +214,26 @@ function TabOneScreenContent() {
     currentStatus: string;
     totalAmount: number;
   } | null>(null);
+
+  // Handle navigation back from trip-map screen with a delivery to progress
+  const params = useLocalSearchParams<{
+    openStatusFor?: string;
+    itemTitle?: string;
+    currentStatus?: string;
+    totalAmount?: string;
+  }>();
+
+  useEffect(() => {
+    if (params.openStatusFor) {
+      setStatusModalParams({
+        itemId: params.openStatusFor,
+        itemTitle: params.itemTitle ?? '',
+        currentStatus: params.currentStatus ?? '',
+        totalAmount: parseFloat(params.totalAmount ?? '0') || 0,
+      });
+      setStatusModalVisible(true);
+    }
+  }, [params.openStatusFor]);
 
   const openStatusModal = (delivery: DeliveryItemAdapter) => {
     const total = (delivery.deliveryCost || 0) + (delivery.amountToBeCharged || 0);
@@ -368,20 +370,6 @@ function TabOneScreenContent() {
           )}
         </View>
 
-        {/* Modal con el mapa de ruta optimizada (Trip) */}
-        <TripMapModal
-          visible={showTripMap}
-          onRequestClose={closeTripMap}
-          tripData={tripData}
-          loading={tripLoading}
-          error={tripError}
-          deliveries={tripDeliveries}
-          onProgressDelivery={(delivery) => {
-            closeTripMap();
-            openStatusModal(delivery);
-          }}
-        />
-
         {statusModalParams && (
           <StatusUpdateModal
             visible={statusModalVisible}
@@ -398,11 +386,7 @@ function TabOneScreenContent() {
 }
 
 export default function TabOneScreen() {
-  return (
-    <RouteProvider>
-      <TabOneScreenContent />
-    </RouteProvider>
-  );
+  return <TabOneScreenContent />;
 }
 
 const styles = StyleSheet.create({

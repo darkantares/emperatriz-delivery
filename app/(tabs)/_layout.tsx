@@ -4,6 +4,7 @@ import { Tabs } from 'expo-router';
 
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
 import { CustomColors } from '@/constants/CustomColors';
+import { RouteProvider } from '@/contexts/RouteContext';
 
 // You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
 function TabBarIcon(props: {
@@ -16,6 +17,7 @@ function TabBarIcon(props: {
 export default function TabLayout() {
 
   return (
+    <RouteProvider>
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: CustomColors.secondary,
@@ -51,6 +53,14 @@ export default function TabLayout() {
           headerShown: false,
         }}
       />
+      <Tabs.Screen
+        name="trip-map"
+        options={{
+          href: null,
+          headerShown: false,
+        }}
+      />
     </Tabs>
+    </RouteProvider>
   );
 }

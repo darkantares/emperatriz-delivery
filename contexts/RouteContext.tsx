@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { router } from 'expo-router';
 import { useOsrmTrip } from '@/core/hooks/useOsrmTrip';
 import { DeliveryItemAdapter, adaptDeliveriesToAdapter } from '@/interfaces/delivery/deliveryAdapters';
 import { IDeliveryStatus } from '@/interfaces/delivery/deliveryStatus';
@@ -161,6 +162,7 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
       };
 
       setTripData(tripDataFromBackend);
+      router.push('/(tabs)/trip-map');
 
       console.log('[RouteContext] ✅ Ruta optimizada cargada correctamente');
     } catch (error) {
