@@ -83,6 +83,53 @@ export const updateDeliveryStatusWithImages = (updateData: IUpdateDeliveryStatus
     );
 };
 
+export const updateDeliveryStatusBatch = (
+    ids: number[],
+    status: number,
+    note?: string,
+    amountPaid?: number,
+    paymentMethodId?: number,
+    additionalAmount?: number,
+    gpsReadings?: IGpsReading[],
+    imageUris?: string[],
+): Promise<IDeliveryAssignmentEntity[]> => {
+    if (imageUris && imageUris.length > 0) {
+        const formData = new FormData();
+        formData.append('ids', JSON.stringify(ids));
+        formData.append('status', status.toString());
+        if (note) formData.append('note', note);
+        if (amountPaid !== undefined) formData.append('amountPaid', amountPaid.toString());
+        if (paymentMethodId !== undefined) formData.append('paymentMethodId', paymentMethodId.toString());
+        if (additionalAmount !== undefined) formData.append('additionalAmount', additionalAmount.toString());
+        if (gpsReadings?.length) formData.append('gpsReadings', JSON.stringify(gpsReadings));
+
+        imageUris.forEach((imageUri, index) => {
+            formData.append('images', {
+                uri: imageUri,
+                type: 'image/jpeg',
+                name: `batch_evidence_${index}_${Date.now()}.jpg`,
+            } as any);
+        });
+
+        return apiAction.postFormData<IDeliveryAssignmentEntity[]>(
+            `${BackendUrls.DeliveryAssignments}/batch/status-unified`,
+            formData,
+        );
+    }
+
+    const payload: Record<string, unknown> = { ids, status };
+    if (note) payload.note = note;
+    if (amountPaid !== undefined) payload.amountPaid = amountPaid;
+    if (paymentMethodId !== undefined) payload.paymentMethodId = paymentMethodId;
+    if (additionalAmount !== undefined) payload.additionalAmount = additionalAmount;
+    if (gpsReadings?.length) payload.gpsReadings = gpsReadings;
+
+    return apiAction.patch<IDeliveryAssignmentEntity[]>(
+        `${BackendUrls.DeliveryAssignments}/batch/status-unified`,
+        payload,
+    );
+};
+
 export const getOptimizedRoute = (
     courierId: number,
     currentLocation: { lat: number; lng: number },

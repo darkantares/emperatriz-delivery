@@ -8,17 +8,17 @@ import {
   Switch,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
 import * as Location from "expo-location";
 import MapView, { Marker, Polyline, UrlTile } from "react-native-maps";
 import { Text } from "@/components/Themed";
 import { CustomColors } from "@/constants/CustomColors";
 import { DeliveryItemAdapter } from "@/interfaces/delivery/deliveryAdapters";
 import { IDeliveryStatus } from "@/interfaces/delivery/deliveryStatus";
+import { AssignmentType } from "@/utils/enum";
 import { useRouteContext } from "@/contexts/RouteContext";
 import RouteInfoPanel from "@/components/RouteInfoPanel";
 import DeliveryModal from "@/components/DeliveryModal";
-import StatusUpdateModal from "@/components/status-update/StatusUpdateModal";
+import GroupStatusUpdateModal from "@/components/status-update/GroupStatusUpdateModal";
 
 interface Coordinate {
   latitude: number;
@@ -34,6 +34,7 @@ interface WaypointWithDelivery {
 interface WaypointGroup {
   coordinate: Coordinate;
   deliveries: DeliveryItemAdapter[];
+  type: AssignmentType;
   count: number;
   isFirstInRoute: boolean;
   isLastInRoute: boolean;
@@ -55,10 +56,11 @@ export default function TripMapScreen() {
   >([]);
   const [showDeliveryModal, setShowDeliveryModal] = useState<boolean>(false);
 
-  const [statusModalVisible, setStatusModalVisible] = useState(false);
-  const [statusModalParams, setStatusModalParams] = useState<{
-    itemId: string;
-    itemTitle: string;
+  const [groupStatusModalVisible, setGroupStatusModalVisible] = useState(false);
+  const [groupStatusModalParams, setGroupStatusModalParams] = useState<{
+    ids: string[];
+    assignmentType: AssignmentType;
+    groupTitle: string;
     currentStatus: string;
     totalAmount: number;
   } | null>(null);
@@ -82,16 +84,27 @@ export default function TripMapScreen() {
     null,
   );
 
-  const handleProgressDelivery = (delivery: DeliveryItemAdapter) => {
+  const handleProgressGroup = (deliveries: DeliveryItemAdapter[]) => {
+    if (deliveries.length === 0) return;
     setShowDeliveryModal(false);
-    setStatusModalParams({
-      itemId: delivery.id,
-      itemTitle: delivery.client,
-      currentStatus: delivery.deliveryStatus.title,
-      totalAmount:
-        (delivery.deliveryCost || 0) + (delivery.amountToBeCharged || 0),
+    const type = deliveries[0].type;
+    const totalAmount = deliveries.reduce(
+      (sum, d) => sum + (d.deliveryCost || 0) + (d.amountToBeCharged || 0),
+      0,
+    );
+    const label =
+      type === AssignmentType.PICKUP ? "Recogida" : "Entrega";
+    setGroupStatusModalParams({
+      ids: deliveries.map((d) => d.id),
+      assignmentType: type,
+      groupTitle:
+        deliveries.length > 1
+          ? `${deliveries.length} ${label}s en este punto`
+          : `${label}: ${deliveries[0].client}`,
+      currentStatus: deliveries[0].deliveryStatus.title,
+      totalAmount,
     });
-    setStatusModalVisible(true);
+    setGroupStatusModalVisible(true);
   };
 
   const groupWaypointsByCoordinates = (
@@ -100,7 +113,9 @@ export default function TripMapScreen() {
     const groupsMap = new Map<string, WaypointGroup>();
 
     waypoints.forEach((waypoint, waypointIndex) => {
-      const key = `${waypoint.coordinate.latitude},${waypoint.coordinate.longitude}`;
+      // Group by both coordinates AND assignment type so PICKUP and DELIVERY
+      // at the same address are processed independently.
+      const key = `${waypoint.coordinate.latitude},${waypoint.coordinate.longitude},${waypoint.delivery?.type}`;
 
       if (groupsMap.has(key)) {
         const existingGroup = groupsMap.get(key)!;
@@ -110,6 +125,7 @@ export default function TripMapScreen() {
         groupsMap.set(key, {
           coordinate: waypoint.coordinate,
           deliveries: [waypoint.delivery],
+          type: waypoint.delivery?.type,
           count: 1,
           isFirstInRoute: waypointIndex === 0,
           isLastInRoute: waypointIndex === waypoints.length - 1,
@@ -291,7 +307,7 @@ export default function TripMapScreen() {
     setShowDeliveryModal(true);
   };
 
-  const handleDeliveryCompleted = (deliveryId: string, newStatus: string) => {
+  const handleGroupCompleted = (ids: string[], newStatus: string) => {
     const terminalStatuses: string[] = [
       IDeliveryStatus.DELIVERED,
       IDeliveryStatus.CANCELLED,
@@ -300,7 +316,7 @@ export default function TripMapScreen() {
     if (!terminalStatuses.includes(newStatus)) return;
     setCompletedDeliveryIds((prev) => {
       const next = new Set(prev);
-      next.add(deliveryId);
+      ids.forEach((id) => next.add(id));
       return next;
     });
   };
@@ -625,20 +641,21 @@ export default function TripMapScreen() {
           visible={showDeliveryModal}
           deliveries={selectedDeliveries}
           onClose={() => setShowDeliveryModal(false)}
-          onProgressDelivery={handleProgressDelivery}
+          onProgressGroup={handleProgressGroup}
         />
 
-        {statusModalParams && (
-          <StatusUpdateModal
-            visible={statusModalVisible}
-            onClose={() => setStatusModalVisible(false)}
-            onSuccess={(newStatus) =>
-              handleDeliveryCompleted(statusModalParams.itemId, newStatus)
+        {groupStatusModalParams && (
+          <GroupStatusUpdateModal
+            visible={groupStatusModalVisible}
+            onClose={() => setGroupStatusModalVisible(false)}
+            onSuccess={(newStatus: string) =>
+              handleGroupCompleted(groupStatusModalParams.ids, newStatus)
             }
-            itemId={statusModalParams.itemId}
-            itemTitle={statusModalParams.itemTitle}
-            currentStatus={statusModalParams.currentStatus}
-            totalAmount={statusModalParams.totalAmount}
+            ids={groupStatusModalParams.ids}
+            assignmentType={groupStatusModalParams.assignmentType}
+            groupTitle={groupStatusModalParams.groupTitle}
+            currentStatus={groupStatusModalParams.currentStatus}
+            totalAmount={groupStatusModalParams.totalAmount}
           />
         )}
       </View>

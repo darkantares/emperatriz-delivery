@@ -1,33 +1,47 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { View, StyleSheet, Modal, TouchableOpacity, ScrollView } from "react-native";
 import { Text } from "@/components/Themed";
 import { CustomColors } from "@/constants/CustomColors";
 import { DeliveryItemAdapter } from "@/interfaces/delivery/deliveryAdapters";
 import DeliveryProductsList from '@/components/DeliveryProductsList';
 import { AssignmentType } from "@/utils/enum";
-import { Capitalize } from "@/utils/capitalize";
 
 interface DeliveryModalProps {
   visible: boolean;
   deliveries: DeliveryItemAdapter[];
   onClose: () => void;
-  onProgressDelivery?: (delivery: DeliveryItemAdapter) => void;
+  onProgressGroup?: (deliveries: DeliveryItemAdapter[]) => void;
 }
 
 const DeliveryModal: React.FC<DeliveryModalProps> = ({
   visible,
   deliveries,
   onClose,
-  onProgressDelivery,
+  onProgressGroup,
 }) => {
-  const [activeTabIndex, setActiveTabIndex] = useState<number>(0);
+  if (deliveries.length === 0) return null;
 
-  useEffect(() => {
-    // Reset active tab when deliveries change or modal is opened
-    setActiveTabIndex(0);
-  }, [deliveries, visible]);
+  const type = deliveries[0].type;
+  const isPickup = type === AssignmentType.PICKUP;
+  const typeLabel = isPickup ? "RECOGIDA" : "ENTREGA";
+  const typeColor = isPickup ? CustomColors.quaternary : CustomColors.secondary;
 
-  const current = deliveries[activeTabIndex];
+  const totalAmount = deliveries.reduce(
+    (sum, d) => sum + (d.amountToBeCharged || 0) + (d.deliveryCost || 0),
+    0,
+  );
+
+  // Group assignments by phone so the same entity is shown only once
+  const phoneGroupsMap = deliveries.reduce<Record<string, DeliveryItemAdapter[]>>(
+    (acc, d) => {
+      const key = d.phone?.trim() || `id-${d.id}`;
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(d);
+      return acc;
+    },
+    {},
+  );
+  const phoneGroups = Object.values(phoneGroupsMap);
 
   return (
     <Modal
@@ -42,121 +56,114 @@ const DeliveryModal: React.FC<DeliveryModalProps> = ({
         onPress={onClose}
       >
         <TouchableOpacity activeOpacity={1} style={styles.deliveryModal}>
+          {/* Header */}
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>
-              {deliveries.length > 1
-                ? `Entregas en este punto (${deliveries.length})`
-                : ""}
-            </Text>
-            <TouchableOpacity onPress={onClose}>
+            <View style={styles.headerLeft}>
+              <View style={[styles.typeBadge, { backgroundColor: typeColor }]}>
+                <Text style={styles.typeBadgeText}>{typeLabel}</Text>
+              </View>
+              {deliveries.length > 1 && (
+                <Text style={styles.groupCount}>
+                  {deliveries.length} asignaciones
+                  {phoneGroups.length < deliveries.length
+                    ? ` · ${phoneGroups.length} cliente${phoneGroups.length !== 1 ? "s" : ""}`
+                    : ""}
+                </Text>
+              )}
+            </View>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Text style={styles.closeButtonText}>✕</Text>
             </TouchableOpacity>
           </View>
 
-          {deliveries.length > 1 && (
-            <ScrollView
-              horizontal
-              style={styles.tabsContainer}
-              showsHorizontalScrollIndicator={false}
-            >
-              {deliveries.map((delivery, index) => (
-                <TouchableOpacity
-                  key={delivery.id}
-                  style={[styles.tab, activeTabIndex === index && styles.activeTab]}
-                  onPress={() => setActiveTabIndex(index)}
-                >
-                  <Text style={[styles.tabText, activeTabIndex === index && styles.activeTabText]}>
-                    Asignacion {index + 1}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          )}
-
+          {/* List of deliveries in this group */}
           <ScrollView style={styles.modalScrollContent}>
-            {current && (
-              <View style={styles.modalContent}>
-                <View style={styles.infoItem}>
-                  <Text style={styles.infoItemLabel}>Cliente:</Text>
-                  <Text style={styles.infoItemValue}>{current.client} ({current.phone})</Text>
-                </View>
+            {phoneGroups.map((group, index) => {
+              const first = group[0];
+              const groupTotal = group.reduce(
+                (sum, d) => sum + (d.amountToBeCharged || 0) + (d.deliveryCost || 0),
+                0,
+              );
+              const uniqueObservations = [
+                ...new Set(group.map((d) => d.observations).filter(Boolean)),
+              ];
+              const allOrderDetails = group.flatMap(
+                (d) => d.relatedOrder?.orderDetails ?? [],
+              );
 
-                <View style={styles.infoItem}>
-                  <Text style={styles.infoItemLabel}>Ubicación:</Text>
-                  <Text style={styles.infoItemValue}>
-                    {current.title}
-                    {"\n"}
-                    {"\n"}
-                    {current.deliveryAddress}
-                  </Text>
-                </View>
-
-                <View style={[styles.infoItem, { flexDirection: 'row', alignItems: 'center' }]}>
-                  <Text style={[styles.infoItemLabel, styles.infoLabelInline]}>Estado:</Text>
-                  <Text style={[styles.infoItemValue, { flex: 1, flexWrap: 'wrap' }]}>
-                    {Capitalize(current.deliveryStatus.title)}
-                  </Text>
-                </View>
-
-                <View style={[styles.infoItem, { flexDirection: 'row' }]}> 
-                  <Text style={[styles.infoItemLabel, styles.infoLabelInline]}>Tipo:</Text>
-                  <View style={[
-                    styles.typeIndicator,
-                    current.type === AssignmentType.PICKUP
-                      ? styles.pickupIndicator
-                      : current.type === AssignmentType.DELIVERY
-                      ? styles.deliveryIndicator
-                      : styles.groupIndicator,
-                    { alignSelf: 'flex-start' }
-                  ]}>
-                    <Text style={styles.typeText}>
-                      {current.type === AssignmentType.PICKUP
-                        ? 'RECOGIDA'
-                        : current.type === AssignmentType.DELIVERY
-                        ? 'ENTREGA'
-                        : Capitalize(current.type)}
-                    </Text>
-                  </View>
-                </View>
-
-                {current.type === AssignmentType.DELIVERY && (
+              return (
+                <View
+                  key={first.phone?.trim() || `group-${index}`}
+                  style={[
+                    styles.deliveryItem,
+                    index < phoneGroups.length - 1 && styles.deliveryItemBorder,
+                  ]}
+                >
                   <View style={styles.infoItem}>
-                    <Text style={styles.infoItemLabel}>Monto a cobrar:</Text>
+                    <Text style={styles.infoItemLabel}>Cliente:</Text>
                     <Text style={styles.infoItemValue}>
-                      RD${" "}{(current.amountToBeCharged + current.deliveryCost).toFixed(2)}
+                      {first.client} ({first.phone})
                     </Text>
                   </View>
-                )}
 
-                {current.observations && (
                   <View style={styles.infoItem}>
-                    <Text style={styles.infoItemLabel}>Observaciones:</Text>
-                    <Text style={styles.infoItemValue}>{current.observations}</Text>
+                    <Text style={styles.infoItemLabel}>Dirección:</Text>
+                    <Text style={styles.infoItemValue}>
+                      {first.deliveryAddress}
+                    </Text>
                   </View>
-                )}
 
-                {current.relatedOrder?.orderDetails && current.relatedOrder.orderDetails.length > 0 && (
-                  <DeliveryProductsList orderDetails={current.relatedOrder.orderDetails} />
-                )}
+                  {!isPickup && (
+                    <View style={styles.infoItem}>
+                      <Text style={styles.infoItemLabel}>
+                        {group.length > 1
+                          ? `Monto (${group.length} asig.):`
+                          : "Monto:"}
+                      </Text>
+                      <Text style={styles.infoItemValue}>
+                        RD$ {groupTotal.toFixed(2)}
+                      </Text>
+                    </View>
+                  )}
 
-              </View>
-            )}
+                  {uniqueObservations.map((obs, i) => (
+                    <View key={i} style={styles.infoItem}>
+                      <Text style={styles.infoItemLabel}>Observaciones:</Text>
+                      <Text style={styles.infoItemValue}>{obs}</Text>
+                    </View>
+                  ))}
+
+                  {allOrderDetails.length > 0 && (
+                    <DeliveryProductsList orderDetails={allOrderDetails} />
+                  )}
+                </View>
+              );
+            })}
           </ScrollView>
 
-          {onProgressDelivery && current && (
-            <View style={styles.modalFooter}>
+          {/* Footer — group totals + action */}
+          <View style={styles.modalFooter}>
+            {!isPickup && deliveries.length > 1 && (
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>Total del grupo:</Text>
+                <Text style={styles.totalValue}>RD$ {totalAmount.toFixed(2)}</Text>
+              </View>
+            )}
+
+            {onProgressGroup && (
               <TouchableOpacity
-                style={styles.progressButton}
+                style={[styles.progressButton, { backgroundColor: typeColor }]}
                 onPress={() => {
-                  onProgressDelivery(current);
+                  onProgressGroup(deliveries);
                   onClose();
                 }}
               >
-                <Text style={styles.progressButtonText}>Progresar Envioz</Text>
+                <Text style={styles.progressButtonText}>
+                  Progresar {deliveries.length > 1 ? "Grupo" : typeLabel}
+                </Text>
               </TouchableOpacity>
-            </View>
-          )}
-
+            )}
+          </View>
         </TouchableOpacity>
       </TouchableOpacity>
     </Modal>
@@ -174,13 +181,15 @@ const styles = StyleSheet.create({
   deliveryModal: {
     backgroundColor: CustomColors.backgroundDark,
     borderRadius: 15,
-    width: "90%",
+    width: "95%",
+    maxHeight: "80%",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
     shadowRadius: 10,
     elevation: 10,
   },
+
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -189,96 +198,82 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: CustomColors.textLight + "20",
   },
-  modalTitle: {
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  typeBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  typeBadgeText: {
     color: CustomColors.textLight,
-    fontSize: 18,
+    fontSize: 12,
     fontWeight: "bold",
+  },
+  groupCount: {
+    color: CustomColors.textLight,
+    fontSize: 14,
+    opacity: 0.7,
+  },
+  closeButton: {
+    marginLeft: 10
   },
   closeButtonText: {
     color: CustomColors.primary,
     fontSize: 24,
     fontWeight: "bold",
   },
-  tabsContainer: {
-    maxHeight: 50,
-    borderBottomWidth: 1,
-    borderBottomColor: CustomColors.textLight + "20",
-    backgroundColor: CustomColors.backgroundDarkest,
-  },
-  tab: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    marginHorizontal: 5,
-    borderBottomWidth: 3,
-    borderBottomColor: "transparent",
-  },
-  activeTab: {
-    borderBottomColor: CustomColors.primary,
-  },
-  tabText: {
-    color: CustomColors.textLight + "80",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  activeTabText: {
-    color: CustomColors.primary,
-    fontWeight: "bold",
-  },
   modalScrollContent: {
-    maxHeight: 700,
-    paddingBottom: 12,
+    maxHeight: 500,
   },
-  modalContent: {
+  deliveryItem: {
     padding: 15,
   },
+  deliveryItemBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: CustomColors.textLight + "15",
+  },
   infoItem: {
-    marginBottom: 15,
+    marginBottom: 10,
   },
   infoItemLabel: {
     color: CustomColors.textLight,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "bold",
-    marginBottom: 5,
-    opacity: 0.7,
+    opacity: 0.6,
+    marginBottom: 3,
   },
   infoItemValue: {
     color: CustomColors.textLight,
-    fontSize: 16,
-    flex: 1,
-    flexWrap: 'wrap',
-  },
-  typeIndicator: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pickupIndicator: {
-    backgroundColor: CustomColors.quaternary,
-  },
-  deliveryIndicator: {
-    backgroundColor: CustomColors.secondary,
-  },
-  groupIndicator: {
-    backgroundColor: CustomColors.tertiary,
-  },
-  typeText: {
-    color: CustomColors.textLight,
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  infoLabelInline: {
-    width: 60,
+    fontSize: 15,
   },
   modalFooter: {
     padding: 15,
     borderTopWidth: 1,
     borderTopColor: CustomColors.textLight + "20",
-    backgroundColor: CustomColors.backgroundDark,
+    gap: 10,
+  },
+  totalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 4,
+  },
+  totalLabel: {
+    color: CustomColors.textLight,
+    fontSize: 14,
+    fontWeight: "bold",
+    opacity: 0.8,
+  },
+  totalValue: {
+    color: CustomColors.textLight,
+    fontSize: 16,
+    fontWeight: "bold",
   },
   progressButton: {
-    backgroundColor: CustomColors.secondary,
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 20,
