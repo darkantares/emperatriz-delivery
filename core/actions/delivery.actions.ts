@@ -1,8 +1,9 @@
 import { IDeliveryAssignmentEntity, IGpsReading, IUpdateDelivery, IUpdateDeliveryStatusData } from '@/interfaces/delivery/delivery';
 import { apiAction } from '@/core/api/apiAction';
 import { BackendUrls } from '@/utils/enum';
+import { adaptDeliveriesToAdapter, DeliveryItemAdapter } from '@/interfaces/delivery/deliveryAdapters';
 
-export const getDeliveries = (filters?: Partial<IDeliveryAssignmentEntity>): Promise<IDeliveryAssignmentEntity[]> => {
+export const getDeliveries = (filters?: Partial<IDeliveryAssignmentEntity>): Promise<DeliveryItemAdapter[]> => {
     let queryParams = '';
     if (filters) {
         const params = new URLSearchParams();
@@ -13,7 +14,8 @@ export const getDeliveries = (filters?: Partial<IDeliveryAssignmentEntity>): Pro
         });
         queryParams = params.toString() ? `?${params.toString()}` : '';
     }
-    return apiAction.get<IDeliveryAssignmentEntity[]>(`${BackendUrls.DeliveryAssignments}/by-driver/${queryParams}`);
+    return apiAction.get<IDeliveryAssignmentEntity[]>(`${BackendUrls.DeliveryAssignments}/by-driver/${queryParams}`)
+        .then(adaptDeliveriesToAdapter);
 };
 
 export const getDeliveryById = (id: number): Promise<IDeliveryAssignmentEntity> =>

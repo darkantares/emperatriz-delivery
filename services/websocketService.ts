@@ -5,6 +5,7 @@ import { getBaseUrl } from './api';
 import { queueNotification, NotificationType } from './notificationService';
 import { IEnterpriseEntity, IUserEntity } from '@/interfaces/auth';
 import { IDeliveryAssignmentEntity } from '@/interfaces/delivery/delivery';
+import { adaptDeliveriesToAdapter } from '@/interfaces/delivery/deliveryAdapters';
 
 const SOCKET_URL = getBaseUrl();
 
@@ -132,7 +133,8 @@ class SocketService {
 
     this.socket.on(SocketEventType.DRIVER_ASSIGNED, ({data,message}: SocketParam<IDeliveryAssignmentEntity>) => {
       console.log('Evento recibido - Conductor asignado');
-
+      console.log(data);
+      
       // Encolar una notificación
       queueNotification(
         NotificationType.SUCCESS,
@@ -141,12 +143,12 @@ class SocketService {
         true
       );
 
-      this.notifyListeners(SocketEventType.DRIVER_ASSIGNED, data);
+      this.notifyListeners(SocketEventType.DRIVER_ASSIGNED, adaptDeliveriesToAdapter([data])[0]);
     });
 
     this.socket.on(SocketEventType.DRIVERS_GROUP_ASSIGNED, ({data,message}: SocketParam<IDeliveryAssignmentEntity[]>) => {
       console.log('Evento recibido - Conductor asignado');
-
+      console.log(data);
       // Encolar una notificación
       queueNotification(
         NotificationType.SUCCESS,
@@ -155,7 +157,7 @@ class SocketService {
         true
       );
 
-      this.notifyListeners(SocketEventType.DRIVERS_GROUP_ASSIGNED, data);
+      this.notifyListeners(SocketEventType.DRIVERS_GROUP_ASSIGNED, adaptDeliveriesToAdapter(data));
     });
 
     this.socket.on(SocketEventType.DELIVERY_UPDATED, ({data,message}: SocketParam<IDeliveryAssignmentEntity>) => {
@@ -168,7 +170,7 @@ class SocketService {
         true
       );
 
-      this.notifyListeners(SocketEventType.DELIVERY_UPDATED, data);
+      this.notifyListeners(SocketEventType.DELIVERY_UPDATED, adaptDeliveriesToAdapter([data])[0]);
     });
 
     this.socket.on(SocketEventType.DELIVERY_REORDERED, ({data,message}: SocketParam<IDeliveryAssignmentEntity>) => {
@@ -182,7 +184,7 @@ class SocketService {
         true
       );
 
-      this.notifyListeners(SocketEventType.DELIVERY_REORDERED, data);
+      this.notifyListeners(SocketEventType.DELIVERY_REORDERED, adaptDeliveriesToAdapter([data])[0]);
     });
 
     this.socket.on(SocketEventType.DELIVERY_STATUS_CHANGED, ({data,message}: SocketParam<IDeliveryAssignmentEntity>) => {
@@ -195,12 +197,12 @@ class SocketService {
         true
       );
 
-      this.notifyListeners(SocketEventType.DELIVERY_STATUS_CHANGED, data);
+      this.notifyListeners(SocketEventType.DELIVERY_STATUS_CHANGED, adaptDeliveriesToAdapter([data])[0]);
     });
 
     this.socket.on(SocketEventType.DELIVERY_ASSIGNMENT_UPDATED, ({data}: SocketParam<IDeliveryAssignmentEntity>) => {
       console.log('Evento recibido - Asignación de entrega actualizada');
-      this.notifyListeners(SocketEventType.DELIVERY_ASSIGNMENT_UPDATED, data);
+      this.notifyListeners(SocketEventType.DELIVERY_ASSIGNMENT_UPDATED, adaptDeliveriesToAdapter([data])[0]);
     });
 
    

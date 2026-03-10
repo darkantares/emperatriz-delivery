@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { IDeliveryAssignmentEntity } from '@/interfaces/delivery/delivery';
-import { DeliveryItemAdapter, adaptDeliveriesToAdapter } from '@/interfaces/delivery/deliveryAdapters';
+import { DeliveryItemAdapter } from '@/interfaces/delivery/deliveryAdapters';
 import { getDeliveries } from '@/core/actions/delivery.actions';
 import { useAuth } from '@/context/AuthContext';
 
@@ -12,11 +11,11 @@ interface DeliveryContextType {
     error: string | null;
     fetchDeliveries: (isRefreshing?: boolean) => Promise<void>;
     onRefresh: () => void;
-    handleDeliveryUpdated: (data: IDeliveryAssignmentEntity) => void;
-    handleDeliveryAssigned: (data: IDeliveryAssignmentEntity) => void;
-    handleDeliveryReordered: (data: IDeliveryAssignmentEntity[]) => void;
+    handleDeliveryUpdated: (data: DeliveryItemAdapter) => void;
+    handleDeliveryAssigned: (data: DeliveryItemAdapter) => void;
+    handleDeliveryReordered: (data: DeliveryItemAdapter) => void;
     updateLocalDeliveryStatus: (deliveryId: string, newStatus: string) => void;
-    handleDriversGroupAssigned: (data: IDeliveryAssignmentEntity[]) => void;
+    handleDriversGroupAssigned: (data: DeliveryItemAdapter[]) => void;
 }
 
 const DeliveryContext = createContext<DeliveryContextType | undefined>(undefined);
@@ -77,10 +76,9 @@ export const DeliveryProvider: React.FC<DeliveryProviderProps> = ({ children }) 
 
         try {
             const deliveriesData = await getDeliveries();
-            const adaptedDeliveries = adaptDeliveriesToAdapter(deliveriesData);
 
-            setAllDeliveries(adaptedDeliveries);
-            setDeliveries(adaptedDeliveries);
+            setAllDeliveries(deliveriesData);
+            setDeliveries(deliveriesData);
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
             setError(errorMessage);
@@ -96,33 +94,26 @@ export const DeliveryProvider: React.FC<DeliveryProviderProps> = ({ children }) 
         fetchDeliveries(true);
     };
 
-    const handleDeliveryUpdated = (data: IDeliveryAssignmentEntity) => {
-        const updatedDelivery = adaptDeliveriesToAdapter([data])[0];
-
+    const handleDeliveryUpdated = (data: DeliveryItemAdapter) => {
         const update = (list: DeliveryItemAdapter[]) =>
-            list.map((d) => (d.id === updatedDelivery.id ? updatedDelivery : d));
+            list.map((d) => (d.id === data.id ? data : d));
 
         setDeliveries(update);
         setAllDeliveries(update);
     };
 
-    const handleDeliveryAssigned = (data: IDeliveryAssignmentEntity) => {        
-        const [adaptedDelivery] = adaptDeliveriesToAdapter([data]);
-
-        setDeliveries((currentDeliveries) => upsertById(currentDeliveries, [adaptedDelivery]));
-        setAllDeliveries((currentDeliveries) => upsertById(currentDeliveries, [adaptedDelivery]));
+    const handleDeliveryAssigned = (data: DeliveryItemAdapter) => {        
+        setDeliveries((currentDeliveries) => upsertById(currentDeliveries, [data]));
+        setAllDeliveries((currentDeliveries) => upsertById(currentDeliveries, [data]));
     };
 
-    const handleDriversGroupAssigned = (data: IDeliveryAssignmentEntity[]) => {
-        const adaptedDeliveries = adaptDeliveriesToAdapter(data);
-
-        setDeliveries((currentDeliveries) => upsertById(currentDeliveries, adaptedDeliveries));
-        setAllDeliveries((currentDeliveries) => upsertById(currentDeliveries, adaptedDeliveries));
+    const handleDriversGroupAssigned = (data: DeliveryItemAdapter[]) => {
+        setDeliveries((currentDeliveries) => upsertById(currentDeliveries, data));
+        setAllDeliveries((currentDeliveries) => upsertById(currentDeliveries, data));
     };
 
-    const handleDeliveryReordered = (data: IDeliveryAssignmentEntity[]) => {
-        // setDeliveries(adaptDeliveriesToAdapter(data));
-        fetchDeliveries()
+    const handleDeliveryReordered = (_data: DeliveryItemAdapter) => {
+        fetchDeliveries();
     };
 
     // Función para actualizar el estado local de una entrega (para uso del modal)

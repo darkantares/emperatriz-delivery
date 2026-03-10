@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { router } from 'expo-router';
 import { useOsrmTrip } from '@/core/hooks/useOsrmTrip';
-import { DeliveryItemAdapter, adaptDeliveriesToAdapter } from '@/interfaces/delivery/deliveryAdapters';
+import { DeliveryItemAdapter } from '@/interfaces/delivery/deliveryAdapters';
 import { IDeliveryStatus } from '@/interfaces/delivery/deliveryStatus';
 import { getDeliveries, getOptimizedRoute } from '@/core/actions/delivery.actions';
 import { useAuth } from '@/context/AuthContext';
@@ -119,7 +119,7 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
       console.log('paso 5:', 5);
       if (!routeData) {
         console.warn('[RouteContext] allDeliveries vacío o sin coordenadas; intentando recargar asignaciones desde backend...');
-        const refreshedDeliveries = adaptDeliveriesToAdapter(await getDeliveries());
+        const refreshedDeliveries = await getDeliveries();
         routeData = prepareRouteData(refreshedDeliveries);
         console.log('[RouteContext] Resultado tras recargar deliveries:', {
           total: refreshedDeliveries.length,
