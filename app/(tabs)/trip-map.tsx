@@ -14,6 +14,7 @@ import MapView, { Marker, Polyline, UrlTile } from "react-native-maps";
 import { Text } from "@/components/Themed";
 import { CustomColors } from "@/constants/CustomColors";
 import { DeliveryItemAdapter } from "@/interfaces/delivery/deliveryAdapters";
+import { IDeliveryStatus } from "@/interfaces/delivery/deliveryStatus";
 import { useRouteContext } from "@/contexts/RouteContext";
 import RouteInfoPanel from "@/components/RouteInfoPanel";
 import DeliveryModal from "@/components/DeliveryModal";
@@ -72,6 +73,8 @@ export default function TripMapScreen() {
 
   const [hideCourierIcon, setHideCourierIcon] = useState<boolean>(false);
   const [hideOtherIcons, setHideOtherIcons] = useState<boolean>(false);
+  const [currentTargetGroupIndex, setCurrentTargetGroupIndex] = useState<number>(0);
+  const [completedDeliveryIds, setCompletedDeliveryIds] = useState<Set<string>>(new Set());
 
   const mapRef = useRef<MapView>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -121,6 +124,25 @@ export default function TripMapScreen() {
     return groups;
   };
 
+  // Get actual courier GPS position on mount so the icon starts at the right place
+  useEffect(() => {
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") return;
+        const location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        setCurrentPosition({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        });
+      } catch {
+        // GPS unavailable; icon stays hidden until trip starts
+      }
+    })();
+  }, []);
+
   useEffect(() => {
     if (!tripData || !tripData.trips || tripData.trips.length === 0) return;
 
@@ -157,9 +179,9 @@ export default function TripMapScreen() {
         setGroupedWaypoints(grouped);
         console.log("[TripMapScreen] Grupos creados:", grouped.length);
 
-        if (waypointsData.length > 0) {
-          setCurrentPosition(waypointsData[0].coordinate);
-        }
+        // Reset target tracking when a new route is loaded
+        setCurrentTargetGroupIndex(0);
+        setCompletedDeliveryIds(new Set());
       }
 
       if (trip.geometry && trip.geometry.coordinates) {
@@ -268,6 +290,33 @@ export default function TripMapScreen() {
     setSelectedDeliveries(group.deliveries);
     setShowDeliveryModal(true);
   };
+
+  const handleDeliveryCompleted = (deliveryId: string, newStatus: string) => {
+    const terminalStatuses: string[] = [
+      IDeliveryStatus.DELIVERED,
+      IDeliveryStatus.CANCELLED,
+      IDeliveryStatus.RETURNED,
+    ];
+    if (!terminalStatuses.includes(newStatus)) return;
+    setCompletedDeliveryIds((prev) => {
+      const next = new Set(prev);
+      next.add(deliveryId);
+      return next;
+    });
+  };
+
+  // Advance to the next group when all deliveries in the current one are completed
+  useEffect(() => {
+    if (groupedWaypoints.length === 0 || completedDeliveryIds.size === 0) return;
+    const currentGroup = groupedWaypoints[currentTargetGroupIndex];
+    if (!currentGroup) return;
+    if (
+      currentGroup.deliveries.every((d) => completedDeliveryIds.has(d.id)) &&
+      currentTargetGroupIndex < groupedWaypoints.length - 1
+    ) {
+      setCurrentTargetGroupIndex((prev) => prev + 1);
+    }
+  }, [completedDeliveryIds, groupedWaypoints, currentTargetGroupIndex]);
 
   useEffect(() => {
     if (!isTraveling || routeCoordinates.length === 0) {
@@ -460,45 +509,46 @@ export default function TripMapScreen() {
             />
           )}
 
-          {!hideOtherIcons &&
-            groupedWaypoints.map((group) => {
-              const markerColor = group.isFirstInRoute
-                ? "#4CAF50"
-                : group.isLastInRoute
-                  ? "#F44336"
-                  : "#FF9800";
-              return (
-                <Marker
-                  key={`group-${group.coordinate.latitude}-${group.coordinate.longitude}`}
-                  coordinate={group.coordinate}
-                  onPress={() => handleMarkerPress(group)}
-                  zIndex={1000}
-                >
-                  <View style={styles.customMarker}>
-                    <View
-                      style={[
-                        styles.markerPin,
-                        { backgroundColor: markerColor },
-                      ]}
-                    >
-                      {group.count > 1 && (
-                        <View style={styles.markerBadge}>
-                          <Text style={styles.markerBadgeText}>
-                            {group.count}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                    <View
-                      style={[
-                        styles.markerArrow,
-                        { borderTopColor: markerColor },
-                      ]}
-                    />
+          {!hideOtherIcons && (() => {
+            const group = groupedWaypoints[currentTargetGroupIndex];
+            if (!group) return null;
+            const markerColor = group.isFirstInRoute
+              ? "#4CAF50"
+              : group.isLastInRoute
+                ? "#F44336"
+                : "#FF9800";
+            return (
+              <Marker
+                key={`group-${group.coordinate.latitude}-${group.coordinate.longitude}`}
+                coordinate={group.coordinate}
+                onPress={() => handleMarkerPress(group)}
+                zIndex={1000}
+              >
+                <View style={styles.customMarker}>
+                  <View
+                    style={[
+                      styles.markerPin,
+                      { backgroundColor: markerColor },
+                    ]}
+                  >
+                    {group.count > 1 && (
+                      <View style={styles.markerBadge}>
+                        <Text style={styles.markerBadgeText}>
+                          {group.count}
+                        </Text>
+                      </View>
+                    )}
                   </View>
-                </Marker>
-              );
-            })}
+                  <View
+                    style={[
+                      styles.markerArrow,
+                      { borderTopColor: markerColor },
+                    ]}
+                  />
+                </View>
+              </Marker>
+            );
+          })()}
 
           {currentPosition && !hideCourierIcon && (
             <Marker
@@ -582,6 +632,9 @@ export default function TripMapScreen() {
           <StatusUpdateModal
             visible={statusModalVisible}
             onClose={() => setStatusModalVisible(false)}
+            onSuccess={(newStatus) =>
+              handleDeliveryCompleted(statusModalParams.itemId, newStatus)
+            }
             itemId={statusModalParams.itemId}
             itemTitle={statusModalParams.itemTitle}
             currentStatus={statusModalParams.currentStatus}

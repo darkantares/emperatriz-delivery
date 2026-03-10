@@ -39,6 +39,7 @@ import { Capitalize } from "@/utils/capitalize";
 export interface StatusUpdateModalProps {
   visible: boolean;
   onClose: () => void;
+  onSuccess?: (newStatus: string) => void;
   itemId: string;
   itemTitle: string;
   currentStatus: string;
@@ -48,6 +49,7 @@ export interface StatusUpdateModalProps {
 export default function StatusUpdateModal({
   visible,
   onClose,
+  onSuccess,
   itemId,
   itemTitle,
   currentStatus,
@@ -357,6 +359,7 @@ export default function StatusUpdateModal({
         }
 
         await fetchDeliveries();
+        onSuccess?.(selectedStatus);
         onClose();
       } catch (error) {
         Alert.alert(
