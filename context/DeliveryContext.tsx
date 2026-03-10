@@ -2,14 +2,11 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { IDeliveryAssignmentEntity } from '@/interfaces/delivery/delivery';
 import { DeliveryItemAdapter, adaptDeliveriesToAdapter } from '@/interfaces/delivery/deliveryAdapters';
 import { getDeliveries } from '@/core/actions/delivery.actions';
-import { IDeliveryStatus } from '@/interfaces/delivery/deliveryStatus';
-import { useActiveDelivery } from './ActiveDeliveryContext';
 import { useAuth } from '@/context/AuthContext';
 
 interface DeliveryContextType {
     deliveries: DeliveryItemAdapter[];
     allDeliveries: DeliveryItemAdapter[];
-    inProgressDelivery: DeliveryItemAdapter | null;
     loading: boolean;
     refreshing: boolean;
     error: string | null;
@@ -37,11 +34,9 @@ interface DeliveryProviderProps {
 }
 
 export const DeliveryProvider: React.FC<DeliveryProviderProps> = ({ children }) => {
-    const { setActiveDelivery } = useActiveDelivery();
     const { isAuthenticated, isLoading } = useAuth();
     const [deliveries, setDeliveries] = useState<DeliveryItemAdapter[]>([]);
     const [allDeliveries, setAllDeliveries] = useState<DeliveryItemAdapter[]>([]);
-    const [inProgressDelivery, setInProgressDelivery] = useState<DeliveryItemAdapter | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [refreshing, setRefreshing] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
@@ -84,31 +79,8 @@ export const DeliveryProvider: React.FC<DeliveryProviderProps> = ({ children }) 
             const deliveriesData = await getDeliveries();
             const adaptedDeliveries = adaptDeliveriesToAdapter(deliveriesData);
 
-            // Guardar todos los deliveries tal como vienen del backend
             setAllDeliveries(adaptedDeliveries);
-
-            // Verificar si hay algún envío en progreso (IN_PROGRESS)
-            const inProgressIndex = adaptedDeliveries.findIndex(delivery =>
-                delivery.deliveryStatus.title === IDeliveryStatus.IN_PROGRESS
-            );
-
-            if (inProgressIndex !== -1) {
-                if (adaptedDeliveries.length === 1) {
-                    setDeliveries([]);
-                    setInProgressDelivery(adaptedDeliveries[0]);
-                    setActiveDelivery(adaptedDeliveries[0]);
-                } else {
-                    const inProgress = adaptedDeliveries[inProgressIndex];
-                    const remainingDeliveries = adaptedDeliveries.filter((_, index) => index !== inProgressIndex);
-                    setDeliveries(remainingDeliveries);
-                    setInProgressDelivery(inProgress);
-                    setActiveDelivery(inProgress);
-                }
-            } else {
-                setDeliveries(adaptedDeliveries);
-                setInProgressDelivery(null);
-                setActiveDelivery(null);
-            }
+            setDeliveries(adaptedDeliveries);
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
             setError(errorMessage);
@@ -127,35 +99,11 @@ export const DeliveryProvider: React.FC<DeliveryProviderProps> = ({ children }) 
     const handleDeliveryUpdated = (data: IDeliveryAssignmentEntity) => {
         const updatedDelivery = adaptDeliveriesToAdapter([data])[0];
 
-        setAllDeliveries((currentDeliveries) =>
-            currentDeliveries.map((delivery) =>
-                delivery.id === updatedDelivery.id ? updatedDelivery : delivery
-            )
-        );
+        const update = (list: DeliveryItemAdapter[]) =>
+            list.map((d) => (d.id === updatedDelivery.id ? updatedDelivery : d));
 
-        // Verificar si la entrega actualizada está en progreso
-        if (updatedDelivery.deliveryStatus.title === IDeliveryStatus.IN_PROGRESS) {
-            // Si está en progreso, actualizar el estado de la entrega en progreso
-            setInProgressDelivery(updatedDelivery);
-            setActiveDelivery(updatedDelivery);
-
-            // Eliminar de la lista principal si existe
-            setDeliveries(currentDeliveries =>
-                currentDeliveries.filter(delivery => delivery.id !== updatedDelivery.id)
-            );
-        }
-        // Si no está en progreso pero era la entrega en progreso, entonces la completó o la canceló
-        else if (inProgressDelivery && updatedDelivery.id === inProgressDelivery.id) {
-            // Limpiar estados
-            setInProgressDelivery(null);
-            setActiveDelivery(null);
-        }
-        // Actualización normal para entregas que no están en progreso
-        else {
-            setDeliveries(currentDeliveries => currentDeliveries.map(delivery =>
-                delivery.id === updatedDelivery.id ? updatedDelivery : delivery
-            ));
-        }
+        setDeliveries(update);
+        setAllDeliveries(update);
     };
 
     const handleDeliveryAssigned = (data: IDeliveryAssignmentEntity) => {        
@@ -179,63 +127,18 @@ export const DeliveryProvider: React.FC<DeliveryProviderProps> = ({ children }) 
 
     // Función para actualizar el estado local de una entrega (para uso del modal)
     const updateLocalDeliveryStatus = (deliveryId: string, newStatus: string) => {
-        // Buscar si la entrega está en el array principal
-        const deliveryInList = deliveries.find(d => d.id === deliveryId);
-        const isInProgressDelivery = inProgressDelivery?.id === deliveryId;
-
-        if (deliveryInList) {
-            const updatedDelivery = {
-                ...deliveryInList,
-                deliveryStatus: {
-                    ...deliveryInList.deliveryStatus,
-                    title: newStatus as IDeliveryStatus
-                }
-            };
-
-            if (newStatus === IDeliveryStatus.IN_PROGRESS) {
-                // Mover a progreso
-                setDeliveries(currentDeliveries =>
-                    currentDeliveries.filter(delivery => delivery.id !== deliveryId)
-                );
-                setInProgressDelivery(updatedDelivery);
-                setActiveDelivery(updatedDelivery);
-            } else {
-                // Actualizar en la lista
-                setDeliveries(currentDeliveries =>
-                    currentDeliveries.map(delivery =>
-                        delivery.id === deliveryId ? updatedDelivery : delivery
-                    )
-                );
-            }
-        }
-        else if (isInProgressDelivery) {
-            if (newStatus === IDeliveryStatus.IN_PROGRESS) {
-                // Mantener en progreso pero actualizar datos
-                const updatedDelivery = {
-                    ...inProgressDelivery,
-                    deliveryStatus: {
-                        ...inProgressDelivery.deliveryStatus,
-                        title: newStatus as IDeliveryStatus
-                    }
-                };
-                setInProgressDelivery(updatedDelivery);
-                setActiveDelivery(updatedDelivery);
-            } else {
-                // Sacar de progreso
-                setInProgressDelivery(null);
-                setActiveDelivery(null);
-
-                // En algunos casos, puede que necesite recargar para ver dónde quedó la entrega
-                // Ya que puede haberse eliminado del sistema o movido a otro estado
-                fetchDeliveries();
-            }
-        }
+        const update = (list: DeliveryItemAdapter[]) =>
+            list.map((d) => {
+                if (d.id !== deliveryId) return d;
+                return { ...d, deliveryStatus: { ...d.deliveryStatus, title: newStatus as any } };
+            });
+        setDeliveries(update);
+        setAllDeliveries(update);
     };
 
     const value: DeliveryContextType = {
         deliveries,
         allDeliveries,
-        inProgressDelivery,
         loading,
         refreshing,
         error,

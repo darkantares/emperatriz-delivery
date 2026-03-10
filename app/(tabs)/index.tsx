@@ -13,25 +13,21 @@ import { CustomColors } from "@/constants/CustomColors";
 import { useLocalSearchParams } from "expo-router";
 import { AppHeader } from "@/components/AppHeader";
 import { AppStateScreen } from "@/components/states/AppStateScreen";
-import { useActiveDelivery } from "@/context/ActiveDeliveryContext";
 import { useDelivery } from "@/context/DeliveryContext";
 import {
   DeliveryItemAdapter,
   DeliveryGroupAdapter,
   groupDeliveriesByShipment,
 } from "@/interfaces/delivery/deliveryAdapters";
-import { ActiveDeliveryCard } from "@/components/ActiveDeliveryCard";
 import { DeliveryItemList } from "@/components/delivery-items/DeliveryItemList";
 import { IDeliveryStatus } from "@/interfaces/delivery/deliveryStatus";
 import { useRouteContext } from "@/contexts/RouteContext";
 import StatusUpdateModal from '@/components/status-update/StatusUpdateModal';
 
 function TabOneScreenContent() {
-  const { canProcessNewDelivery } = useActiveDelivery();  
   const pendingRouteRefreshRef = useRef(false);
   const {
     deliveries,
-    inProgressDelivery,
     allDeliveries,
     loading,
     refreshing,
@@ -255,29 +251,8 @@ function TabOneScreenContent() {
     if (isNavigating.current) return;
     isNavigating.current = true;
 
-    // Si hay un envío en progreso, abrir modal para continuar ese envío
-    if (inProgressDelivery) {
-      openStatusModal(inProgressDelivery);
-      setTimeout(() => {
-        isNavigating.current = false;
-      }, 500);
-      return;
-    }
-
-    // Verificar si se puede procesar un nuevo delivery
-    if (!canProcessNewDelivery(deliveries)) {
-      Alert.alert(
-        "Entrega en Progreso",
-        "Ya tienes una entrega en progreso. Debes completarla antes de iniciar otra.",
-        [{ text: "Entendido" }]
-      );
-      isNavigating.current = false;
-      return;
-    }
-
-    // Obtener el siguiente delivery a procesar (considerando grupos)
     const nextDelivery = getDeliveryFromGroup(deliveries);
-    
+
     if (!nextDelivery) {
       Alert.alert(
         "Sin entregas",
@@ -288,22 +263,18 @@ function TabOneScreenContent() {
       return;
     }
 
-    // Guardar el delivery seleccionado y mostrar el modal de actualización de estado
     openStatusModal(nextDelivery);
 
-    // Restablecer la bandera de navegación
     setTimeout(() => {
       isNavigating.current = false;
     }, 500);
   };
 
-  // Renderizar indicador de carga mientras se obtienen los datos
-  if (loading && deliveries.length === 0 && !inProgressDelivery) {
+  if (loading && deliveries.length === 0) {
     return <AppStateScreen type="loading" onRetry={() => fetchDeliveries()} />;
   }
 
-  // Renderizar mensaje de error si ocurrió alguno
-  if (error && deliveries.length === 0 && !inProgressDelivery) {
+  if (error && deliveries.length === 0) {
     return (
       <AppStateScreen
         type="error"
@@ -313,8 +284,7 @@ function TabOneScreenContent() {
     );
   }
 
-  // Si no hay entregas y no hay error ni loading, mostrar el saludo y mensaje central
-  if (!loading && !error && deliveries.length === 0 && !inProgressDelivery) {
+  if (!loading && !error && deliveries.length === 0) {
     return (
       <AppStateScreen type="noDeliveries" onRetry={() => fetchDeliveries()} />
     );
@@ -336,21 +306,13 @@ function TabOneScreenContent() {
             />
           )}
 
-          <ActiveDeliveryCard
-            inProgressDelivery={inProgressDelivery}
-            onViewTask={() => {
-              if (inProgressDelivery) {
-                openStatusModal(inProgressDelivery);
-              }
-            }}
-          />
 
           <DeliveryItemList
             data={deliveries}
             refreshing={refreshing}
             onRefresh={onRefresh}
             contentContainerStyle={{ paddingBottom: 180 }}
-            onProgress={!inProgressDelivery ? handlePressItem : undefined}
+            onProgress={handlePressItem}
           />
 
           {/* Botón "Iniciar Rutas" - solo visible si hay deliveries disponibles */}
