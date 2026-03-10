@@ -56,7 +56,7 @@ export default function StatusUpdateModal({
   // route params removed; values are passed via props
   const totalAmmount = totalAmount;
 
-  const { fetchDeliveries, deliveries, inProgressDelivery } = useDelivery();
+  const { fetchDeliveries, deliveries } = useDelivery();
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const { availableStatuses, loadingStatuses } = useStatusData(currentStatus);
   const [loading, setLoading] = useState<boolean>(false);
@@ -83,8 +83,6 @@ export default function StatusUpdateModal({
   const currentDelivery = (() => {
     const found = deliveries.find((d) => d.id === itemId);
     if (found) return found;
-    if (inProgressDelivery && inProgressDelivery.id === itemId)
-      return inProgressDelivery;
     return undefined;
   })();
   const isPickupType = currentDelivery?.type === AssignmentType.PICKUP;

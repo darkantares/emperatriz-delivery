@@ -37,8 +37,8 @@ export const schemaRegistry: Record<string, AnySchema> = {
 export function findSchema(url: string): AnySchema | undefined {
     const normalized = url.startsWith('/') ? url : `/${url}`;
 
-    // special case: single assignment returned when updating status
-    if (/^\/delivery-assignments\/\d+\/status($|\/|\?)/.test(normalized)) {
+    // special case: single assignment returned when updating status or status-with-images
+    if (/^\/delivery-assignments\/\d+\/status(-with-images)?($|\/|\?)/.test(normalized)) {
         return OkDeliverySchema;
     }
 
