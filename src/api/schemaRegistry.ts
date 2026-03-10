@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { OkLoginResponseSchema } from './schemas/auth.schema';
-import { OkDeliveryArraySchema, OkOptimizedRouteSchema } from './schemas/delivery.schema';
+import { OkDeliveryArraySchema, OkOptimizedRouteSchema, OkDeliverySchema } from './schemas/delivery.schema';
 import { OkDeliveryStatusArraySchema } from './schemas/deliveryStatus.schema';
 import { OkPaymentMethodArraySchema } from './schemas/paymentMethod.schema';
 import { OkOsrmTripSchema, OkOsrmRouteSchema } from './schemas/osrm.schema';
@@ -22,6 +22,7 @@ type AnySchema = z.ZodTypeAny;
 export const schemaRegistry: Record<string, AnySchema> = {
     '/auth/login-delivery':                OkLoginResponseSchema,
     '/delivery-assignments/courier':       OkOptimizedRouteSchema,
+    // generic list response used by /delivery-assignments (GET)
     '/delivery-assignments':               OkDeliveryArraySchema,
     '/delivery-status':      OkDeliveryStatusArraySchema,
     '/payment-methods':      OkPaymentMethodArraySchema,
@@ -35,6 +36,12 @@ export const schemaRegistry: Record<string, AnySchema> = {
  */
 export function findSchema(url: string): AnySchema | undefined {
     const normalized = url.startsWith('/') ? url : `/${url}`;
+
+    // special case: single assignment returned when updating status
+    if (/^\/delivery-assignments\/\d+\/status($|\/|\?)/.test(normalized)) {
+        return OkDeliverySchema;
+    }
+
     const key = Object.keys(schemaRegistry).find(
         (k) =>
             normalized === k ||
