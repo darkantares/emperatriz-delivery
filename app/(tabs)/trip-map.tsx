@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   StyleSheet,
@@ -6,18 +6,18 @@ import {
   Dimensions,
   TouchableOpacity,
   Switch,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import * as Location from 'expo-location';
-import MapView, { Marker, Polyline, UrlTile } from 'react-native-maps';
-import { Text } from '@/components/Themed';
-import { CustomColors } from '@/constants/CustomColors';
-import { DeliveryItemAdapter } from '@/interfaces/delivery/deliveryAdapters';
-import { useRouteContext } from '@/contexts/RouteContext';
-import RouteInfoPanel from '@/components/RouteInfoPanel';
-import DeliveryModal from '@/components/DeliveryModal';
-import StatusUpdateModal from '@/components/status-update/StatusUpdateModal';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { router } from "expo-router";
+import * as Location from "expo-location";
+import MapView, { Marker, Polyline, UrlTile } from "react-native-maps";
+import { Text } from "@/components/Themed";
+import { CustomColors } from "@/constants/CustomColors";
+import { DeliveryItemAdapter } from "@/interfaces/delivery/deliveryAdapters";
+import { useRouteContext } from "@/contexts/RouteContext";
+import RouteInfoPanel from "@/components/RouteInfoPanel";
+import DeliveryModal from "@/components/DeliveryModal";
+import StatusUpdateModal from "@/components/status-update/StatusUpdateModal";
 
 interface Coordinate {
   latitude: number;
@@ -39,14 +39,19 @@ interface WaypointGroup {
 }
 
 export default function TripMapScreen() {
-  const { tripData, tripLoading, tripError, tripDeliveries } = useRouteContext();
+  const { tripData, tripLoading, tripError, tripDeliveries } =
+    useRouteContext();
 
-  const [waypointsWithDeliveries, setWaypointsWithDeliveries] = useState<WaypointWithDelivery[]>([]);
+  const [waypointsWithDeliveries, setWaypointsWithDeliveries] = useState<
+    WaypointWithDelivery[]
+  >([]);
   const [groupedWaypoints, setGroupedWaypoints] = useState<WaypointGroup[]>([]);
   const [routeCoordinates, setRouteCoordinates] = useState<Coordinate[]>([]);
   const [totalDistance, setTotalDistance] = useState<number>(0);
   const [totalDuration, setTotalDuration] = useState<number>(0);
-  const [selectedDeliveries, setSelectedDeliveries] = useState<DeliveryItemAdapter[]>([]);
+  const [selectedDeliveries, setSelectedDeliveries] = useState<
+    DeliveryItemAdapter[]
+  >([]);
   const [showDeliveryModal, setShowDeliveryModal] = useState<boolean>(false);
 
   const [statusModalVisible, setStatusModalVisible] = useState(false);
@@ -57,7 +62,9 @@ export default function TripMapScreen() {
     totalAmount: number;
   } | null>(null);
 
-  const [currentPosition, setCurrentPosition] = useState<Coordinate | null>(null);
+  const [currentPosition, setCurrentPosition] = useState<Coordinate | null>(
+    null,
+  );
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [isTraveling, setIsTraveling] = useState<boolean>(false);
   const [remainingDistance, setRemainingDistance] = useState<number>(0);
@@ -68,7 +75,9 @@ export default function TripMapScreen() {
 
   const mapRef = useRef<MapView>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const locationSubscription = useRef<Location.LocationSubscription | null>(null);
+  const locationSubscription = useRef<Location.LocationSubscription | null>(
+    null,
+  );
 
   const handleProgressDelivery = (delivery: DeliveryItemAdapter) => {
     setShowDeliveryModal(false);
@@ -76,12 +85,15 @@ export default function TripMapScreen() {
       itemId: delivery.id,
       itemTitle: delivery.client,
       currentStatus: delivery.deliveryStatus.title,
-      totalAmount: (delivery.deliveryCost || 0) + (delivery.amountToBeCharged || 0),
+      totalAmount:
+        (delivery.deliveryCost || 0) + (delivery.amountToBeCharged || 0),
     });
     setStatusModalVisible(true);
   };
 
-  const groupWaypointsByCoordinates = (waypoints: WaypointWithDelivery[]): WaypointGroup[] => {
+  const groupWaypointsByCoordinates = (
+    waypoints: WaypointWithDelivery[],
+  ): WaypointGroup[] => {
     const groupsMap = new Map<string, WaypointGroup>();
 
     waypoints.forEach((waypoint, waypointIndex) => {
@@ -103,7 +115,9 @@ export default function TripMapScreen() {
     });
 
     const groups = Array.from(groupsMap.values());
-    console.log(`[TripMapScreen] Agrupación completa: ${waypoints.length} waypoints -> ${groups.length} grupos`);
+    console.log(
+      `[TripMapScreen] Agrupación completa: ${waypoints.length} waypoints -> ${groups.length} grupos`,
+    );
     return groups;
   };
 
@@ -112,25 +126,36 @@ export default function TripMapScreen() {
 
     try {
       const trip = tripData.trips[0];
-      console.log('[TripMapScreen] Deliveries recibidos:', tripDeliveries.length);
+      console.log(
+        "[TripMapScreen] Deliveries recibidos:",
+        tripDeliveries.length,
+      );
 
       if (tripData.waypoints && tripData.waypoints.length > 0) {
-        const waypointsData: WaypointWithDelivery[] = tripData.waypoints.map((wp:any) => {
-          const originalIndex = wp.waypoint_index;
-          const delivery = tripDeliveries[originalIndex];
-          return {
-            coordinate: { latitude: wp.location[1], longitude: wp.location[0] },
-            delivery,
-            index: originalIndex,
-          };
-        });
+        const waypointsData: WaypointWithDelivery[] = tripData.waypoints.map(
+          (wp: any) => {
+            const originalIndex = wp.waypoint_index;
+            const delivery = tripDeliveries[originalIndex];
+            return {
+              coordinate: {
+                latitude: wp.location[1],
+                longitude: wp.location[0],
+              },
+              delivery,
+              index: originalIndex,
+            };
+          },
+        );
 
         setWaypointsWithDeliveries(waypointsData);
-        console.log('[TripMapScreen] Waypoints con deliveries:', waypointsData.length);
+        console.log(
+          "[TripMapScreen] Waypoints con deliveries:",
+          waypointsData.length,
+        );
 
         const grouped = groupWaypointsByCoordinates(waypointsData);
         setGroupedWaypoints(grouped);
-        console.log('[TripMapScreen] Grupos creados:', grouped.length);
+        console.log("[TripMapScreen] Grupos creados:", grouped.length);
 
         if (waypointsData.length > 0) {
           setCurrentPosition(waypointsData[0].coordinate);
@@ -138,12 +163,17 @@ export default function TripMapScreen() {
       }
 
       if (trip.geometry && trip.geometry.coordinates) {
-        const coords: Coordinate[] = trip.geometry.coordinates.map((coord: number[]) => ({
-          latitude: coord[1],
-          longitude: coord[0],
-        }));
+        const coords: Coordinate[] = trip.geometry.coordinates.map(
+          (coord: number[]) => ({
+            latitude: coord[1],
+            longitude: coord[0],
+          }),
+        );
         setRouteCoordinates(coords);
-        console.log('[TripMapScreen] Coordenadas de ruta extraídas:', coords.length);
+        console.log(
+          "[TripMapScreen] Coordenadas de ruta extraídas:",
+          coords.length,
+        );
       }
 
       setTotalDistance(trip.distance);
@@ -154,24 +184,32 @@ export default function TripMapScreen() {
       if (waypointsWithDeliveries.length > 0 && mapRef.current) {
         const firstCoord = waypointsWithDeliveries[0].coordinate;
         mapRef.current.animateToRegion(
-          { latitude: firstCoord.latitude, longitude: firstCoord.longitude, latitudeDelta: 0.1, longitudeDelta: 0.1 },
-          1000
+          {
+            latitude: firstCoord.latitude,
+            longitude: firstCoord.longitude,
+            latitudeDelta: 0.1,
+            longitudeDelta: 0.1,
+          },
+          1000,
         );
       }
     } catch (err) {
-      console.error('[TripMapScreen] Error procesando trip data:', err);
+      console.error("[TripMapScreen] Error procesando trip data:", err);
     }
   }, [tripData, tripDeliveries]);
 
-  const calculateDistance = (coord1: Coordinate, coord2: Coordinate): number => {
+  const calculateDistance = (
+    coord1: Coordinate,
+    coord2: Coordinate,
+  ): number => {
     const R = 6371e3;
-    const φ1 = coord1.latitude * Math.PI / 180;
-    const φ2 = coord2.latitude * Math.PI / 180;
-    const Δφ = (coord2.latitude - coord1.latitude) * Math.PI / 180;
-    const Δλ = (coord2.longitude - coord1.longitude) * Math.PI / 180;
-    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-              Math.cos(φ1) * Math.cos(φ2) *
-              Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const φ1 = (coord1.latitude * Math.PI) / 180;
+    const φ2 = (coord2.latitude * Math.PI) / 180;
+    const Δφ = ((coord2.latitude - coord1.latitude) * Math.PI) / 180;
+    const Δλ = ((coord2.longitude - coord1.longitude) * Math.PI) / 180;
+    const a =
+      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   };
@@ -189,26 +227,26 @@ export default function TripMapScreen() {
 
   const startTrip = async () => {
     if (routeCoordinates.length === 0) {
-      console.log('[TripMapScreen] No hay ruta para iniciar viaje');
+      console.log("[TripMapScreen] No hay ruta para iniciar viaje");
       return;
     }
 
     if (__DEV__) {
       setIsTraveling(true);
       setCurrentIndex(0);
-      console.log('[TripMapScreen] Iniciando viaje simulado (DESARROLLO)');
+      console.log("[TripMapScreen] Iniciando viaje simulado (DESARROLLO)");
     } else {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-          console.error('[TripMapScreen] Permiso de ubicación denegado');
+        if (status !== "granted") {
+          console.error("[TripMapScreen] Permiso de ubicación denegado");
           return;
         }
         setIsTraveling(true);
         setCurrentIndex(0);
-        console.log('[TripMapScreen] Iniciando seguimiento GPS (PRODUCCIÓN)');
+        console.log("[TripMapScreen] Iniciando seguimiento GPS (PRODUCCIÓN)");
       } catch (err) {
-        console.error('[TripMapScreen] Error solicitando permisos:', err);
+        console.error("[TripMapScreen] Error solicitando permisos:", err);
       }
     }
   };
@@ -223,7 +261,7 @@ export default function TripMapScreen() {
       locationSubscription.current.remove();
       locationSubscription.current = null;
     }
-    console.log('[TripMapScreen] Viaje detenido');
+    console.log("[TripMapScreen] Viaje detenido");
   };
 
   const handleMarkerPress = (group: WaypointGroup) => {
@@ -233,18 +271,24 @@ export default function TripMapScreen() {
 
   useEffect(() => {
     if (!isTraveling || routeCoordinates.length === 0) {
-      if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
-      if (locationSubscription.current) { locationSubscription.current.remove(); locationSubscription.current = null; }
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      if (locationSubscription.current) {
+        locationSubscription.current.remove();
+        locationSubscription.current = null;
+      }
       return;
     }
 
     if (__DEV__) {
-      console.log('[TripMapScreen] Iniciando simulación automática');
+      console.log("[TripMapScreen] Iniciando simulación automática");
       intervalRef.current = setInterval(() => {
         setCurrentIndex((prevIndex) => {
           const nextIndex = prevIndex + 1;
           if (nextIndex >= routeCoordinates.length) {
-            console.log('[TripMapScreen] Destino alcanzado (simulación)');
+            console.log("[TripMapScreen] Destino alcanzado (simulación)");
             setIsTraveling(false);
             return prevIndex;
           }
@@ -252,12 +296,15 @@ export default function TripMapScreen() {
           const actualPosition = simulateDeviation(expectedPosition);
           setCurrentPosition(actualPosition);
           if (mapRef.current) {
-            mapRef.current.animateToRegion({
-              latitude: actualPosition.latitude,
-              longitude: actualPosition.longitude,
-              latitudeDelta: 0.01,
-              longitudeDelta: 0.01,
-            }, 1000);
+            mapRef.current.animateToRegion(
+              {
+                latitude: actualPosition.latitude,
+                longitude: actualPosition.longitude,
+                latitudeDelta: 0.01,
+                longitudeDelta: 0.01,
+              },
+              1000,
+            );
           }
           const progressPercentage = nextIndex / routeCoordinates.length;
           setRemainingDistance(totalDistance * (1 - progressPercentage));
@@ -266,11 +313,15 @@ export default function TripMapScreen() {
         });
       }, 2000);
     } else {
-      console.log('[TripMapScreen] Iniciando seguimiento GPS');
+      console.log("[TripMapScreen] Iniciando seguimiento GPS");
       (async () => {
         try {
           const subscription = await Location.watchPositionAsync(
-            { accuracy: Location.Accuracy.BestForNavigation, timeInterval: 2000, distanceInterval: 10 },
+            {
+              accuracy: Location.Accuracy.BestForNavigation,
+              timeInterval: 2000,
+              distanceInterval: 10,
+            },
             (location) => {
               const actualPosition: Coordinate = {
                 latitude: location.coords.latitude,
@@ -278,18 +329,24 @@ export default function TripMapScreen() {
               };
               setCurrentPosition(actualPosition);
               if (mapRef.current) {
-                mapRef.current.animateToRegion({
-                  latitude: actualPosition.latitude,
-                  longitude: actualPosition.longitude,
-                  latitudeDelta: 0.01,
-                  longitudeDelta: 0.01,
-                }, 1000);
+                mapRef.current.animateToRegion(
+                  {
+                    latitude: actualPosition.latitude,
+                    longitude: actualPosition.longitude,
+                    latitudeDelta: 0.01,
+                    longitudeDelta: 0.01,
+                  },
+                  1000,
+                );
               }
               let closestIndex = 0;
               let minDistance = Infinity;
               routeCoordinates.forEach((coord, index) => {
                 const distance = calculateDistance(actualPosition, coord);
-                if (distance < minDistance) { minDistance = distance; closestIndex = index; }
+                if (distance < minDistance) {
+                  minDistance = distance;
+                  closestIndex = index;
+                }
               });
               setCurrentIndex(closestIndex);
               const progressPercentage = closestIndex / routeCoordinates.length;
@@ -298,23 +355,32 @@ export default function TripMapScreen() {
               if (routeCoordinates.length > 0) {
                 const lastPoint = routeCoordinates[routeCoordinates.length - 1];
                 if (calculateDistance(actualPosition, lastPoint) < 20) {
-                  console.log('[TripMapScreen] Destino alcanzado (GPS)');
+                  console.log("[TripMapScreen] Destino alcanzado (GPS)");
                   setIsTraveling(false);
                 }
               }
-            }
+            },
           );
           locationSubscription.current = subscription;
         } catch (err) {
-          console.error('[TripMapScreen] Error iniciando seguimiento GPS:', err);
+          console.error(
+            "[TripMapScreen] Error iniciando seguimiento GPS:",
+            err,
+          );
           setIsTraveling(false);
         }
       })();
     }
 
     return () => {
-      if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
-      if (locationSubscription.current) { locationSubscription.current.remove(); locationSubscription.current = null; }
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      if (locationSubscription.current) {
+        locationSubscription.current.remove();
+        locationSubscription.current = null;
+      }
     };
   }, [isTraveling, routeCoordinates, totalDistance, totalDuration]);
 
@@ -350,7 +416,9 @@ export default function TripMapScreen() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.centerContainer}>
-          <Text style={styles.noDataText}>No hay datos de ruta optimizada para mostrar</Text>
+          <Text style={styles.noDataText}>
+            No hay datos de ruta optimizada para mostrar
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -377,7 +445,11 @@ export default function TripMapScreen() {
           />
 
           {routeCoordinates.length > 0 && (
-            <Polyline coordinates={routeCoordinates} strokeColor="#00BFFF" strokeWidth={5} />
+            <Polyline
+              coordinates={routeCoordinates}
+              strokeColor="#00BFFF"
+              strokeWidth={5}
+            />
           )}
 
           {isTraveling && currentIndex > 0 && routeCoordinates.length > 0 && (
@@ -388,35 +460,52 @@ export default function TripMapScreen() {
             />
           )}
 
-          {!hideOtherIcons && groupedWaypoints.map((group) => {
-            const markerColor = group.isFirstInRoute ? '#4CAF50' : group.isLastInRoute ? '#F44336' : '#FF9800';
-            return (
-              <Marker
-                key={`group-${group.coordinate.latitude}-${group.coordinate.longitude}`}
-                coordinate={group.coordinate}
-                onPress={() => handleMarkerPress(group)}
-                zIndex={1000}
-              >
-                <View style={styles.customMarker}>
-                  <View style={[styles.markerPin, { backgroundColor: markerColor }]}>
-                    {group.count > 1 && (
-                      <View style={styles.markerBadge}>
-                        <Text style={styles.markerBadgeText}>{group.count}</Text>
-                      </View>
-                    )}
+          {!hideOtherIcons &&
+            groupedWaypoints.map((group) => {
+              const markerColor = group.isFirstInRoute
+                ? "#4CAF50"
+                : group.isLastInRoute
+                  ? "#F44336"
+                  : "#FF9800";
+              return (
+                <Marker
+                  key={`group-${group.coordinate.latitude}-${group.coordinate.longitude}`}
+                  coordinate={group.coordinate}
+                  onPress={() => handleMarkerPress(group)}
+                  zIndex={1000}
+                >
+                  <View style={styles.customMarker}>
+                    <View
+                      style={[
+                        styles.markerPin,
+                        { backgroundColor: markerColor },
+                      ]}
+                    >
+                      {group.count > 1 && (
+                        <View style={styles.markerBadge}>
+                          <Text style={styles.markerBadgeText}>
+                            {group.count}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    <View
+                      style={[
+                        styles.markerArrow,
+                        { borderTopColor: markerColor },
+                      ]}
+                    />
                   </View>
-                  <View style={[styles.markerArrow, { borderTopColor: markerColor }]} />
-                </View>
-              </Marker>
-            );
-          })}
+                </Marker>
+              );
+            })}
 
           {currentPosition && !hideCourierIcon && (
             <Marker
               key="courier-position"
               coordinate={currentPosition}
               title="Tu posición"
-              description={isTraveling ? 'En movimiento' : ''}
+              description={isTraveling ? "En movimiento" : ""}
               zIndex={0}
             >
               <View style={styles.courierMarker}>
@@ -432,19 +521,27 @@ export default function TripMapScreen() {
           <View style={styles.devControls}>
             <View style={styles.checkboxRow}>
               <Text style={styles.devLabel}>Ocultar icono conductor</Text>
-              <Switch value={hideCourierIcon} onValueChange={setHideCourierIcon} />
+              <Switch
+                value={hideCourierIcon}
+                onValueChange={setHideCourierIcon}
+              />
             </View>
             <View style={styles.checkboxRow}>
               <Text style={styles.devLabel}>Ocultar otros iconos</Text>
-              <Switch value={hideOtherIcons} onValueChange={setHideOtherIcons} />
+              <Switch
+                value={hideOtherIcons}
+                onValueChange={setHideOtherIcons}
+              />
             </View>
           </View>
         )}
 
-        <View style={[
+        <View
+          style={[
             styles.controlsContainer,
-            isTraveling && { bottom: 180 } /* move up 10px when traveling */
-          ]}>
+            isTraveling && { bottom: 180 } /* move up 10px when traveling */,
+          ]}
+        >
           {!isTraveling ? (
             <TouchableOpacity
               style={[styles.controlButton, styles.startButton]}
@@ -452,11 +549,14 @@ export default function TripMapScreen() {
               disabled={!tripData || routeCoordinates.length === 0}
             >
               <Text style={styles.controlButtonText}>
-                {__DEV__ ? '🚗 Iniciar Viaje (Simulado)' : '🚗 Iniciar Viaje'}
+                {__DEV__ ? "🚗 Iniciar Viaje (Simulado)" : "🚗 Iniciar Viaje"}
               </Text>
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity style={[styles.controlButton, styles.stopButton]} onPress={stopTrip}>
+            <TouchableOpacity
+              style={[styles.controlButton, styles.stopButton]}
+              onPress={stopTrip}
+            >
               <Text style={styles.controlButtonText}>⏹️ Detener Viaje</Text>
             </TouchableOpacity>
           )}
@@ -499,36 +599,36 @@ const styles = StyleSheet.create({
     backgroundColor: CustomColors.backgroundDarkest,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 15,
     backgroundColor: CustomColors.backgroundDark,
     borderBottomWidth: 1,
-    borderBottomColor: CustomColors.textLight + '20',
+    borderBottomColor: CustomColors.textLight + "20",
   },
   headerTitle: {
     color: CustomColors.textLight,
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   closeButton: {
     color: CustomColors.primary,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   container: {
     flex: 1,
     backgroundColor: CustomColors.backgroundDarkest,
   },
   map: {
-    width: Dimensions.get('window').width,
-    height: Dimensions.get('window').height,
+    width: Dimensions.get("window").width,
+    height: Dimensions.get("window").height,
   },
   centerContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: CustomColors.backgroundDarkest,
     padding: 20,
   },
@@ -540,16 +640,16 @@ const styles = StyleSheet.create({
   errorText: {
     color: CustomColors.primary,
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
   noDataText: {
     color: CustomColors.textLight,
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
     opacity: 0.7,
   },
   customMarker: {
-    alignItems: 'center',
+    alignItems: "center",
     width: 60,
     height: 60,
   },
@@ -558,10 +658,10 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     borderWidth: 3,
-    borderColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
+    borderColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.4,
     shadowRadius: 4,
@@ -573,51 +673,51 @@ const styles = StyleSheet.create({
     borderLeftWidth: 8,
     borderRightWidth: 8,
     borderTopWidth: 12,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
+    borderLeftColor: "transparent",
+    borderRightColor: "transparent",
     marginTop: -1,
   },
   markerBadge: {
-    position: 'absolute',
+    position: "absolute",
     top: -5,
     right: -5,
-    backgroundColor: '#DC143C',
+    backgroundColor: "#DC143C",
     borderRadius: 12,
     minWidth: 24,
     height: 24,
     paddingHorizontal: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 2,
-    borderColor: '#FFFFFF',
-    shadowColor: '#000',
+    borderColor: "#FFFFFF",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
     shadowRadius: 3,
     elevation: 8,
   },
   markerBadgeText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 11,
-    fontWeight: 'bold',
-    textAlign: 'center',
+    fontWeight: "bold",
+    textAlign: "center",
   },
   courierMarker: {
     width: 50,
     height: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   courierMarkerInner: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#2196F3',
+    backgroundColor: "#2196F3",
     borderWidth: 3,
-    borderColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
+    borderColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.4,
     shadowRadius: 4,
@@ -627,7 +727,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
   },
   controlsContainer: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 150,
     left: 20,
     right: 20,
@@ -636,41 +736,41 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 8,
-    alignItems: 'center',
-    shadowColor: '#000',
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 5,
   },
   startButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: "#4CAF50",
   },
   stopButton: {
-    backgroundColor: '#F44336',
+    backgroundColor: "#F44336",
   },
   controlButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   devControls: {
-    position: 'absolute',
+    position: "absolute",
     top: 10,
     left: 10,
     right: 10,
-    backgroundColor: '#00000080',
+    backgroundColor: "#00000080",
     padding: 8,
     borderRadius: 8,
   },
   checkboxRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginVertical: 4,
   },
   devLabel: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 14,
   },
 });
