@@ -46,7 +46,7 @@ const DeliveryModal: React.FC<DeliveryModalProps> = ({
             <Text style={styles.modalTitle}>
               {deliveries.length > 1
                 ? `Entregas en este punto (${deliveries.length})`
-                : "Información de Entrega"}
+                : ""}
             </Text>
             <TouchableOpacity onPress={onClose}>
               <Text style={styles.closeButtonText}>✕</Text>

@@ -9,6 +9,15 @@ import { ProductEntity } from "../product";
 
 export interface IUpdateDelivery extends Partial<ICreateDeliveryAssigment>{}
 
+export interface IGpsReading {
+  latitude: number;
+  longitude: number;
+  accuracy: number;
+  timestamp: number;
+  speed?: number;
+  isMocked?: boolean;
+}
+
 export interface IUpdateDeliveryStatusData {
   id: string;
   status: number;
@@ -17,6 +26,7 @@ export interface IUpdateDeliveryStatusData {
   amountPaid?: number;
   additionalAmount?: number;
   paymentMethodId?: number;
+  gpsReadings?: IGpsReading[];
 }
 
 export interface IDeliveryAssignmentSummaryEntity extends IGlobalEntity {

@@ -12,6 +12,8 @@ import {
 // moved to modal component; routing no longer needed
 
 import * as ImagePicker from "expo-image-picker";
+import * as Location from "expo-location";
+import { IGpsReading } from "@/interfaces/delivery/delivery";
 import {
   getStatusColor,
   IDeliveryStatus,
@@ -274,6 +276,28 @@ export default function StatusUpdateModal({
 
       setLoading(true);
       try {
+        const STATUSES_REQUIRING_GPS = [
+          IDeliveryStatus.IN_PROGRESS,
+          IDeliveryStatus.DELIVERED,
+          IDeliveryStatus.RETURNED,
+        ];
+        let gpsReadings: IGpsReading[] | undefined;
+        if (STATUSES_REQUIRING_GPS.includes(selectedStatus as IDeliveryStatus)) {
+          const { status: locStatus } = await Location.requestForegroundPermissionsAsync();
+          if (locStatus === 'granted') {
+            const position = await Location.getCurrentPositionAsync({
+              accuracy: Location.Accuracy.High,
+            });
+            gpsReadings = [{
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              accuracy: position.coords.accuracy ?? 0,
+              timestamp: position.timestamp,
+              speed: position.coords.speed ?? undefined,
+            }];
+          }
+        }
+
         const evidenceUris: string[] = [];
         if (photoUri) evidenceUris.push(photoUri);
         if (imageUri) evidenceUris.push(imageUri);
@@ -314,7 +338,7 @@ export default function StatusUpdateModal({
                 ? selectedPaymentMethod
                 : undefined,
           };
-          await updateDeliveryStatusWithImages(updateData);
+          await updateDeliveryStatusWithImages({ ...updateData, gpsReadings });
           console.log("updateData:", updateData);
         } else {
           await updateDeliveryStatus(
@@ -330,6 +354,7 @@ export default function StatusUpdateModal({
             isPickupType && isDelivered && additionalAmount.trim()
               ? parseFloat(additionalAmount)
               : undefined,
+            gpsReadings,
           );
         }
 

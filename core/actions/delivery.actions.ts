@@ -1,4 +1,4 @@
-import { IDeliveryAssignmentEntity, IUpdateDelivery, IUpdateDeliveryStatusData } from '@/interfaces/delivery/delivery';
+import { IDeliveryAssignmentEntity, IGpsReading, IUpdateDelivery, IUpdateDeliveryStatusData } from '@/interfaces/delivery/delivery';
 import { apiAction } from '@/core/api/apiAction';
 import { BackendUrls } from '@/utils/enum';
 
@@ -32,6 +32,7 @@ export const updateDeliveryStatus = (
     amountPaid?: number,
     paymentMethodId?: number,
     additionalAmount?: number,
+    gpsReadings?: IGpsReading[],
 ): Promise<IDeliveryAssignmentEntity> => {
     const payload: {
         status: number;
@@ -39,21 +40,23 @@ export const updateDeliveryStatus = (
         amountPaid?: number;
         paymentMethodId?: number;
         additionalAmount?: number;
+        gpsReadings?: IGpsReading[];
     } = { status };
 
     if (note) payload.note = note;
     if (amountPaid !== undefined) payload.amountPaid = amountPaid;
     if (paymentMethodId !== undefined) payload.paymentMethodId = paymentMethodId;
     if (additionalAmount !== undefined) payload.additionalAmount = additionalAmount;
+    if (gpsReadings?.length) payload.gpsReadings = gpsReadings;
 
     return apiAction.patch<IDeliveryAssignmentEntity>(`${BackendUrls.DeliveryAssignments}/${id}/status`, payload);
 };
 
 export const updateDeliveryStatusWithImages = (updateData: IUpdateDeliveryStatusData): Promise<IDeliveryAssignmentEntity> => {
-    const { id, status, note, imageUris, amountPaid, paymentMethodId, additionalAmount } = updateData;
+    const { id, status, note, imageUris, amountPaid, paymentMethodId, additionalAmount, gpsReadings } = updateData;
 
     if (!imageUris || imageUris.length === 0) {
-        return updateDeliveryStatus(id, status, note, amountPaid, paymentMethodId, additionalAmount);
+        return updateDeliveryStatus(id, status, note, amountPaid, paymentMethodId, additionalAmount, gpsReadings);
     }
 
     const formData = new FormData();
@@ -62,6 +65,7 @@ export const updateDeliveryStatusWithImages = (updateData: IUpdateDeliveryStatus
     if (amountPaid !== undefined) formData.append('amountPaid', amountPaid.toString());
     if (paymentMethodId !== undefined) formData.append('paymentMethodId', paymentMethodId.toString());
     if (additionalAmount !== undefined) formData.append('additionalAmount', additionalAmount.toString());
+    if (gpsReadings?.length) formData.append('gpsReadings', JSON.stringify(gpsReadings));
 
     imageUris.forEach((imageUri, index) => {
         formData.append('images', {
