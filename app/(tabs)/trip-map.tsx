@@ -71,6 +71,7 @@ export default function TripMapScreen() {
   const [hideOtherIcons, setHideOtherIcons] = useState<boolean>(false);
   const [currentTargetGroupIndex, setCurrentTargetGroupIndex] = useState<number>(0);
   const [completedDeliveryIds, setCompletedDeliveryIds] = useState<Set<string>>(new Set());
+  const [deliveryStatusOverrides, setDeliveryStatusOverrides] = useState<Map<string, string>>(new Map());
 
   const mapRef = useRef<MapView>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -90,11 +91,15 @@ export default function TripMapScreen() {
       deliveries.length === 1
         ? `${label}: ${deliveries[0].client}`
         : `${deliveries.length} ${label}s en este punto`;
+    // Use the locally-tracked override if this group's status was updated during this session
+    const firstId = deliveries[0].id;
+    const currentStatus =
+      deliveryStatusOverrides.get(firstId) ?? deliveries[0].deliveryStatus.title;
     setGroupStatusModalParams({
       ids: deliveries.map((d) => d.id),
       assignmentType: type,
       groupTitle,
-      currentStatus: deliveries[0].deliveryStatus.title,
+      currentStatus,
       totalAmount,
     });
     setGroupStatusModalVisible(true);
@@ -191,6 +196,7 @@ export default function TripMapScreen() {
         // Reset target tracking when a new route is loaded
         setCurrentTargetGroupIndex(0);
         setCompletedDeliveryIds(new Set());
+        setDeliveryStatusOverrides(new Map());
       }
 
       if (trip.geometry && trip.geometry.coordinates) {
@@ -300,6 +306,12 @@ export default function TripMapScreen() {
   };
 
   const handleGroupCompleted = (ids: string[], newStatus: string) => {
+    // Always track the latest status so the modal shows correct transitions on re-open
+    setDeliveryStatusOverrides((prev) => {
+      const next = new Map(prev);
+      ids.forEach((id) => next.set(id, newStatus));
+      return next;
+    });
     const terminalStatuses: string[] = [
       IDeliveryStatus.DELIVERED,
       IDeliveryStatus.CANCELLED,
