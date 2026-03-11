@@ -330,6 +330,13 @@ export const api = {
             method: 'POST',
             body: formData
         }),
+
+    patchFormData: <T>(endpoint: string, formData: FormData, options = {}) =>
+        apiRequest<T>(endpoint, {
+            ...options,
+            method: 'PATCH',
+            body: formData
+        }),
 };
 
 // Función para verificar la conectividad con el servidor

@@ -17,7 +17,6 @@ import { IDeliveryStatus } from "@/interfaces/delivery/deliveryStatus";
 import { AssignmentType } from "@/utils/enum";
 import { useRouteContext } from "@/contexts/RouteContext";
 import RouteInfoPanel from "@/components/RouteInfoPanel";
-import DeliveryModal from "@/components/DeliveryModal";
 import GroupStatusUpdateModal from "@/components/status-update/GroupStatusUpdateModal";
 
 interface Coordinate {
@@ -51,11 +50,6 @@ export default function TripMapScreen() {
   const [routeCoordinates, setRouteCoordinates] = useState<Coordinate[]>([]);
   const [totalDistance, setTotalDistance] = useState<number>(0);
   const [totalDuration, setTotalDuration] = useState<number>(0);
-  const [selectedDeliveries, setSelectedDeliveries] = useState<
-    DeliveryItemAdapter[]
-  >([]);
-  const [showDeliveryModal, setShowDeliveryModal] = useState<boolean>(false);
-
   const [groupStatusModalVisible, setGroupStatusModalVisible] = useState(false);
   const [groupStatusModalParams, setGroupStatusModalParams] = useState<{
     ids: string[];
@@ -86,21 +80,20 @@ export default function TripMapScreen() {
 
   const handleProgressGroup = (deliveries: DeliveryItemAdapter[]) => {
     if (deliveries.length === 0) return;
-    setShowDeliveryModal(false);
     const type = deliveries[0].type;
     const totalAmount = deliveries.reduce(
       (sum, d) => sum + (d.deliveryCost || 0) + (d.amountToBeCharged || 0),
       0,
     );
-    const label =
-      type === AssignmentType.PICKUP ? "Recogida" : "Entrega";
+    const label = type === AssignmentType.PICKUP ? "Recogida" : "Entrega";
+    const groupTitle =
+      deliveries.length === 1
+        ? `${label}: ${deliveries[0].client}`
+        : `${deliveries.length} ${label}s en este punto`;
     setGroupStatusModalParams({
       ids: deliveries.map((d) => d.id),
       assignmentType: type,
-      groupTitle:
-        deliveries.length > 1
-          ? `${deliveries.length} ${label}s en este punto`
-          : `${label}: ${deliveries[0].client}`,
+      groupTitle,
       currentStatus: deliveries[0].deliveryStatus.title,
       totalAmount,
     });
@@ -303,8 +296,7 @@ export default function TripMapScreen() {
   };
 
   const handleMarkerPress = (group: WaypointGroup) => {
-    setSelectedDeliveries(group.deliveries);
-    setShowDeliveryModal(true);
+    handleProgressGroup(group.deliveries);
   };
 
   const handleGroupCompleted = (ids: string[], newStatus: string) => {
@@ -635,13 +627,6 @@ export default function TripMapScreen() {
           isTraveling={isTraveling}
           remainingDistance={remainingDistance}
           remainingDuration={remainingDuration}
-        />
-
-        <DeliveryModal
-          visible={showDeliveryModal}
-          deliveries={selectedDeliveries}
-          onClose={() => setShowDeliveryModal(false)}
-          onProgressGroup={handleProgressGroup}
         />
 
         {groupStatusModalParams && (

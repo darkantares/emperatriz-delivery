@@ -23,6 +23,7 @@ import { CustomColors } from "@/constants/CustomColors";
 import {
   updateDeliveryStatus,
   updateDeliveryStatusWithImages,
+  updateDeliveryStatusUnified,
 } from "@/core/actions/delivery.actions";
 import { IUpdateDeliveryStatusData } from "@/interfaces/delivery/delivery";
 import { useDelivery } from "@/context/DeliveryContext";
@@ -57,7 +58,6 @@ export default function StatusUpdateModal({
 }: StatusUpdateModalProps) {
   // route params removed; values are passed via props
   const totalAmmount = totalAmount;
-
   const { fetchDeliveries, deliveries } = useDelivery();
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const { availableStatuses, loadingStatuses } = useStatusData(currentStatus);
@@ -319,44 +319,30 @@ export default function StatusUpdateModal({
           return;
         }
 
-        if (evidenceUris.length > 0) {
-          const updateData: IUpdateDeliveryStatusData = {
-            id: itemId,
-            status: statusId,
-            note: requiresNote ? note.trim() : undefined,
-            imageUris: evidenceUris,
-            amountPaid:
-              requiresPaymentInfo && amountPaid.trim()
-                ? parseFloat(amountPaid)
-                : undefined,
-            additionalAmount:
-              isPickupType && isDelivered && additionalAmount.trim()
-                ? parseFloat(additionalAmount)
-                : undefined,
-            paymentMethodId:
-              requiresPaymentInfo && selectedPaymentMethod
-                ? selectedPaymentMethod
-                : undefined,
-          };
-          await updateDeliveryStatusWithImages({ ...updateData, gpsReadings });
-          console.log("updateData:", updateData);
-        } else {
-          await updateDeliveryStatus(
-            itemId,
-            statusId,
-            requiresNote ? note.trim() : undefined,
+        const params = {
+          id: itemId,
+          status: statusId,
+          note: requiresNote ? note.trim() : undefined,
+          imageUris: evidenceUris.length > 0 ? evidenceUris : undefined,
+          amountPaid:
             requiresPaymentInfo && amountPaid.trim()
               ? parseFloat(amountPaid)
               : undefined,
-            requiresPaymentInfo && selectedPaymentMethod
-              ? selectedPaymentMethod
-              : undefined,
+          additionalAmount:
             isPickupType && isDelivered && additionalAmount.trim()
               ? parseFloat(additionalAmount)
               : undefined,
-            gpsReadings,
-          );
+          paymentMethodId:
+            requiresPaymentInfo && selectedPaymentMethod
+              ? selectedPaymentMethod
+              : undefined,
+          gpsReadings,
         }
+
+        
+        console.log('updateDeliveryStatusUnified: ', params);
+
+        await updateDeliveryStatusUnified(params);
 
         await fetchDeliveries();
         onSuccess?.(selectedStatus);

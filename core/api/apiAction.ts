@@ -50,4 +50,9 @@ export const apiAction = {
         const response = await api.postFormData<any>(endpoint, formData, options);
         return extractValue<T>(response);
     },
+
+    async patchFormData<T>(endpoint: string, formData: FormData, options: Record<string, any> = {}): Promise<T> {
+        const response = await api.patchFormData<any>(endpoint, formData, options);
+        return extractValue<T>(response);
+    },
 };

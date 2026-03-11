@@ -19,7 +19,10 @@ import {
   getStatusIdFromTitle,
 } from "@/interfaces/delivery/deliveryStatus";
 import { CustomColors } from "@/constants/CustomColors";
-import { updateDeliveryStatusBatch } from "@/core/actions/delivery.actions";
+import {
+  updateDeliveryStatusBatch,
+  updateDeliveryStatusUnified,
+} from "@/core/actions/delivery.actions";
 import { useDelivery } from "@/context/DeliveryContext";
 import { AssignmentType } from "@/utils/enum";
 import { EvidenceSection } from "@/components/status-update/EvidenceSection";
@@ -244,20 +247,41 @@ export default function GroupStatusUpdateModal({
       if (photoUri) evidenceUris.push(photoUri);
       if (imageUri) evidenceUris.push(imageUri);
 
-      const numericIds = ids.map((id) => Number(id));
-
-      await updateDeliveryStatusBatch(
-        numericIds,
-        statusId,
-        requiresNote ? note.trim() : undefined,
-        requiresPaymentInfo && amountPaid.trim() ? parseFloat(amountPaid) : undefined,
-        requiresPaymentInfo && selectedPaymentMethod ? selectedPaymentMethod : undefined,
+      const commonNote = requiresNote ? note.trim() : undefined;
+      const commonAmountPaid =
+        requiresPaymentInfo && amountPaid.trim() ? parseFloat(amountPaid) : undefined;
+      const commonPaymentMethodId =
+        requiresPaymentInfo && selectedPaymentMethod ? selectedPaymentMethod : undefined;
+      const commonAdditionalAmount =
         isPickupType && isDelivered && additionalAmount.trim()
           ? parseFloat(additionalAmount)
-          : undefined,
-        gpsReadings,
-        evidenceUris.length > 0 ? evidenceUris : undefined,
-      );
+          : undefined;
+      const commonImageUris = evidenceUris.length > 0 ? evidenceUris : undefined;
+
+      if (ids.length === 1) {
+        await updateDeliveryStatusUnified({
+          id: ids[0],
+          status: statusId,
+          note: commonNote,
+          amountPaid: commonAmountPaid,
+          paymentMethodId: commonPaymentMethodId,
+          additionalAmount: commonAdditionalAmount,
+          gpsReadings,
+          imageUris: commonImageUris,
+        });
+      } else {
+        const numericIds = ids.map((id) => Number(id));
+        await updateDeliveryStatusBatch(
+          numericIds,
+          statusId,
+          commonNote,
+          commonAmountPaid,
+          commonPaymentMethodId,
+          commonAdditionalAmount,
+          gpsReadings,
+          commonImageUris,
+        );
+      }
 
       await fetchDeliveries();
       onSuccess?.(selectedStatus);
