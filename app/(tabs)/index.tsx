@@ -1,38 +1,127 @@
 import {
   StyleSheet,
-  ActivityIndicator,
   Alert,
   TouchableOpacity,
   Text,
+  ScrollView,
+  View as RNView,
+  Animated,
+  Dimensions,
 } from "react-native";
 import { View } from "@/components/Themed";
 import { socketService, SocketEventType } from "@/services/websocketService";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useEffect, useRef, useState } from "react";
 import { CustomColors } from "@/constants/CustomColors";
-import { useLocalSearchParams } from "expo-router";
-import { AppHeader } from "@/components/AppHeader";
-import { AppStateScreen } from "@/components/states/AppStateScreen";
 import { useDelivery } from "@/context/DeliveryContext";
-import {
-  DeliveryItemAdapter,
-  DeliveryGroupAdapter,
-  groupDeliveriesByShipment,
-} from "@/interfaces/delivery/deliveryAdapters";
-import { DeliveryItemList } from "@/components/delivery-items/DeliveryItemList";
-import { IDeliveryStatus } from "@/interfaces/delivery/deliveryStatus";
 import { useRouteContext } from "@/contexts/RouteContext";
-import StatusUpdateModal from '@/components/status-update/StatusUpdateModal';
+import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
+import EarningsCard from "@/components/ganancias/EarningsCard";
+import DeliveryStatsCard from "@/components/ganancias/DeliveryStatsCard";
+import TopRoute from "@/components/ganancias/TopRoute";
+import RecentDeliveries from "@/components/ganancias/RecentDeliveries";
+import PayoutHistory from "@/components/ganancias/PayoutHistory";
+import StatsCharts from "@/components/ganancias/StatsCharts";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+const TABS = ["Resumen", "Pagos", "Estadísticas"] as const;
+type Tab = (typeof TABS)[number];
+
+// ─── Segmented Control ──────────────────────────────────────────────────────
+const SegmentedTabs = ({
+  activeTab,
+  onTabChange,
+}: {
+  activeTab: Tab;
+  onTabChange: (tab: Tab) => void;
+}) => {
+  const TAB_W = (SCREEN_WIDTH - 40 - 6) / TABS.length;
+  const indicatorAnim = useRef(new Animated.Value(0)).current;
+
+  const handlePress = (tab: Tab, index: number) => {
+    onTabChange(tab);
+    Animated.spring(indicatorAnim, {
+      toValue: index * TAB_W,
+      useNativeDriver: true,
+      tension: 80,
+      friction: 10,
+    }).start();
+  };
+
+  return (
+    <RNView style={tabStyles.container}>
+      <Animated.View
+        style={[
+          tabStyles.indicator,
+          { width: TAB_W, transform: [{ translateX: indicatorAnim }] },
+        ]}
+      />
+      {TABS.map((tab, index) => (
+        <TouchableOpacity
+          key={tab}
+          style={[tabStyles.tab, { width: TAB_W }]}
+          onPress={() => handlePress(tab, index)}
+          activeOpacity={0.7}
+        >
+          <Text
+            style={[
+              tabStyles.tabText,
+              activeTab === tab && tabStyles.activeTabText,
+            ]}
+          >
+            {tab}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </RNView>
+  );
+};
+
+const tabStyles = StyleSheet.create({
+  container: {
+    flexDirection: "row",
+    backgroundColor: CustomColors.backgroundDark,
+    borderRadius: 12,
+    marginHorizontal: 20,
+    padding: 3,
+    position: "relative",
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: CustomColors.divider,
+  },
+  indicator: {
+    position: "absolute",
+    top: 3,
+    left: 3,
+    bottom: 3,
+    borderRadius: 9,
+    backgroundColor: CustomColors.primary,
+  },
+  tab: {
+    paddingVertical: 10,
+    alignItems: "center",
+    zIndex: 1,
+  },
+  tabText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: CustomColors.textLight,
+    opacity: 0.5,
+  },
+  activeTabText: {
+    color: "#FFFFFF",
+    opacity: 1,
+  },
+});
+
 
 function TabOneScreenContent() {
-  const pendingRouteRefreshRef = useRef(false);
+  const [activeTab, setActiveTab] = useState<Tab>("Resumen");
+
   const {
-    deliveries,
     allDeliveries,
-    loading,
-    refreshing,
-    error,
-    onRefresh,
     fetchDeliveries,
     handleDeliveryUpdated,
     handleDeliveryAssigned,
@@ -40,58 +129,24 @@ function TabOneScreenContent() {
     handleDriversGroupAssigned,
   } = useDelivery();
 
-  const {
-    tripLoading,
-    startRoutes,
-    recalculateRoutes,
-  } = useRouteContext();
+  const { tripLoading, startRoutes } = useRouteContext();
 
   const handlersRef = useRef({
-    onDriverAssigned: (data: any) => {
-      console.log(data);
-      handleDeliveryAssigned(data);
-      pendingRouteRefreshRef.current = true;
-    },
-    onDriversGroupAssigned: (data: any) => {
-      console.log(data);
-      handleDriversGroupAssigned(data);
-      pendingRouteRefreshRef.current = true;
-    },
-    onDeliveryReordered: (data: any) => {
-      handleDeliveryReordered(data);
-    },
-    onDeliveryUpdated: (data: any) => {
-      handleDeliveryUpdated(data);
-    },
+    onDriverAssigned: (data: any) => { handleDeliveryAssigned(data); },
+    onDriversGroupAssigned: (data: any) => { handleDriversGroupAssigned(data); },
+    onDeliveryReordered: (data: any) => { handleDeliveryReordered(data); },
+    onDeliveryUpdated: (data: any) => { handleDeliveryUpdated(data); },
   });
 
   useEffect(() => {
     handlersRef.current = {
-      onDriverAssigned: (data: any) => {
-        console.log(data);
-        handleDeliveryAssigned(data);
-        pendingRouteRefreshRef.current = true;
-      },
-      onDriversGroupAssigned: (data: any) => {
-        console.log(data);
-        handleDriversGroupAssigned(data);
-        pendingRouteRefreshRef.current = true;
-      },
-      onDeliveryReordered: (data: any) => {
-        handleDeliveryReordered(data);
-      },
-      onDeliveryUpdated: (data: any) => {
-        handleDeliveryUpdated(data);
-      },
+      onDriverAssigned: (data: any) => { handleDeliveryAssigned(data); },
+      onDriversGroupAssigned: (data: any) => { handleDriversGroupAssigned(data); },
+      onDeliveryReordered: (data: any) => { handleDeliveryReordered(data); },
+      onDeliveryUpdated: (data: any) => { handleDeliveryUpdated(data); },
     };
-  }, [
-    handleDeliveryAssigned,
-    handleDriversGroupAssigned,
-    handleDeliveryReordered,
-    handleDeliveryUpdated,
-  ]);
+  }, [handleDeliveryAssigned, handleDriversGroupAssigned, handleDeliveryReordered, handleDeliveryUpdated]);
 
-  // Conectar socket y listeners una sola vez
   useEffect(() => {
     socketService.connect();
 
@@ -113,235 +168,72 @@ function TabOneScreenContent() {
     };
   }, []);
 
-  // Type guard para verificar si el item es un grupo
-  const isDeliveryGroup = (
-    item: DeliveryItemAdapter | any
-  ): item is DeliveryGroupAdapter => {
-    return "shipmentId" in item && "pickups" in item && "delivery" in item;
-  };
-
-  // Función para obtener el siguiente delivery a procesar (individual o de grupo)
-  const getDeliveryFromGroup = (
-    deliveries: DeliveryItemAdapter[]
-  ): DeliveryItemAdapter | null => {
-    // Primero agrupar las entregas
-    const processedData = groupDeliveriesByShipment(deliveries);
-
-    const completedStatuses = [
-      IDeliveryStatus.RETURNED,
-      IDeliveryStatus.CANCELLED,
-      IDeliveryStatus.DELIVERED,
-    ];
-
-    // Buscar el primer grupo o entrega individual que se pueda procesar
-    for (const item of processedData) {
-      if (isDeliveryGroup(item)) {
-        // Es un grupo - verificar el estado de progreso
-        const group = item as DeliveryGroupAdapter;
-
-        // Verificar si hay pickups pendientes
-        const pendingPickups = group.pickups.filter(
-          (pickup) =>
-            !completedStatuses.includes(
-              pickup.deliveryStatus.title as IDeliveryStatus
-            )
-        );
-
-        // Si hay pickups pendientes, devolver el primero
-        if (pendingPickups.length > 0) {
-          return pendingPickups[0];
-        }
-
-        // Si todos los pickups están completos, verificar el delivery
-        const allPickupsCompleted = group.pickups.every(
-          (pickup) =>
-            pickup.deliveryStatus.title === IDeliveryStatus.DELIVERED ||
-            completedStatuses.includes(
-              pickup.deliveryStatus.title as IDeliveryStatus
-            )
-        );
-
-        if (
-          allPickupsCompleted &&
-          !completedStatuses.includes(
-            group.delivery.deliveryStatus.title as IDeliveryStatus
-          )
-        ) {
-          return group.delivery; // Retornar el delivery final del grupo
-        }
-      } else {
-        // Es una entrega individual
-        const delivery = item as DeliveryItemAdapter;
-
-        if (
-          !completedStatuses.includes(
-            delivery.deliveryStatus.title as IDeliveryStatus
-          )
-        ) {
-          return delivery;
-        }
-      }
-    }
-
-    return null;
-  };
-
-  const isNavigating = useRef(false);
-
   const handleStartRoutes = async () => {
     try {
       await startRoutes(allDeliveries);
     } catch (err) {
-      console.log('[TabOneScreen] Error al iniciar rutas:', err);
       const errorMessage = err instanceof Error ? err.message : 'Ocurrió un error desconocido al calcular la ruta optimizada.';
-      Alert.alert(
-        "Error",
-        errorMessage,
-        [{ text: "Entendido" }]
-      );
+      Alert.alert("Error", errorMessage, [{ text: "Entendido" }]);
     }
   };
-
-  // Modal state for status update
-  const [statusModalVisible, setStatusModalVisible] = useState(false);
-  const [statusModalParams, setStatusModalParams] = useState<{
-    itemId: string;
-    itemTitle: string;
-    currentStatus: string;
-    totalAmount: number;
-  } | null>(null);
-
-  // Handle navigation back from trip-map screen with a delivery to progress
-  const params = useLocalSearchParams<{
-    openStatusFor?: string;
-    itemTitle?: string;
-    currentStatus?: string;
-    totalAmount?: string;
-  }>();
-
-  useEffect(() => {
-    if (params.openStatusFor) {
-      setStatusModalParams({
-        itemId: params.openStatusFor,
-        itemTitle: params.itemTitle ?? '',
-        currentStatus: params.currentStatus ?? '',
-        totalAmount: parseFloat(params.totalAmount ?? '0') || 0,
-      });
-      setStatusModalVisible(true);
-    }
-  }, [params.openStatusFor]);
-
-  const openStatusModal = (delivery: DeliveryItemAdapter) => {
-    const total = (delivery.deliveryCost || 0) + (delivery.amountToBeCharged || 0);
-    setStatusModalParams({
-      itemId: delivery.id,
-      itemTitle: delivery.client,
-      currentStatus: delivery.deliveryStatus.title,
-      totalAmount: total,
-    });
-    setStatusModalVisible(true);
-  };
-
-  const closeStatusModal = () => {
-    setStatusModalVisible(false);
-    setStatusModalParams(null);
-  };
-
-  const handlePressItem = () => {
-    if (isNavigating.current) return;
-    isNavigating.current = true;
-
-    const nextDelivery = getDeliveryFromGroup(deliveries);
-
-    if (!nextDelivery) {
-      Alert.alert(
-        "Sin entregas",
-        "No hay entregas disponibles para procesar.",
-        [{ text: "Entendido" }]
-      );
-      isNavigating.current = false;
-      return;
-    }
-
-    openStatusModal(nextDelivery);
-
-    setTimeout(() => {
-      isNavigating.current = false;
-    }, 500);
-  };
-
-  if (loading && deliveries.length === 0) {
-    return <AppStateScreen type="loading" onRetry={() => fetchDeliveries()} />;
-  }
-
-  if (error && deliveries.length === 0) {
-    return (
-      <AppStateScreen
-        type="error"
-        error={error}
-        onRetry={() => fetchDeliveries()}
-      />
-    );
-  }
-
-  if (!loading && !error && deliveries.length === 0) {
-    return (
-      <AppStateScreen type="noDeliveries" onRetry={() => fetchDeliveries()} />
-    );
-  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <View
-        style={{ flex: 1, backgroundColor: CustomColors.backgroundDarkest }}
-      >
-        <View style={styles.container}>
-          <AppHeader />
+      <View style={{ flex: 1, backgroundColor: CustomColors.backgroundDarkest }}>
+        <SafeAreaView style={styles.safeArea} edges={["top"]}>
+          {/* Header */}
+          <RNView style={styles.header}>
+            <RNView style={styles.headerCenter}>
+              <Text style={styles.headerTitle}>Mis ganancias</Text>
+              <RNView style={styles.liveRow}>
+                <RNView style={styles.liveDot} />
+                <Text style={styles.liveText}>En tiempo real</Text>
+              </RNView>
+            </RNView>
+            <TouchableOpacity style={styles.refreshButton} onPress={() => fetchDeliveries()}>
+              <Ionicons name="refresh-outline" size={20} color={CustomColors.textLight} />
+            </TouchableOpacity>
+          </RNView>
 
-          {loading && !refreshing && (
-            <ActivityIndicator
-              size="small"
-              color={CustomColors.secondary}
-              style={styles.refreshIndicator}
-            />
-          )}
+          <SegmentedTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+          >
+            {activeTab === "Resumen" && (
+              <>
+                <EarningsCard />
+                <DeliveryStatsCard />
+                <TopRoute />
+                <RecentDeliveries />
+              </>
+            )}
+            {activeTab === "Pagos" && <PayoutHistory />}
+            {activeTab === "Estadísticas" && <StatsCharts />}
 
-          <DeliveryItemList
-            data={deliveries}
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            contentContainerStyle={{ paddingBottom: 180 }}
-            onProgress={handlePressItem}
-          />
+            <RNView style={{ height: 120 }} />
+          </ScrollView>
 
-          {/* Botón "Iniciar Rutas" - solo visible si hay deliveries disponibles */}
-          {deliveries.length > 0 && (
+          {/* Iniciar Rutas button — always visible at the bottom */}
+          <RNView style={styles.bottomBar}>
             <TouchableOpacity
-              style={[
-                styles.startRoutesButton,
-                tripLoading && styles.startRoutesButtonDisabled
-              ]}
+              style={[styles.startRoutesButton, tripLoading && styles.startRoutesButtonDisabled]}
               onPress={handleStartRoutes}
               disabled={tripLoading}
             >
+              <Ionicons
+                name="map-outline"
+                size={18}
+                color="#FFFFFF"
+                style={{ marginRight: 8 }}
+              />
               <Text style={styles.startRoutesButtonText}>
-                {tripLoading ? 'Calculando ruta...' : 'Iniciar Rutas'}
+                {tripLoading ? "Calculando ruta..." : "Iniciar Rutas"}
               </Text>
             </TouchableOpacity>
-          )}
-        </View>
-
-        {statusModalParams && (
-          <StatusUpdateModal
-            visible={statusModalVisible}
-            onClose={closeStatusModal}
-            itemId={statusModalParams.itemId}
-            itemTitle={statusModalParams.itemTitle}
-            currentStatus={statusModalParams.currentStatus}
-            totalAmount={statusModalParams.totalAmount}
-          />
-        )}
+          </RNView>
+        </SafeAreaView>
       </View>
     </GestureHandlerRootView>
   );
@@ -352,168 +244,89 @@ export default function TabOneScreen() {
 }
 
 const styles = StyleSheet.create({
-  deliveryInfoContainer: {
-    width: "100%",
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    backgroundColor: CustomColors.backgroundDark,
+  safeArea: {
+    flex: 1,
   },
-  infoRow: {
+  header: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 4,
-  },
-  infoLabel: {
-    color: CustomColors.textLight,
-    fontWeight: "bold",
-    fontSize: 14,
-    marginRight: 8,
-  },
-  infoValue: {
-    color: CustomColors.textLight,
-    fontSize: 14,
-    flex: 1,
-  },
-  clientCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: CustomColors.secondary,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 8,
-  },
-  clientInitial: {
-    color: CustomColors.textLight,
-    fontSize: 14,
-    fontWeight: "bold",
-  },
-
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "flex-start",
-    backgroundColor: CustomColors.backgroundDarkest
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-    color: CustomColors.textLight,
-    textShadowColor: "rgba(0,0,0,0.5)",
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
-    textAlign: "center",
     paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingTop: 14,
+    paddingBottom: 20,
+  },
+  headerCenter: {
+    flex: 1,
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: CustomColors.textLight,
+    letterSpacing: -0.5,
+  },
+  liveRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    marginTop: 3,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#059669",
+  },
+  liveText: {
+    fontSize: 11,
+    color: CustomColors.textLight,
+    opacity: 0.5,
+    letterSpacing: 0.3,
+  },
+  refreshButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
     backgroundColor: CustomColors.backgroundDark,
-    borderRadius: 10,
-    width: "90%",
+    borderWidth: 1,
+    borderColor: CustomColors.divider,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  addButton: {
-    backgroundColor: CustomColors.secondary,
-    paddingVertical: 12,
-    paddingHorizontal: 25,
-    borderRadius: 8,
-    marginVertical: 20,
-    elevation: 5,
-    shadowColor: CustomColors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
-    shadowRadius: 3,
+  scrollContent: {
+    paddingTop: 20,
+  },
+  bottomBar: {
     position: "absolute",
-    bottom: 20,
-    right: 20,
-  },
-  addButtonText: {
-    color: CustomColors.textLight,
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-  progressButton: {
-    backgroundColor: CustomColors.secondary,
-    paddingVertical: 14,
+    bottom: 0,
+    left: 0,
+    right: 0,
     paddingHorizontal: 20,
-    borderRadius: 12,
-    marginVertical: 10,
-    elevation: 5,
-    shadowColor: CustomColors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
-    shadowRadius: 3,
-    marginHorizontal: 20, // Añadir para centrar y dar espacio
-  },
-  progressButtonDisabled: {
-    backgroundColor: CustomColors.divider,
-    opacity: 0.6,
-  },
-  progressButtonText: {
-    color: CustomColors.textLight,
-    fontWeight: "bold",
-    fontSize: 16,
-    textAlign: "center",
-  },
-  refreshIndicator: {
-    marginBottom: 15,
-  },
-  manualRefreshButton: {
-      backgroundColor: CustomColors.primary,
-      paddingVertical: 12,
-      borderRadius: 12,
-      marginVertical: 10,
-      marginHorizontal: 20,
-      alignItems: 'center',
-    },
-  manualRefreshButtonText: {
-    color: CustomColors.textLight,
-    paddingHorizontal: 20,
-    fontWeight: "bold",
-    fontSize: 16,
+    paddingBottom: 28,
+    paddingTop: 12,
+    backgroundColor: CustomColors.backgroundDarkest,
+    borderTopWidth: 1,
+    borderTopColor: CustomColors.divider,
   },
   startRoutesButton: {
     backgroundColor: CustomColors.primary,
     paddingVertical: 14,
-    paddingHorizontal: 30,
-    borderRadius: 12,
-    marginVertical: 20,
-    marginHorizontal: 20,
-    alignItems: 'center',
+    borderRadius: 14,
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center",
     elevation: 5,
     shadowColor: CustomColors.shadow,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
-    shadowRadius: 3,
-    position: 'absolute',
-    bottom: 20,
-    left: 20,
-    right: 20,
-  },
-  startRoutesButtonText: {
-    color: CustomColors.textLight,
-    fontWeight: 'bold',
-    fontSize: 16,
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
   },
   startRoutesButtonDisabled: {
     backgroundColor: CustomColors.divider,
     opacity: 0.6,
   },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 15,
-    backgroundColor: CustomColors.backgroundDark,
-    borderBottomWidth: 1,
-    borderBottomColor: CustomColors.textLight + '20',
-  },
-  modalTitle: {
-    color: CustomColors.textLight,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  closeButton: {
-    color: CustomColors.primary,
+  startRoutesButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "bold",
     fontSize: 16,
-    fontWeight: 'bold',
   },
 });
