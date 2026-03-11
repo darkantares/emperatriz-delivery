@@ -1,8 +1,26 @@
-import React from 'react';
-import { FlatList, StyleSheet, RefreshControl, StyleProp, ViewStyle } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { FlatList, StyleSheet, RefreshControl, StyleProp, ViewStyle, Animated } from 'react-native';
 import { Item, DeliveryItem } from './DeliveryItem';
 import { CustomColors } from '@/constants/CustomColors';
 import { DeliveryItemAdapter } from '@/interfaces/delivery/deliveryAdapters';
+
+const AnimatedRow = ({ children, index }: { children: React.ReactNode; index: number }) => {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 500, delay: index * 60, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 500, delay: index * 60, useNativeDriver: true }),
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+      {children}
+    </Animated.View>
+  );
+};
 
 interface DeliveryItemListProps {
   data: DeliveryItemAdapter[];
@@ -40,10 +58,12 @@ export const DeliveryItemList: React.FC<DeliveryItemListProps> = ({
       shipmentId: item.shipmentId,
     };
     return (
-      <DeliveryItem 
-        item={itemForComponent}
-        onAction={index === 0 ? onProgress : undefined}
-      />
+      <AnimatedRow index={index}>
+        <DeliveryItem 
+          item={itemForComponent}
+          onAction={index === 0 ? onProgress : undefined}
+        />
+      </AnimatedRow>
     );
   };
 
@@ -72,5 +92,6 @@ export const DeliveryItemList: React.FC<DeliveryItemListProps> = ({
 const styles = StyleSheet.create({
   list: {
     width: '100%',
+    paddingTop: 14,
   },
 });

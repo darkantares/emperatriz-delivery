@@ -23,10 +23,11 @@ import TopRoute from "@/components/ganancias/TopRoute";
 import RecentDeliveries from "@/components/ganancias/RecentDeliveries";
 import PayoutHistory from "@/components/ganancias/PayoutHistory";
 import StatsCharts from "@/components/ganancias/StatsCharts";
+import { DeliveryItemList } from "@/components/delivery-items/DeliveryItemList";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-const TABS = ["Resumen", "Pagos", "Estadísticas"] as const;
+const TABS = ["Entregas", "Ganancias", "Pagos", "Estadísticas"] as const;
 type Tab = (typeof TABS)[number];
 
 // ─── Segmented Control ──────────────────────────────────────────────────────
@@ -105,7 +106,7 @@ const tabStyles = StyleSheet.create({
     zIndex: 1,
   },
   tabText: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: "600",
     color: CustomColors.textLight,
     opacity: 0.5,
@@ -118,10 +119,22 @@ const tabStyles = StyleSheet.create({
 
 
 function TabOneScreenContent() {
-  const [activeTab, setActiveTab] = useState<Tab>("Resumen");
+  const [activeTab, setActiveTab] = useState<Tab>("Ganancias");
+  // compute header title based on current tab
+  const headerTitle =
+    activeTab === "Ganancias"
+      ? "Mis ganancias"
+      : activeTab === "Entregas"
+      ? "Entregas"
+      : activeTab === "Pagos"
+      ? "Historial de pagos"
+      : "Estadísticas";  
 
   const {
     allDeliveries,
+    deliveries,
+    refreshing,
+    onRefresh,
     fetchDeliveries,
     handleDeliveryUpdated,
     handleDeliveryAssigned,
@@ -184,7 +197,7 @@ function TabOneScreenContent() {
           {/* Header */}
           <RNView style={styles.header}>
             <RNView style={styles.headerCenter}>
-              <Text style={styles.headerTitle}>Mis ganancias</Text>
+              <Text style={styles.headerTitle}>{headerTitle}</Text>
               <RNView style={styles.liveRow}>
                 <RNView style={styles.liveDot} />
                 <Text style={styles.liveText}>En tiempo real</Text>
@@ -197,23 +210,32 @@ function TabOneScreenContent() {
 
           <SegmentedTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
-          >
-            {activeTab === "Resumen" && (
-              <>
-                <EarningsCard />
-                <DeliveryStatsCard />
-                <TopRoute />
-                <RecentDeliveries />
-              </>
-            )}
-            {activeTab === "Pagos" && <PayoutHistory />}
-            {activeTab === "Estadísticas" && <StatsCharts />}
+          {activeTab === "Entregas" ? (
+            <DeliveryItemList
+              data={deliveries}
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              contentContainerStyle={{ paddingBottom: 120 }}
+            />
+          ) : (
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContent}
+            >
+              {activeTab === "Ganancias" && (
+                <>
+                  <EarningsCard />
+                  <DeliveryStatsCard />
+                  <TopRoute />
+                  <RecentDeliveries />
+                </>
+              )}
+              {activeTab === "Pagos" && <PayoutHistory />}
+              {activeTab === "Estadísticas" && <StatsCharts />}
 
-            <RNView style={{ height: 120 }} />
-          </ScrollView>
+              <RNView style={{ height: 120 }} />
+            </ScrollView>
+          )}
 
           {/* Iniciar Rutas button — always visible at the bottom */}
           <RNView style={styles.bottomBar}>
@@ -301,11 +323,11 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     paddingHorizontal: 20,
-    paddingBottom: 28,
+    paddingBottom: 12,
     paddingTop: 12,
-    backgroundColor: CustomColors.backgroundDarkest,
-    borderTopWidth: 1,
-    borderTopColor: CustomColors.divider,
+    // backgroundColor: CustomColors.backgroundDarkest,
+    // borderTopWidth: 1,
+    // borderTopColor: CustomColors.divider,
   },
   startRoutesButton: {
     backgroundColor: CustomColors.primary,
