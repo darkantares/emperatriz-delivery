@@ -35,7 +35,7 @@ export function PaymentControls({
           <Text style={styles.paymentMethodButtonText}>
             {selectedPaymentMethod
               ? Capitalize(paymentMethods.find((pm) => pm.id === selectedPaymentMethod)?.title || "")
-              : Capitalize("Seleccionar método de pago...")}
+              : Capitalize("Seleccionar...")}
           </Text>
           <Text style={styles.dropdownArrow}>▼</Text>
         </TouchableOpacity>
