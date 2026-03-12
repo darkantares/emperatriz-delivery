@@ -134,6 +134,7 @@ function TabOneScreenContent() {
   const {
     allDeliveries,
     deliveries,
+    loading,
     refreshing,
     onRefresh,
     fetchDeliveries,
@@ -214,6 +215,7 @@ function TabOneScreenContent() {
           {activeTab === "Entregas" ? (
             <DeliveryItemList
               data={deliveries}
+              loading={loading}
               refreshing={refreshing}
               onRefresh={onRefresh}
               contentContainerStyle={{ paddingBottom: 120 }}

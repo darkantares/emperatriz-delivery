@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { FlatList, StyleSheet, RefreshControl, StyleProp, ViewStyle, Animated, View, Text } from 'react-native';
+import { FlatList, StyleSheet, RefreshControl, StyleProp, ViewStyle, Animated, View, Text, ActivityIndicator } from 'react-native';
 import { Item, DeliveryItem } from './DeliveryItem';
 import { CustomColors } from '@/constants/CustomColors';
 import { DeliveryItemAdapter } from '@/interfaces/delivery/deliveryAdapters';
@@ -24,6 +24,7 @@ const AnimatedRow = ({ children, index }: { children: React.ReactNode; index: nu
 
 interface DeliveryItemListProps {
   data: DeliveryItemAdapter[];
+  loading?: boolean;
   refreshing?: boolean;
   onRefresh?: () => void;
   contentContainerStyle?: StyleProp<ViewStyle>;
@@ -33,6 +34,7 @@ interface DeliveryItemListProps {
 
 export const DeliveryItemList: React.FC<DeliveryItemListProps> = ({
   data,
+  loading = false,
   refreshing = false,
   onRefresh,
   contentContainerStyle,
@@ -70,6 +72,15 @@ export const DeliveryItemList: React.FC<DeliveryItemListProps> = ({
   };
 
   const getKeyExtractor = (item: DeliveryItemAdapter) => item.id;
+
+  // show loading placeholder when first load is in progress
+  if (loading && data.length === 0) {
+    return (
+      <View style={[styles.list, { justifyContent: 'center', alignItems: 'center' }, style] as any}>
+        <ActivityIndicator size="large" color={CustomColors.secondary} />
+      </View>
+    );
+  }
 
   return (
     <FlatList

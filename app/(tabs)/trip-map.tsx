@@ -541,7 +541,6 @@ export default function TripMapScreen() {
               <Marker
                 key={`group-${group.coordinate.latitude}-${group.coordinate.longitude}`}
                 coordinate={group.coordinate}
-                onPress={() => handleMarkerPress(group)}
                 zIndex={1000}
               >
                 <View style={styles.customMarker}>
@@ -606,30 +605,29 @@ export default function TripMapScreen() {
           </View>
         )}
 
-        <View
-          style={[
-            styles.controlsContainer,
-            isTraveling && { bottom: 180 } /* move up 10px when traveling */,
-          ]}
-        >
-          {!isTraveling ? (
-            <TouchableOpacity
-              style={[styles.controlButton, styles.startButton]}
-              onPress={startTrip}
-              disabled={!tripData || routeCoordinates.length === 0}
-            >
-              <Text style={styles.controlButtonText}>
-                {__DEV__ ? "🚗 Iniciar Viaje (Simulado)" : "🚗 Iniciar Viaje"}
-              </Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={[styles.controlButton, styles.stopButton]}
-              onPress={stopTrip}
-            >
-              <Text style={styles.controlButtonText}>⏹️ Detener Viaje</Text>
-            </TouchableOpacity>
-          )}
+        <View style={styles.controlsContainer}>
+          {(() => {
+            const currentGroup = groupedWaypoints[currentTargetGroupIndex];
+            const currentGroupStatus = currentGroup
+              ? (deliveryStatusOverrides.get(currentGroup.deliveries[0]?.id) ??
+                  currentGroup.deliveries[0]?.deliveryStatus.title)
+              : null;
+            const isInProgress = currentGroupStatus === IDeliveryStatus.IN_PROGRESS;
+            return (
+              <TouchableOpacity
+                style={[
+                  styles.controlButton,
+                  isInProgress ? styles.inProgressButton : styles.startButton,
+                ]}
+                onPress={() => currentGroup && handleProgressGroup(currentGroup.deliveries)}
+                disabled={!currentGroup}
+              >
+                <Text style={styles.controlButtonText}>
+                  {isInProgress ? "En Progreso..." : "🚗 Iniciar Viaje"}
+                </Text>
+              </TouchableOpacity>
+            );
+          })()}
         </View>
 
         <RouteInfoPanel
@@ -812,6 +810,9 @@ const styles = StyleSheet.create({
   },
   startButton: {
     backgroundColor: "#4CAF50",
+  },
+  inProgressButton: {
+    backgroundColor: "#FF9800",
   },
   stopButton: {
     backgroundColor: "#F44336",
