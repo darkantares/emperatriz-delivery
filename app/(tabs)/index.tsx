@@ -39,7 +39,8 @@ const SegmentedTabs = ({
   onTabChange: (tab: Tab) => void;
 }) => {
   const TAB_W = (SCREEN_WIDTH - 40 - 6) / TABS.length;
-  const indicatorAnim = useRef(new Animated.Value(0)).current;
+  const initialIndex = TABS.indexOf(activeTab);
+  const indicatorAnim = useRef(new Animated.Value(initialIndex * TAB_W)).current;
 
   const handlePress = (tab: Tab, index: number) => {
     onTabChange(tab);
@@ -119,7 +120,7 @@ const tabStyles = StyleSheet.create({
 
 
 function TabOneScreenContent() {
-  const [activeTab, setActiveTab] = useState<Tab>("Ganancias");
+  const [activeTab, setActiveTab] = useState<Tab>("Entregas");
   // compute header title based on current tab
   const headerTitle =
     activeTab === "Ganancias"
@@ -216,6 +217,7 @@ function TabOneScreenContent() {
               refreshing={refreshing}
               onRefresh={onRefresh}
               contentContainerStyle={{ paddingBottom: 120 }}
+              style={{ flex: 1 }}
             />
           ) : (
             <ScrollView
@@ -237,24 +239,26 @@ function TabOneScreenContent() {
             </ScrollView>
           )}
 
-          {/* Iniciar Rutas button — always visible at the bottom */}
-          <RNView style={styles.bottomBar}>
-            <TouchableOpacity
-              style={[styles.startRoutesButton, tripLoading && styles.startRoutesButtonDisabled]}
-              onPress={handleStartRoutes}
-              disabled={tripLoading}
-            >
-              <Ionicons
-                name="map-outline"
-                size={18}
-                color="#FFFFFF"
-                style={{ marginRight: 8 }}
-              />
-              <Text style={styles.startRoutesButtonText}>
-                {tripLoading ? "Calculando ruta..." : "Iniciar Rutas"}
-              </Text>
-            </TouchableOpacity>
-          </RNView>
+          {/* Iniciar Rutas button — only if we have at least one delivery */}
+          {deliveries && deliveries.length > 0 && (
+            <RNView style={styles.bottomBar}>
+              <TouchableOpacity
+                style={[styles.startRoutesButton, tripLoading && styles.startRoutesButtonDisabled]}
+                onPress={handleStartRoutes}
+                disabled={tripLoading}
+              >
+                <Ionicons
+                  name="map-outline"
+                  size={18}
+                  color="#FFFFFF"
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={styles.startRoutesButtonText}>
+                  {tripLoading ? "Calculando ruta..." : "Iniciar Rutas"}
+                </Text>
+              </TouchableOpacity>
+            </RNView>
+          )}
         </SafeAreaView>
       </View>
     </GestureHandlerRootView>

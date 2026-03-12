@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { FlatList, StyleSheet, RefreshControl, StyleProp, ViewStyle, Animated } from 'react-native';
+import { FlatList, StyleSheet, RefreshControl, StyleProp, ViewStyle, Animated, View, Text } from 'react-native';
 import { Item, DeliveryItem } from './DeliveryItem';
 import { CustomColors } from '@/constants/CustomColors';
 import { DeliveryItemAdapter } from '@/interfaces/delivery/deliveryAdapters';
@@ -27,6 +27,7 @@ interface DeliveryItemListProps {
   refreshing?: boolean;
   onRefresh?: () => void;
   contentContainerStyle?: StyleProp<ViewStyle>;
+  style?: StyleProp<ViewStyle>;
   onProgress?: () => void;
 }
 
@@ -35,6 +36,7 @@ export const DeliveryItemList: React.FC<DeliveryItemListProps> = ({
   refreshing = false,
   onRefresh,
   contentContainerStyle,
+  style,
   onProgress,
 }) => {
   const renderItem = ({ item, index }: { item: DeliveryItemAdapter; index: number }) => {
@@ -74,8 +76,13 @@ export const DeliveryItemList: React.FC<DeliveryItemListProps> = ({
       data={data}
       renderItem={renderItem}
       keyExtractor={getKeyExtractor}
-      style={styles.list}
+      style={[styles.list, style]}
       contentContainerStyle={contentContainerStyle}
+      ListEmptyComponent={
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>No hay entregas disponibles</Text>
+        </View>
+      }
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -93,5 +100,16 @@ const styles = StyleSheet.create({
   list: {
     width: '100%',
     paddingTop: 14,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 40,
+  },
+  emptyText: {
+    color: CustomColors.textLight,
+    fontSize: 16,
+    opacity: 0.6,
   },
 });

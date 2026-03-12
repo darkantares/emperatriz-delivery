@@ -49,7 +49,7 @@ export function PaymentControls({
       >
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { maxHeight: "60%" }]}>
-            <Text style={styles.modalTitle}>Seleccionar Método de Pago</Text>
+            <Text style={styles.modalTitle}>Seleccionar...</Text>
             <View>
               {paymentMethods.map((item) => (
                 <TouchableOpacity
