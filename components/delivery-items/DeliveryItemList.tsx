@@ -49,23 +49,11 @@ export const DeliveryItemList: React.FC<DeliveryItemListProps> = ({
       client: item.client,
       phone: item.phone,
       type: item.type,
-      deliveryAddress: item.deliveryAddress,
-      provincia: item.provincia,
-      municipio: item.municipio,
-      origin: item.origin,
-      destiny: item.destiny,
-      deliveryStatus: item.deliveryStatus,
-      deliveryCost: item.deliveryCost,
-      amountToBeCharged: item.amountToBeCharged,
-      enterprise: item.enterprise,
-      isGroup: item.isGroup,
-      shipmentId: item.shipmentId,
     };
     return (
       <AnimatedRow index={index}>
         <DeliveryItem 
           item={itemForComponent}
-          onAction={index === 0 ? onProgress : undefined}
         />
       </AnimatedRow>
     );

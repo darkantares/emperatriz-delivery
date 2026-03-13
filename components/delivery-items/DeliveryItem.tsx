@@ -2,15 +2,15 @@ import {
   StyleSheet,
   View,
   TouchableOpacity,
+  Linking,
+  Alert,
 } from "react-native";
 import { Text } from "@/components/Themed";
 import { FontAwesome } from "@expo/vector-icons";
 import React from "react";
 import { CustomColors } from "@/constants/CustomColors";
 import { AssignmentType } from "@/utils/enum";
-import { IProvincia, IMunicipio, ISector } from "@/interfaces/location";
-import { IDeliveryStatusEntity } from "@/interfaces/delivery/delivery";
-import { ProgressIconButton } from '@/components/ProgressIconButton';
+import { openWhatsAppMessage } from "@/utils/whatsapp";
 
 export interface Item {
   id: string;
@@ -18,23 +18,11 @@ export interface Item {
   client: string;
   phone: string;
   type: AssignmentType;
-  deliveryAddress: string;
-  provincia: IProvincia;
-  municipio: IMunicipio;
-  origin?: ISector;
-  destiny?: ISector;
-  deliveryStatus: IDeliveryStatusEntity;
-  deliveryCost: number;
-  amountToBeCharged: number;
-  enterprise: string;
-  isGroup?: boolean;
-  shipmentId?: string;
 }
 
 interface DeliveryItemProps {
   item: Item;
   onPress?: () => void;
-  onAction?: () => void;
 }
 
 export const DeliveryItem: React.FC<DeliveryItemProps> = ({
@@ -42,6 +30,17 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({
   onPress,
 }) => {
   const ContainerComponent = onPress ? TouchableOpacity : View;
+
+  const handleWhatsApp = async () => {
+    if (!item.phone) return;
+    const success = await openWhatsAppMessage(item.phone);
+    if (!success) Alert.alert("WhatsApp", "No se pudo abrir WhatsApp.");
+  };
+
+  const handleCall = () => {
+    if (!item.phone) return;
+    Linking.openURL(`tel:${item.phone}`);
+  };
 
   return (
     <ContainerComponent
@@ -56,19 +55,11 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({
     >
       <View style={styles.contentContainer}>
         <View style={styles.row}>
-          <View style={styles.clientRow}>
-            <FontAwesome
-              name="user"
-              size={16}
-              color={CustomColors.textLight}
-              style={styles.icon}
-            />
-            <Text style={styles.statusText} numberOfLines={1}>
+          {/* Columna izquierda: cliente + tipo */}
+          <View style={styles.infoColumn}>
+            <Text style={styles.clientText} numberOfLines={1}>
               {item.client}
             </Text>
-          </View>
-
-          <View style={styles.typeBadgeContainer}>
             <View
               style={[
                 styles.typeIndicator,
@@ -81,6 +72,24 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({
                 {item.type === AssignmentType.PICKUP ? "Recogida" : "Entrega"}
               </Text>
             </View>
+          </View>
+
+          {/* Columna derecha: botones */}
+          <View style={styles.actionsRow}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={handleWhatsApp}
+              activeOpacity={0.7}
+            >
+              <FontAwesome name="whatsapp" size={20} color="#25D366" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={handleCall}
+              activeOpacity={0.7}
+            >
+              <FontAwesome name="phone" size={18} color={CustomColors.secondary} />
+            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -117,25 +126,23 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
-    position: "relative",
   },
   row: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  clientRow: {
-    flexDirection: "row",
-    alignItems: "center",
+  infoColumn: {
+    flex: 1,
+    gap: 6,
   },
-  icon: {
-    marginRight: 6,
-  },
-  typeBadgeContainer: {
-    alignItems: "flex-end",
-    marginRight: 10,
+  clientText: {
+    fontSize: 15,
+    fontWeight: "bold",
+    color: CustomColors.textLight,
   },
   typeIndicator: {
+    alignSelf: "flex-start",
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
@@ -148,12 +155,23 @@ const styles = StyleSheet.create({
   },
   typeText: {
     color: CustomColors.textLight,
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: "bold",
   },
-  statusText: {
-    fontSize: 14,
-    fontWeight: "bold",
-    marginLeft: 2,
+  actionsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginLeft: 10,
+  },
+  actionButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: CustomColors.backgroundDark,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: CustomColors.secondary,
   },
 });
