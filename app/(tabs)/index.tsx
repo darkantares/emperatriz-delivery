@@ -212,10 +212,10 @@ function TabOneScreenContent() {
           <RNView style={styles.header}>
             <RNView style={styles.headerCenter}>
               <Text style={styles.headerTitle}>{headerTitle}</Text>
-              <RNView style={styles.liveRow}>
+              {/* <RNView style={styles.liveRow}>
                 <RNView style={styles.liveDot} />
                 <Text style={styles.liveText}>En tiempo real</Text>
-              </RNView>
+              </RNView> */}
             </RNView>
             <TouchableOpacity style={styles.refreshButton} onPress={() => { fetchDeliveries(); refreshGanancias(); }}>
               <Ionicons name="refresh-outline" size={20} color={CustomColors.textLight} />

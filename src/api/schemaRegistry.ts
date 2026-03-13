@@ -34,7 +34,6 @@ export const schemaRegistry: Record<string, AnySchema> = {
         id: z.number(),
         contact: z.string(),
         zone: z.string(),
-        earning: z.number(),
         completedAt: z.string(),
     }))),
 

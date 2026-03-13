@@ -1,13 +1,10 @@
 import {
   StyleSheet,
-  Dimensions,
   View,
   TouchableOpacity,
-  Linking,
-  Alert,
 } from "react-native";
 import { Text } from "@/components/Themed";
-import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
+import { FontAwesome } from "@expo/vector-icons";
 import React from "react";
 import { CustomColors } from "@/constants/CustomColors";
 import { AssignmentType } from "@/utils/enum";
@@ -43,78 +40,48 @@ interface DeliveryItemProps {
 export const DeliveryItem: React.FC<DeliveryItemProps> = ({
   item,
   onPress,
-  onAction,
 }) => {
-
   const ContainerComponent = onPress ? TouchableOpacity : View;
 
   return (
     <ContainerComponent
-      style={[styles.itemContainer, styles.deliveryContainer]}
+      style={[
+        styles.itemContainer,
+        item.type === AssignmentType.PICKUP
+          ? styles.pickupContainer
+          : styles.deliveryContainer,
+      ]}
       onPress={onPress}
       activeOpacity={onPress ? 0.7 : 1}
     >
       <View style={styles.contentContainer}>
-        {/* Main Row Container */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>          
-          {/* Columna 1: Info Cliente (Arriba) y Dinero (Abajo) */}
-          <View>
-            {/* Info Cliente */}
-            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
-              <FontAwesome
-                name="user"
-                size={16}
-                color={CustomColors.textLight}
-                style={{ marginRight: 6 }}
-              />
-              <Text style={styles.statusText} numberOfLines={1}>{item.client}</Text>
-            </View>
+        <View style={styles.row}>
+          <View style={styles.clientRow}>
+            <FontAwesome
+              name="user"
+              size={16}
+              color={CustomColors.textLight}
+              style={styles.icon}
+            />
+            <Text style={styles.statusText} numberOfLines={1}>
+              {item.client}
+            </Text>
+          </View>
 
-            {/* Info Dinero - Solo si es DELIVERY */}
-            {item.type === AssignmentType.DELIVERY && (
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <FontAwesome
-                name="money"
-                size={16}
-                color={CustomColors.textLight}
-                style={{ marginRight: 6 }}
-              />
-              <Text style={styles.statusText}>
-                RD$ {((item.deliveryCost || 0) + (item.amountToBeCharged || 0)).toFixed(2)}
+          <View style={styles.typeBadgeContainer}>
+            <View
+              style={[
+                styles.typeIndicator,
+                item.type === AssignmentType.PICKUP
+                  ? styles.pickupIndicator
+                  : styles.deliveryIndicator,
+              ]}
+            >
+              <Text style={styles.typeText}>
+                {item.type === AssignmentType.PICKUP ? "Recogida" : "Entrega"}
               </Text>
             </View>
-            )}
           </View>
-
-          {/* Columna 2: Tipo/Status */}
-          <View style={{ alignItems: 'flex-end', marginRight: 10 }}>
-            <View style={{ flexDirection: "column", alignItems: "center", gap: 6 }}>
-              <View
-                style={[
-                  styles.typeIndicator,
-                  item.type === AssignmentType.PICKUP
-                    ? styles.pickupIndicator
-                    : styles.deliveryIndicator,
-                ]}
-              >
-                <Text style={styles.typeText}>
-                  {item.type === AssignmentType.PICKUP ? "Recogida" : "Entrega"}
-                </Text>
-              </View>
-              {item.isGroup && (
-                <View style={[styles.typeIndicator, styles.groupIndicator]}>
-                  <Text style={styles.typeText}>GRUPO</Text>
-                </View>
-              )}
-            </View>
-          </View>
-
-          {/* Columna 3: Botón de Progreso */}
-          {onAction && (
-             <View style={{ width: 40, alignItems: 'center', justifyContent: 'center' }}>
-                <ProgressIconButton onPress={onAction} />
-             </View>
-          )}
         </View>
       </View>
     </ContainerComponent>
@@ -148,40 +115,25 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: CustomColors.secondary, // Borde dorado para DELIVERY
   },
-  numberContainer: {
-    width: 30,
-    height: 30,
-    borderRadius: 20,
-    backgroundColor: CustomColors.backgroundDark,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 10,
-  },
-  numberText: {
-    color: CustomColors.secondary,
-    fontSize: 16,
-    fontWeight: "bold",
-  },
   contentContainer: {
     flex: 1,
     position: "relative",
   },
-  infoRow: {
+  row: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
+    justifyContent: "space-between",
   },
-  itemTitle: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: CustomColors.textLight,
-    width: 80, // Ancho fijo para alinear todos los valores
+  clientRow: {
+    flexDirection: "row",
+    alignItems: "center",
   },
-  itemDescription: {
-    fontSize: 14,
-    color: CustomColors.textLight,
-    opacity: 0.7,
-    flex: 1, // Permite que el texto ocupe el espacio restante
+  icon: {
+    marginRight: 6,
+  },
+  typeBadgeContainer: {
+    alignItems: "flex-end",
+    marginRight: 10,
   },
   typeIndicator: {
     paddingHorizontal: 8,
@@ -194,9 +146,6 @@ const styles = StyleSheet.create({
   deliveryIndicator: {
     backgroundColor: CustomColors.secondary,
   },
-  groupIndicator: {
-    backgroundColor: CustomColors.tertiary,
-  },
   typeText: {
     color: CustomColors.textLight,
     fontSize: 16,
@@ -206,11 +155,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "bold",
     marginLeft: 2,
-  },
-  clickIndicator: {
-    position: "absolute",
-    right: 12,
-    top: "50%",
-    transform: [{ translateY: -6 }],
   },
 });
