@@ -35,7 +35,7 @@ const ActivityRow = ({ item, index }: { item: RecentDeliveryItem; index: number 
                 <Ionicons name="bicycle-outline" size={18} color={CustomColors.primary} />
             </View>
             <View style={styles.rowContent}>
-                <Text style={styles.clientName} numberOfLines={1}>{item.contact}</Text>
+                <Text style={styles.clientName} numberOfLines={1}>{Capitalize(item.contact)}</Text>
                 <Text style={styles.zoneText}>{Capitalize(item.zone)} - {formatRelativeTime(item.completedAt)}</Text>
             </View>
             {/* <Text style={styles.earningText}>+{formatDOP(item.earning)}</Text> */}
