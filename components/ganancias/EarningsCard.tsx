@@ -9,10 +9,11 @@ const formatDOP = (value: number) =>
 
 interface EarningsCardProps {
     earnings?: DriverEarnings | null;
+    deliveries?: number | null;
     isLoading?: boolean;
 }
 
-const EarningsCard = ({ earnings, isLoading = false }: EarningsCardProps) => {
+const EarningsCard = ({ earnings, deliveries, isLoading = false }: EarningsCardProps) => {
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(30)).current;
 
@@ -32,7 +33,12 @@ const EarningsCard = ({ earnings, isLoading = false }: EarningsCardProps) => {
                         {isLoading ? (
                             <ActivityIndicator color={CustomColors.primary} style={{ marginTop: 8 }} />
                         ) : (
-                            <Text style={styles.amount}>{earnings ? formatDOP(earnings.weekTotal) : '—'}</Text>
+                            <>
+                                <Text style={styles.amount}>{earnings ? formatDOP(earnings.weekTotal) : '—'}</Text>
+                                {deliveries != null && (
+                                    <Text style={styles.subAmount}>{deliveries} entregas esta semana</Text>
+                                )}
+                            </>
                         )}
                     </View>                  
                 </View>
@@ -101,6 +107,14 @@ const styles = StyleSheet.create({
         color: CustomColors.textLight,
         letterSpacing: -1,
         textAlign: 'center',
+    },
+    subAmount: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: CustomColors.textLight,
+        opacity: 0.8,
+        textAlign: 'center',
+        marginTop: 4,
     },
     trendBadge: {
         flexDirection: 'row',

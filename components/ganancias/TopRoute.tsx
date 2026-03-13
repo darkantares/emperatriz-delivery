@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CustomColors } from '@/constants/CustomColors';
+import { Capitalize } from '@/utils/capitalize';
 import { DriverTopRoute } from '@/core/actions/ganancias-actions';
 
 const formatDOP = (value: number) =>
@@ -25,7 +26,7 @@ const TopRoute = ({ route, isLoading = false }: TopRouteProps) => {
                     ) : route ? (
                         <View style={styles.info}>
                             <Text style={styles.label}>RUTA ESTRELLA</Text>
-                            <Text style={styles.routeName} numberOfLines={1}>{route.routeName}</Text>
+                            <Text style={styles.routeName} numberOfLines={2}>{Capitalize(route.routeName)}</Text>
                             <Text style={styles.subtext}>{route.deliveryCount} entregas · {formatDOP(route.totalEarnings)} generado</Text>
                         </View>
                     ) : (

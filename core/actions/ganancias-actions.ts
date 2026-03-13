@@ -30,11 +30,8 @@ export interface WeeklyStatItem {
 
 // ─── Delivery assignment types ────────────────────────────────────────────────
 
-export interface DriverWeeklyStats {
-  totalDelivered: number;
-  totalEarnings: number;
-  averagePerDelivery: number;
-}
+/** Number of completed deliveries this week */
+export type DriverWeeklyStats = number;
 
 export interface DriverTopRoute {
   routeName: string;
@@ -46,7 +43,7 @@ export interface RecentDeliveryItem {
   id: number;
   contact: string;
   zone: string;
-  earning: number;
+//   earning: number;
   completedAt: string;
 }
 
@@ -84,9 +81,9 @@ export const getDriverWeeklyStats = async (): Promise<WeeklyStatItem[]> => {
   }
 };
 
-export const getDriverDeliveryStats = async (): Promise<DriverWeeklyStats> => {
+export const getDriverDeliveryStats = async (): Promise<number> => {
   try {
-    return await apiAction.get<DriverWeeklyStats>(`${BackendUrls.DeliveryAssignments}/driver/stats`);
+    return await apiAction.get<number>(`${BackendUrls.DeliveryAssignments}/driver/stats`);
   } catch (error) {
     throw new Error('Unable to load driver delivery stats');
   }

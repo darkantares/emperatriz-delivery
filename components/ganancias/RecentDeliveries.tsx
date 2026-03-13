@@ -3,9 +3,7 @@ import { View, Text, StyleSheet, Animated, ActivityIndicator } from 'react-nativ
 import { Ionicons } from '@expo/vector-icons';
 import { CustomColors } from '@/constants/CustomColors';
 import { RecentDeliveryItem } from '@/core/actions/ganancias-actions';
-
-const formatDOP = (value: number) =>
-    value.toLocaleString('es-DO', { style: 'currency', currency: 'DOP', maximumFractionDigits: 0 });
+import { Capitalize } from '@/utils/capitalize';
 
 const formatRelativeTime = (isoString: string): string => {
     if (!isoString) return '';
@@ -17,7 +15,7 @@ const formatRelativeTime = (isoString: string): string => {
     if (hours < 24) return `Hace ${hours} hora${hours !== 1 ? 's' : ''}`;
     const days = Math.floor(hours / 24);
     if (days === 1) return 'Ayer';
-    return `Hace ${days} d�as`;
+    return `Hace ${days} dias`;
 };
 
 const ActivityRow = ({ item, index }: { item: RecentDeliveryItem; index: number }) => {
@@ -38,9 +36,9 @@ const ActivityRow = ({ item, index }: { item: RecentDeliveryItem; index: number 
             </View>
             <View style={styles.rowContent}>
                 <Text style={styles.clientName} numberOfLines={1}>{item.contact}</Text>
-                <Text style={styles.zoneText}>{item.zone} � {formatRelativeTime(item.completedAt)}</Text>
+                <Text style={styles.zoneText}>{Capitalize(item.zone)} - {formatRelativeTime(item.completedAt)}</Text>
             </View>
-            <Text style={styles.earningText}>+{formatDOP(item.earning)}</Text>
+            {/* <Text style={styles.earningText}>+{formatDOP(item.earning)}</Text> */}
         </Animated.View>
     );
 };
@@ -67,7 +65,7 @@ const RecentDeliveries = ({ items = [], isLoading = false }: RecentDeliveriesPro
                 <View style={styles.header}>
                     <View>
                         <Text style={styles.title}>Entregas recientes</Text>
-                        <Text style={styles.subtitle}>�ltimas completadas</Text>
+                        <Text style={styles.subtitle}>Ultimas completadas</Text>
                     </View>
                     <View style={styles.iconCircle}>
                         <Ionicons name="flash-outline" size={20} color="#059669" />

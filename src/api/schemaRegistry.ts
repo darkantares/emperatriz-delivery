@@ -21,11 +21,7 @@ export const schemaRegistry: Record<string, AnySchema> = {
     '/delivery-assignments/courier':       OkOptimizedRouteSchema,
 
     // Ganancias — delivery driver stats (more specific before generic prefix)
-    '/delivery-assignments/driver/stats': OkResultOf(z.object({
-        totalDelivered: z.number(),
-        totalEarnings: z.number(),
-        averagePerDelivery: z.number(),
-    })),
+    '/delivery-assignments/driver/stats': OkResultOf(z.number()),
     '/delivery-assignments/driver/top-route': OkResultOf(z.union([
         z.object({
             routeName: z.string(),

@@ -18,7 +18,6 @@ import { useRouteContext } from "@/contexts/RouteContext";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import EarningsCard from "@/components/ganancias/EarningsCard";
-import DeliveryStatsCard from "@/components/ganancias/DeliveryStatsCard";
 import TopRoute from "@/components/ganancias/TopRoute";
 import RecentDeliveries from "@/components/ganancias/RecentDeliveries";
 import PayoutHistory from "@/components/ganancias/PayoutHistory";
@@ -241,8 +240,7 @@ function TabOneScreenContent() {
             >
               {activeTab === "Ganancias" && (
                 <>
-                  <EarningsCard earnings={earnings} isLoading={gananciaLoading} />
-                  <DeliveryStatsCard stats={deliveryStats} isLoading={gananciaLoading} />
+                  <EarningsCard earnings={earnings} deliveries={deliveryStats} isLoading={gananciaLoading} />
                   <TopRoute route={topRoute} isLoading={gananciaLoading} />
                   <RecentDeliveries items={recentDeliveries} isLoading={gananciaLoading} />
                 </>
