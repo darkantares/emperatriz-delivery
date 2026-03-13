@@ -18,6 +18,7 @@ import { AssignmentType } from "@/utils/enum";
 import { useRouteContext } from "@/contexts/RouteContext";
 import RouteInfoPanel from "@/components/RouteInfoPanel";
 import GroupStatusUpdateModal from "@/components/status-update/GroupStatusUpdateModal";
+import { useRouter } from "expo-router";
 
 interface Coordinate {
   latitude: number;
@@ -40,6 +41,7 @@ interface WaypointGroup {
 }
 
 export default function TripMapScreen() {
+  const router = useRouter();
   const { tripData, tripLoading, tripError, tripDeliveries } =
     useRouteContext();
 
@@ -337,6 +339,14 @@ export default function TripMapScreen() {
       setCurrentTargetGroupIndex((prev) => prev + 1);
     }
   }, [completedDeliveryIds, groupedWaypoints, currentTargetGroupIndex]);
+
+  // Regresar al tab principal cuando no quedan deliveries pendientes
+  useEffect(() => {
+    if (tripDeliveries.length === 0) return;
+    if (completedDeliveryIds.size >= tripDeliveries.length) {
+      router.replace("/");
+    }
+  }, [completedDeliveryIds, tripDeliveries, router]);
 
   useEffect(() => {
     if (!isTraveling || routeCoordinates.length === 0) {
@@ -793,7 +803,7 @@ const styles = StyleSheet.create({
   },
   controlsContainer: {
     position: "absolute",
-    bottom: 150,
+    bottom: 130,
     left: 20,
     right: 20,
   },

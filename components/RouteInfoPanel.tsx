@@ -51,7 +51,7 @@ const RouteInfoPanel: React.FC<RouteInfoPanelProps> = ({
 const styles = StyleSheet.create({
   infoPanel: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 0,
     left: 20,
     right: 20,
     backgroundColor: CustomColors.backgroundDark,
