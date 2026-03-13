@@ -10,6 +10,7 @@ export enum BackendUrls {
     PaymentMethods = 'payment-methods',
     OsrmRoute = 'admin/osrm/route',
     OsrmTrip = 'admin/osrm/trip',
+    CxpInvoices = 'cxp-invoices',
 }
 
 export enum IPaymentValidMethods {

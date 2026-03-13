@@ -24,6 +24,7 @@ import RecentDeliveries from "@/components/ganancias/RecentDeliveries";
 import PayoutHistory from "@/components/ganancias/PayoutHistory";
 import StatsCharts from "@/components/ganancias/StatsCharts";
 import { DeliveryItemList } from "@/components/delivery-items/DeliveryItemList";
+import { useGanancias } from "@/core/hooks/useGanancias";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -146,6 +147,18 @@ function TabOneScreenContent() {
 
   const { tripLoading, startRoutes } = useRouteContext();
 
+  const {
+    earnings,
+    paidInvoices,
+    monthlyStats,
+    weeklyStats,
+    deliveryStats,
+    topRoute,
+    recentDeliveries,
+    isLoading: gananciaLoading,
+    refresh: refreshGanancias,
+  } = useGanancias();
+
   const handlersRef = useRef({
     onDriverAssigned: (data: any) => { handleDeliveryAssigned(data); },
     onDriversGroupAssigned: (data: any) => { handleDriversGroupAssigned(data); },
@@ -205,7 +218,7 @@ function TabOneScreenContent() {
                 <Text style={styles.liveText}>En tiempo real</Text>
               </RNView>
             </RNView>
-            <TouchableOpacity style={styles.refreshButton} onPress={() => fetchDeliveries()}>
+            <TouchableOpacity style={styles.refreshButton} onPress={() => { fetchDeliveries(); refreshGanancias(); }}>
               <Ionicons name="refresh-outline" size={20} color={CustomColors.textLight} />
             </TouchableOpacity>
           </RNView>
@@ -228,14 +241,14 @@ function TabOneScreenContent() {
             >
               {activeTab === "Ganancias" && (
                 <>
-                  <EarningsCard />
-                  <DeliveryStatsCard />
-                  <TopRoute />
-                  <RecentDeliveries />
+                  <EarningsCard earnings={earnings} isLoading={gananciaLoading} />
+                  <DeliveryStatsCard stats={deliveryStats} isLoading={gananciaLoading} />
+                  <TopRoute route={topRoute} isLoading={gananciaLoading} />
+                  <RecentDeliveries items={recentDeliveries} isLoading={gananciaLoading} />
                 </>
               )}
-              {activeTab === "Pagos" && <PayoutHistory />}
-              {activeTab === "Estadísticas" && <StatsCharts />}
+              {activeTab === "Pagos" && <PayoutHistory items={paidInvoices} isLoading={gananciaLoading} />}
+              {activeTab === "Estadísticas" && <StatsCharts monthlyStats={monthlyStats} weeklyStats={weeklyStats} isLoading={gananciaLoading} />}
 
               <RNView style={{ height: 120 }} />
             </ScrollView>

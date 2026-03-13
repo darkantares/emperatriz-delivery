@@ -1,9 +1,18 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CustomColors } from '@/constants/CustomColors';
+import { DriverTopRoute } from '@/core/actions/ganancias-actions';
 
-const TopRoute = () => {
+const formatDOP = (value: number) =>
+    value.toLocaleString('es-DO', { style: 'currency', currency: 'DOP', maximumFractionDigits: 0 });
+
+interface TopRouteProps {
+    route?: DriverTopRoute | null;
+    isLoading?: boolean;
+}
+
+const TopRoute = ({ route, isLoading = false }: TopRouteProps) => {
     return (
         <View style={styles.wrapper}>
             <View style={styles.card}>
@@ -11,14 +20,26 @@ const TopRoute = () => {
                     <View style={styles.trophyBadge}>
                         <Ionicons name="trophy" size={28} color="#F59E0B" />
                     </View>
-                    <View style={styles.info}>
-                        <Text style={styles.label}>RUTA ESTRELLA</Text>
-                        <Text style={styles.routeName}>Piantini → Naco</Text>
-                        <Text style={styles.subtext}>12 entregas · RD$ 1,680 generado</Text>
-                    </View>
-                    <View style={styles.badge}>
-                        <Text style={styles.badgeText}>#1</Text>
-                    </View>
+                    {isLoading ? (
+                        <ActivityIndicator color="#F59E0B" style={{ flex: 1 }} />
+                    ) : route ? (
+                        <View style={styles.info}>
+                            <Text style={styles.label}>RUTA ESTRELLA</Text>
+                            <Text style={styles.routeName} numberOfLines={1}>{route.routeName}</Text>
+                            <Text style={styles.subtext}>{route.deliveryCount} entregas · {formatDOP(route.totalEarnings)} generado</Text>
+                        </View>
+                    ) : (
+                        <View style={styles.info}>
+                            <Text style={styles.label}>RUTA ESTRELLA</Text>
+                            <Text style={styles.routeName}>Sin datos aún</Text>
+                            <Text style={styles.subtext}>Completa entregas para ver tu ruta estrella</Text>
+                        </View>
+                    )}
+                    {route && (
+                        <View style={styles.badge}>
+                            <Text style={styles.badgeText}>#1</Text>
+                        </View>
+                    )}
                 </View>
             </View>
         </View>

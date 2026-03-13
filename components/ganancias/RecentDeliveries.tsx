@@ -1,17 +1,26 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CustomColors } from '@/constants/CustomColors';
+import { RecentDeliveryItem } from '@/core/actions/ganancias-actions';
 
-const activities = [
-    { id: '1', client: 'María García', earning: '+RD$ 180', time: 'Hace 1 hora', zone: 'Piantini', icon: 'bicycle-outline' },
-    { id: '2', client: 'Carlos Méndez', earning: '+RD$ 120', time: 'Hace 3 horas', zone: 'Naco', icon: 'bicycle-outline' },
-    { id: '3', client: 'Laura Pérez', earning: '+RD$ 200', time: 'Ayer 7:45 pm', zone: 'Evaristo Morales', icon: 'bicycle-outline' },
-    { id: '4', client: 'Roberto Díaz', earning: '+RD$ 95', time: 'Ayer 2:30 pm', zone: 'Bella Vista', icon: 'bicycle-outline' },
-    { id: '5', client: 'Ana López', earning: '+RD$ 150', time: 'Hace 2 días', zone: 'Serrallés', icon: 'bicycle-outline' },
-];
+const formatDOP = (value: number) =>
+    value.toLocaleString('es-DO', { style: 'currency', currency: 'DOP', maximumFractionDigits: 0 });
 
-const ActivityRow = ({ item, index }: { item: typeof activities[0]; index: number }) => {
+const formatRelativeTime = (isoString: string): string => {
+    if (!isoString) return '';
+    const diff = Date.now() - new Date(isoString).getTime();
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 1) return 'Hace un momento';
+    if (minutes < 60) return `Hace ${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `Hace ${hours} hora${hours !== 1 ? 's' : ''}`;
+    const days = Math.floor(hours / 24);
+    if (days === 1) return 'Ayer';
+    return `Hace ${days} d�as`;
+};
+
+const ActivityRow = ({ item, index }: { item: RecentDeliveryItem; index: number }) => {
     const slideAnim = useRef(new Animated.Value(20)).current;
     const opacityAnim = useRef(new Animated.Value(0)).current;
 
@@ -23,20 +32,25 @@ const ActivityRow = ({ item, index }: { item: typeof activities[0]; index: numbe
     }, []);
 
     return (
-        <Animated.View style={[styles.row, { opacity: opacityAnim, transform: [{ translateX: slideAnim }] }]}>
+        <Animated.View style={[styles.row, { opacity: opacityAnim, transform: [{ translateX: slideAnim }] }]}> 
             <View style={styles.iconContainer}>
-                <Ionicons name={item.icon as keyof typeof Ionicons.glyphMap} size={18} color={CustomColors.primary} />
+                <Ionicons name="bicycle-outline" size={18} color={CustomColors.primary} />
             </View>
             <View style={styles.rowContent}>
-                <Text style={styles.clientName} numberOfLines={1}>{item.client}</Text>
-                <Text style={styles.zoneText}>{item.zone} · {item.time}</Text>
+                <Text style={styles.clientName} numberOfLines={1}>{item.contact}</Text>
+                <Text style={styles.zoneText}>{item.zone} � {formatRelativeTime(item.completedAt)}</Text>
             </View>
-            <Text style={styles.earningText}>{item.earning}</Text>
+            <Text style={styles.earningText}>+{formatDOP(item.earning)}</Text>
         </Animated.View>
     );
 };
 
-const RecentDeliveries = () => {
+interface RecentDeliveriesProps {
+    items?: RecentDeliveryItem[];
+    isLoading?: boolean;
+}
+
+const RecentDeliveries = ({ items = [], isLoading = false }: RecentDeliveriesProps) => {
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(30)).current;
 
@@ -48,26 +62,32 @@ const RecentDeliveries = () => {
     }, []);
 
     return (
-        <Animated.View style={[styles.wrapper, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+        <Animated.View style={[styles.wrapper, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}> 
             <View style={styles.card}>
                 <View style={styles.header}>
                     <View>
                         <Text style={styles.title}>Entregas recientes</Text>
-                        <Text style={styles.subtitle}>Últimas completadas</Text>
+                        <Text style={styles.subtitle}>�ltimas completadas</Text>
                     </View>
                     <View style={styles.iconCircle}>
                         <Ionicons name="flash-outline" size={20} color="#059669" />
                     </View>
                 </View>
 
-                <View style={styles.list}>
-                    {activities.map((item, index) => (
-                        <React.Fragment key={item.id}>
-                            <ActivityRow item={item} index={index} />
-                            {index < activities.length - 1 && <View style={styles.divider} />}
-                        </React.Fragment>
-                    ))}
-                </View>
+                {isLoading ? (
+                    <ActivityIndicator color={CustomColors.primary} style={{ marginVertical: 16 }} />
+                ) : items.length === 0 ? (
+                    <Text style={styles.emptyText}>Sin entregas recientes</Text>
+                ) : (
+                    <View style={styles.list}>
+                        {items.map((item, index) => (
+                            <React.Fragment key={item.id}>
+                                <ActivityRow item={item} index={index} />
+                                {index < items.length - 1 && <View style={styles.divider} />}
+                            </React.Fragment>
+                        ))}
+                    </View>
+                )}
             </View>
         </Animated.View>
     );
@@ -114,11 +134,11 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 12,
-        backgroundColor: 'rgba(5,150,105,0.12)',
+        backgroundColor: 'rgba(5,150,105,0.1)',
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
-        borderColor: 'rgba(5,150,105,0.25)',
+        borderColor: CustomColors.divider,
     },
     list: {
         gap: 0,
@@ -127,6 +147,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: 12,
+        gap: 12,
     },
     iconContainer: {
         width: 36,
@@ -135,19 +156,17 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255,255,255,0.06)',
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: 12,
         borderWidth: 1,
         borderColor: CustomColors.divider,
     },
     rowContent: {
         flex: 1,
-        marginRight: 8,
     },
     clientName: {
         fontSize: 14,
         fontWeight: '600',
         color: CustomColors.textLight,
-        marginBottom: 2,
+        marginBottom: 3,
     },
     zoneText: {
         fontSize: 12,
@@ -162,5 +181,12 @@ const styles = StyleSheet.create({
     divider: {
         height: 1,
         backgroundColor: CustomColors.divider,
+    },
+    emptyText: {
+        fontSize: 13,
+        color: CustomColors.textLight,
+        opacity: 0.4,
+        textAlign: 'center',
+        paddingVertical: 16,
     },
 });

@@ -9,10 +9,31 @@ function extractValue<T>(response: { data?: any; error?: string }): T {
     if (response.error) {
         throw new Error(response.error);
     }
-    if (!response.data || response.data.value === undefined) {
+    if (!response.data) {
         throw new Error('Request failed: respuesta inesperada del servidor');
     }
-    return response.data.value as T;
+
+    // the API wrapper may return two different envelope shapes:
+    // 1. The fetch layer wraps everything in { data: T, message, statusCode }
+    //    in which case the real payload sits at response.data.data
+    // 2. The backend business layer uses the OkResult<T> pattern
+    //    ( { ok: true, value: T } ) and the payload sits at .value.
+    // We need to support both and even combinations of them.
+
+    let payload = response.data;
+
+    // unwrap the fetch layer if present
+    if (payload && typeof payload === 'object' && 'data' in payload) {
+        payload = payload.data;
+    }
+
+    // unwrap OkResult layer if present
+    if (payload && typeof payload === 'object' && 'value' in payload) {
+        return (payload.value as T);
+    }
+
+    // if we reach here, assume payload *is* the desired value
+    return payload as T;
 }
 
 /**

@@ -1,17 +1,18 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CustomColors } from '@/constants/CustomColors';
+import { PaidInvoice } from '@/core/actions/ganancias-actions';
 
-const payouts = [
-    { id: '1', week: 'Semana 10', amount: 'RD$ 4,820', date: 'Viernes 7 Mar', status: 'Pagado' },
-    { id: '2', week: 'Semana 9', amount: 'RD$ 5,340', date: 'Viernes 28 Feb', status: 'Pagado' },
-    { id: '3', week: 'Semana 8', amount: 'RD$ 3,950', date: 'Viernes 21 Feb', status: 'Pagado' },
-    { id: '4', week: 'Semana 7', amount: 'RD$ 6,100', date: 'Viernes 14 Feb', status: 'Pagado' },
-    { id: '5', week: 'Semana 6', amount: 'RD$ 4,420', date: 'Viernes 7 Feb', status: 'Pagado' },
-];
+const formatDOP = (value: number) =>
+    value.toLocaleString('es-DO', { style: 'currency', currency: 'DOP', maximumFractionDigits: 0 });
 
-const PayoutCard = ({ item, index }: { item: typeof payouts[0]; index: number }) => {
+const formatDate = (dateStr: string): string => {
+    if (!dateStr) return '';
+    return new Date(dateStr).toLocaleDateString('es-DO', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+
+const PayoutCard = ({ item, index }: { item: PaidInvoice; index: number }) => {
     const slideAnim = useRef(new Animated.Value(30)).current;
     const opacityAnim = useRef(new Animated.Value(0)).current;
 
@@ -27,9 +28,9 @@ const PayoutCard = ({ item, index }: { item: typeof payouts[0]; index: number })
             <View style={styles.card}>
                 <View style={styles.accentBar} />
                 <View style={styles.cardLeft}>
-                    <Text style={styles.weekLabel}>{item.week}</Text>
-                    <Text style={styles.amount}>{item.amount}</Text>
-                    <Text style={styles.dateText}>{item.date}</Text>
+                    <Text style={styles.weekLabel}>{item.invoiceNumber}</Text>
+                    <Text style={styles.amount}>{formatDOP(item.totalAmount)}</Text>
+                    <Text style={styles.dateText}>{formatDate(item.issueDate)}</Text>
                 </View>
                 <View style={styles.cardRight}>
                     <View style={styles.statusBadge}>
@@ -42,23 +43,36 @@ const PayoutCard = ({ item, index }: { item: typeof payouts[0]; index: number })
     );
 };
 
-const PayoutHistory = () => {
+interface PayoutHistoryProps {
+    items?: PaidInvoice[];
+    isLoading?: boolean;
+}
+
+const PayoutHistory = ({ items = [], isLoading = false }: PayoutHistoryProps) => {
     const fadeAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
         Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
     }, []);
 
+    const totalPaid = items.reduce((sum, i) => sum + i.totalAmount, 0);
+    const avgPaid = items.length > 0 ? totalPaid / items.length : 0;
+
     return (
         <Animated.View style={{ opacity: fadeAnim }}>
             {/* Summary card */}
             <View style={styles.summaryWrapper}>
                 <View style={styles.summaryCard}>
-                    <Text style={styles.summaryLabel}>TOTAL PAGADO (ÚLTIMAS 5 SEMANAS)</Text>
-                    <Text style={styles.summaryAmount}>RD$ 24,630</Text>
+                    <Text style={styles.summaryLabel}>TOTAL PAGADO ({items.length} FACTURAS)</Text>
+                    <Text style={styles.summaryAmount}>
+                        {isLoading ? '—' : formatDOP(totalPaid)}
+                    </Text>
                     <View style={styles.summaryRow}>
                         <Ionicons name="trending-up" size={14} color="#059669" />
-                        <Text style={styles.summarySubtext}>5 pagos procesados · Promedio RD$ 4,926</Text>
+                        <Text style={styles.summarySubtext}>
+                            {items.length} pago{items.length !== 1 ? 's' : ''} procesado{items.length !== 1 ? 's' : ''}
+                            {items.length > 0 ? ` · Promedio ${formatDOP(avgPaid)}` : ''}
+                        </Text>
                     </View>
                 </View>
             </View>
@@ -66,15 +80,21 @@ const PayoutHistory = () => {
             {/* Header */}
             <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Historial de pagos</Text>
-                <Text style={styles.sectionSubtitle}>Últimas 5 semanas</Text>
+                <Text style={styles.sectionSubtitle}>Facturas pagadas</Text>
             </View>
 
             {/* Payout list */}
-            <View style={styles.list}>
-                {payouts.map((item, index) => (
-                    <PayoutCard key={item.id} item={item} index={index} />
-                ))}
-            </View>
+            {isLoading ? (
+                <ActivityIndicator color={CustomColors.primary} style={{ marginVertical: 16 }} />
+            ) : items.length === 0 ? (
+                <Text style={styles.emptyText}>Sin pagos registrados</Text>
+            ) : (
+                <View style={styles.list}>
+                    {items.map((item, index) => (
+                        <PayoutCard key={item.id} item={item} index={index} />
+                    ))}
+                </View>
+            )}
         </Animated.View>
     );
 };
@@ -206,5 +226,13 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: '600',
         color: '#059669',
+    },
+    emptyText: {
+        fontSize: 13,
+        color: CustomColors.textLight,
+        opacity: 0.4,
+        textAlign: 'center',
+        paddingVertical: 16,
+        marginHorizontal: 20,
     },
 });

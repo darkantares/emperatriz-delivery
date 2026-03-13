@@ -10,24 +10,67 @@ import { OkOsrmTripSchema, OkOsrmRouteSchema } from './schemas/osrm.schema';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnySchema = z.ZodTypeAny;
 
+const OkResultOf = <T extends z.ZodTypeAny>(schema: T) =>
+    z.object({ ok: z.literal(true), value: schema }).loose();
+
 /**
  * Maps endpoint path prefixes to Zod schemas.
- *
- * Each schema validates the full OkResult body returned by the backend:
- *   { ok: true, value: <specific type> }
- *
- * Add a new entry here whenever a new backend endpoint is introduced.
- * Existing interfaces are preserved — schemas enforce the same contract at runtime.
  */
 export const schemaRegistry: Record<string, AnySchema> = {
     '/auth/login-delivery':                OkLoginResponseSchema,
     '/delivery-assignments/courier':       OkOptimizedRouteSchema,
+
+    // Ganancias — delivery driver stats (more specific before generic prefix)
+    '/delivery-assignments/driver/stats': OkResultOf(z.object({
+        totalDelivered: z.number(),
+        totalEarnings: z.number(),
+        averagePerDelivery: z.number(),
+    })),
+    '/delivery-assignments/driver/top-route': OkResultOf(z.union([
+        z.object({
+            routeName: z.string(),
+            deliveryCount: z.number(),
+            totalEarnings: z.number(),
+        }),
+        z.null(),
+    ])),
+    '/delivery-assignments/driver/recent-deliveries': OkResultOf(z.array(z.object({
+        id: z.number(),
+        contact: z.string(),
+        zone: z.string(),
+        earning: z.number(),
+        completedAt: z.string(),
+    }))),
+
     // generic list response used by /delivery-assignments (GET)
     '/delivery-assignments':               OkDeliveryArraySchema,
     '/delivery-status':      OkDeliveryStatusArraySchema,
     '/payment-methods':      OkPaymentMethodArraySchema,
     '/admin/osrm/trip':      OkOsrmTripSchema,
     '/admin/osrm/route':     OkOsrmRouteSchema,
+
+    // CXP Invoices — ganancias data (more specific before generic)
+    '/cxp-invoices/seller/earnings': OkResultOf(z.object({
+        weekTotal: z.number(),
+        monthTotal: z.number(),
+        invoiceCount: z.number(),
+    })),
+    '/cxp-invoices/seller/monthly-stats': OkResultOf(z.array(z.object({
+        month: z.string(),
+        value: z.number(),
+    }))),
+    '/cxp-invoices/seller/weekly-stats': OkResultOf(z.array(z.object({
+        day: z.string(),
+        value: z.number(),
+    }))),
+    '/cxp-invoices/seller/paid-invoices': OkResultOf(z.array(z.object({
+        id: z.number(),
+        invoiceNumber: z.string(),
+        issueDate: z.string(),
+        dueDate: z.string(),
+        totalAmount: z.number(),
+        status: z.string(),
+    }))),
 };
 
 /**

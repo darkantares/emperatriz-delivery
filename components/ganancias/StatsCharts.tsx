@@ -1,29 +1,11 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CustomColors } from '@/constants/CustomColors';
+import { MonthlyStatItem, WeeklyStatItem } from '@/core/actions/ganancias-actions';
 
-const monthlyData = [
-    { month: 'Sep', value: 12400 },
-    { month: 'Oct', value: 15800 },
-    { month: 'Nov', value: 11200 },
-    { month: 'Dic', value: 19600 },
-    { month: 'Ene', value: 17300 },
-    { month: 'Feb', value: 22180 },
-];
-
-const dailyData = [
-    { day: 'Lun', value: 720 },
-    { day: 'Mar', value: 950 },
-    { day: 'Mié', value: 580 },
-    { day: 'Jue', value: 1100 },
-    { day: 'Vie', value: 1480 },
-    { day: 'Sáb', value: 1020 },
-    { day: 'Dom', value: 420 },
-];
-
-const MAX_MONTHLY = Math.max(...monthlyData.map((d) => d.value));
-const MAX_DAILY = Math.max(...dailyData.map((d) => d.value));
+const formatDOP = (value: number) =>
+    value.toLocaleString('es-DO', { style: 'currency', currency: 'DOP', maximumFractionDigits: 0 });
 
 const AnimatedBar = ({ ratio, delay, color }: { ratio: number; delay: number; color: string }) => {
     const heightAnim = useRef(new Animated.Value(0)).current;
@@ -43,7 +25,13 @@ const AnimatedBar = ({ ratio, delay, color }: { ratio: number; delay: number; co
     return <Animated.View style={[styles.barFill, { height: barHeight, backgroundColor: color }]} />;
 };
 
-const StatsCharts = () => {
+interface StatsChartsProps {
+    monthlyStats?: MonthlyStatItem[];
+    weeklyStats?: WeeklyStatItem[];
+    isLoading?: boolean;
+}
+
+const StatsCharts = ({ monthlyStats = [], weeklyStats = [], isLoading = false }: StatsChartsProps) => {
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(30)).current;
 
@@ -53,6 +41,15 @@ const StatsCharts = () => {
             Animated.timing(slideAnim, { toValue: 0, duration: 600, useNativeDriver: true }),
         ]).start();
     }, []);
+
+    const maxMonthly = monthlyStats.length > 0 ? Math.max(...monthlyStats.map((d) => d.value)) : 1;
+    const maxWeekly = weeklyStats.length > 0 ? Math.max(...weeklyStats.map((d) => d.value)) : 1;
+    const bestMonthItem = monthlyStats.length > 0
+        ? monthlyStats.reduce((a, b) => (b.value > a.value ? b : a))
+        : null;
+    const bestDayItem = weeklyStats.length > 0
+        ? weeklyStats.reduce((a, b) => (b.value > a.value ? b : a))
+        : null;
 
     return (
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
@@ -69,21 +66,29 @@ const StatsCharts = () => {
                         </View>
                     </View>
 
-                    <View style={styles.chartArea}>
-                        {monthlyData.map((item, index) => (
-                            <View key={index} style={styles.barGroup}>
-                                <View style={styles.barContainer}>
-                                    <AnimatedBar ratio={item.value / MAX_MONTHLY} delay={80 * index} color={CustomColors.primary} />
-                                </View>
-                                <Text style={styles.barLabel}>{item.month}</Text>
+                    {isLoading ? (
+                        <ActivityIndicator color={CustomColors.primary} style={{ marginVertical: 16 }} />
+                    ) : monthlyStats.length === 0 ? (
+                        <Text style={styles.emptyText}>Sin datos mensuales</Text>
+                    ) : (
+                        <>
+                            <View style={styles.chartArea}>
+                                {monthlyStats.map((item, index) => (
+                                    <View key={index} style={styles.barGroup}>
+                                        <View style={styles.barContainer}>
+                                            <AnimatedBar ratio={item.value / maxMonthly} delay={80 * index} color={CustomColors.primary} />
+                                        </View>
+                                        <Text style={styles.barLabel}>{item.month}</Text>
+                                    </View>
+                                ))}
                             </View>
-                        ))}
-                    </View>
-
-                    <View style={styles.chartFooter}>
-                        <Text style={styles.footerText}>Mejor mes: Febrero · RD$ 22,180</Text>
-                        <Text style={[styles.footerText, { color: '#059669' }]}>↑ 28.2%</Text>
-                    </View>
+                            <View style={styles.chartFooter}>
+                                <Text style={styles.footerText}>
+                                    Mejor mes: {bestMonthItem?.month} · {formatDOP(bestMonthItem?.value ?? 0)}
+                                </Text>
+                            </View>
+                        </>
+                    )}
                 </View>
             </View>
 
@@ -100,21 +105,29 @@ const StatsCharts = () => {
                         </View>
                     </View>
 
-                    <View style={styles.chartArea}>
-                        {dailyData.map((item, index) => (
-                            <View key={index} style={styles.barGroup}>
-                                <View style={styles.barContainer}>
-                                    <AnimatedBar ratio={item.value / MAX_DAILY} delay={80 * index} color="#059669" />
-                                </View>
-                                <Text style={styles.barLabel}>{item.day}</Text>
+                    {isLoading ? (
+                        <ActivityIndicator color="#059669" style={{ marginVertical: 16 }} />
+                    ) : weeklyStats.length === 0 ? (
+                        <Text style={styles.emptyText}>Sin datos esta semana</Text>
+                    ) : (
+                        <>
+                            <View style={styles.chartArea}>
+                                {weeklyStats.map((item, index) => (
+                                    <View key={index} style={styles.barGroup}>
+                                        <View style={styles.barContainer}>
+                                            <AnimatedBar ratio={item.value / maxWeekly} delay={80 * index} color="#059669" />
+                                        </View>
+                                        <Text style={styles.barLabel}>{item.day}</Text>
+                                    </View>
+                                ))}
                             </View>
-                        ))}
-                    </View>
-
-                    <View style={styles.chartFooter}>
-                        <Text style={styles.footerText}>Mejor día: Viernes · RD$ 1,480</Text>
-                        <Text style={[styles.footerText, { color: '#059669' }]}>↑ 45.1%</Text>
-                    </View>
+                            <View style={styles.chartFooter}>
+                                <Text style={styles.footerText}>
+                                    Mejor día: {bestDayItem?.day} · {formatDOP(bestDayItem?.value ?? 0)}
+                                </Text>
+                            </View>
+                        </>
+                    )}
                 </View>
             </View>
         </Animated.View>
@@ -210,5 +223,12 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: CustomColors.textLight,
         opacity: 0.6,
+    },
+    emptyText: {
+        fontSize: 13,
+        color: CustomColors.textLight,
+        opacity: 0.4,
+        textAlign: 'center',
+        paddingVertical: 16,
     },
 });
