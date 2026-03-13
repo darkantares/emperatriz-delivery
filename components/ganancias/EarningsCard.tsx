@@ -34,11 +34,7 @@ const EarningsCard = ({ earnings, isLoading = false }: EarningsCardProps) => {
                         ) : (
                             <Text style={styles.amount}>{earnings ? formatDOP(earnings.weekTotal) : '—'}</Text>
                         )}
-                    </View>
-                    <View style={styles.trendBadge}>
-                        <Ionicons name="trending-up" size={14} color="#059669" />
-                        <Text style={styles.trendText}>{earnings?.invoiceCount ?? 0} facturas</Text>
-                    </View>
+                    </View>                  
                 </View>
 
                 <View style={styles.statsRow}>
@@ -52,7 +48,7 @@ const EarningsCard = ({ earnings, isLoading = false }: EarningsCardProps) => {
                     </View>
                     <View style={styles.separator} />
                     <View style={styles.statItem}>
-                        <Text style={styles.statLabel}>Facturas procesadas</Text>
+                        <Text style={styles.statLabel}>Pagos Procesados</Text>
                         <View style={styles.payRow}>
                             <Ionicons name="document-text-outline" size={13} color={CustomColors.primary} />
                             <Text style={[styles.statValue, { marginLeft: 5 }]}>
@@ -88,7 +84,7 @@ const styles = StyleSheet.create({
     },
     topRow: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        justifyContent: 'center',
         alignItems: 'flex-start',
         marginBottom: 22,
     },
@@ -104,6 +100,7 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         color: CustomColors.textLight,
         letterSpacing: -1,
+        textAlign: 'center',
     },
     trendBadge: {
         flexDirection: 'row',
