@@ -71,9 +71,14 @@ export default function TripMapScreen() {
 
   const [hideCourierIcon, setHideCourierIcon] = useState<boolean>(false);
   const [hideOtherIcons, setHideOtherIcons] = useState<boolean>(false);
-  const [currentTargetGroupIndex, setCurrentTargetGroupIndex] = useState<number>(0);
-  const [completedDeliveryIds, setCompletedDeliveryIds] = useState<Set<string>>(new Set());
-  const [deliveryStatusOverrides, setDeliveryStatusOverrides] = useState<Map<string, string>>(new Map());
+  const [currentTargetGroupIndex, setCurrentTargetGroupIndex] =
+    useState<number>(0);
+  const [completedDeliveryIds, setCompletedDeliveryIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [deliveryStatusOverrides, setDeliveryStatusOverrides] = useState<
+    Map<string, string>
+  >(new Map());
 
   const mapRef = useRef<MapView>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -96,7 +101,8 @@ export default function TripMapScreen() {
     // Use the locally-tracked override if this group's status was updated during this session
     const firstId = deliveries[0].id;
     const currentStatus =
-      deliveryStatusOverrides.get(firstId) ?? deliveries[0].deliveryStatus.title;
+      deliveryStatusOverrides.get(firstId) ??
+      deliveries[0].deliveryStatus.title;
     setGroupStatusModalParams({
       ids: deliveries.map((d) => d.id),
       assignmentType: type,
@@ -329,7 +335,8 @@ export default function TripMapScreen() {
 
   // Advance to the next group when all deliveries in the current one are completed
   useEffect(() => {
-    if (groupedWaypoints.length === 0 || completedDeliveryIds.size === 0) return;
+    if (groupedWaypoints.length === 0 || completedDeliveryIds.size === 0)
+      return;
     const currentGroup = groupedWaypoints[currentTargetGroupIndex];
     if (!currentGroup) return;
     if (
@@ -539,45 +546,46 @@ export default function TripMapScreen() {
             />
           )}
 
-          {!hideOtherIcons && (() => {
-            const group = groupedWaypoints[currentTargetGroupIndex];
-            if (!group) return null;
-            const markerColor = group.isFirstInRoute
-              ? "#4CAF50"
-              : group.isLastInRoute
-                ? "#F44336"
-                : "#FF9800";
-            return (
-              <Marker
-                key={`group-${group.coordinate.latitude}-${group.coordinate.longitude}`}
-                coordinate={group.coordinate}
-                zIndex={1000}
-              >
-                <View style={styles.customMarker}>
-                  <View
-                    style={[
-                      styles.markerPin,
-                      { backgroundColor: markerColor },
-                    ]}
-                  >
-                    {group.count > 1 && (
-                      <View style={styles.markerBadge}>
-                        <Text style={styles.markerBadgeText}>
-                          {group.count}
-                        </Text>
-                      </View>
-                    )}
+          {!hideOtherIcons &&
+            (() => {
+              const group = groupedWaypoints[currentTargetGroupIndex];
+              if (!group) return null;
+              const markerColor = group.isFirstInRoute
+                ? "#4CAF50"
+                : group.isLastInRoute
+                  ? "#F44336"
+                  : "#FF9800";
+              return (
+                <Marker
+                  key={`group-${group.coordinate.latitude}-${group.coordinate.longitude}`}
+                  coordinate={group.coordinate}
+                  zIndex={1000}
+                >
+                  <View style={styles.customMarker}>
+                    <View
+                      style={[
+                        styles.markerPin,
+                        { backgroundColor: markerColor },
+                      ]}
+                    >
+                      {group.count > 1 && (
+                        <View style={styles.markerBadge}>
+                          <Text style={styles.markerBadgeText}>
+                            {group.count}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    <View
+                      style={[
+                        styles.markerArrow,
+                        { borderTopColor: markerColor },
+                      ]}
+                    />
                   </View>
-                  <View
-                    style={[
-                      styles.markerArrow,
-                      { borderTopColor: markerColor },
-                    ]}
-                  />
-                </View>
-              </Marker>
-            );
-          })()}
+                </Marker>
+              );
+            })()}
 
           {currentPosition && !hideCourierIcon && (
             <Marker
@@ -620,16 +628,19 @@ export default function TripMapScreen() {
             const currentGroup = groupedWaypoints[currentTargetGroupIndex];
             const currentGroupStatus = currentGroup
               ? (deliveryStatusOverrides.get(currentGroup.deliveries[0]?.id) ??
-                  currentGroup.deliveries[0]?.deliveryStatus.title)
+                currentGroup.deliveries[0]?.deliveryStatus.title)
               : null;
-            const isInProgress = currentGroupStatus === IDeliveryStatus.IN_PROGRESS;
+            const isInProgress =
+              currentGroupStatus === IDeliveryStatus.IN_PROGRESS;
             return (
               <TouchableOpacity
                 style={[
                   styles.controlButton,
                   isInProgress ? styles.inProgressButton : styles.startButton,
                 ]}
-                onPress={() => currentGroup && handleProgressGroup(currentGroup.deliveries)}
+                onPress={() =>
+                  currentGroup && handleProgressGroup(currentGroup.deliveries)
+                }
                 disabled={!currentGroup}
               >
                 <Text style={styles.controlButtonText}>
