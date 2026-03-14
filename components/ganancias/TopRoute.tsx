@@ -6,7 +6,7 @@ import { Capitalize } from '@/utils/capitalize';
 import { DriverTopRoute } from '@/core/actions/ganancias-actions';
 
 const formatDOP = (value: number) =>
-    value.toLocaleString('es-DO', { style: 'currency', currency: 'DOP', maximumFractionDigits: 0 });
+    value.toLocaleString('es-DO', { style: 'currency', currency: 'DOP', maximumFractionDigits: 2 });
 
 interface TopRouteProps {
     route?: DriverTopRoute | null;

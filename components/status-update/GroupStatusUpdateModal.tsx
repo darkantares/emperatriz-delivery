@@ -114,7 +114,7 @@ export default function GroupStatusUpdateModal({
 
   useEffect(() => {
     if (isDelivered && !isPickupType && !amountPaidEdited) {
-      setAmountPaid(totalAmount.toFixed(2));
+      setAmountPaid(String(totalAmount));
       if (totalAmount === 0) {
         const transferencia = paymentMethods.find(
           (pm) => pm.title?.toLowerCase() === "transferencia",
@@ -309,7 +309,7 @@ export default function GroupStatusUpdateModal({
             </Text>
             {!isPickupType && (
               <Text style={styles.deliveryTitle}>
-                Total: RD$ {totalAmount.toFixed(2)}
+                Total: RD$ {totalAmount}
               </Text>
             )}
             <Text style={styles.currentStatus}>

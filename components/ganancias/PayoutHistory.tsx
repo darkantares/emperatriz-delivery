@@ -5,7 +5,7 @@ import { CustomColors } from '@/constants/CustomColors';
 import { PaidInvoice } from '@/core/actions/ganancias-actions';
 
 const formatDOP = (value: number) =>
-    value.toLocaleString('es-DO', { style: 'currency', currency: 'DOP', maximumFractionDigits: 0 });
+    value.toLocaleString('es-DO', { style: 'currency', currency: 'DOP', maximumFractionDigits: 2 });
 
 const formatDate = (dateStr: string): string => {
     if (!dateStr) return '';

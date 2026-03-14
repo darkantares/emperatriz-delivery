@@ -5,7 +5,7 @@ import { CustomColors } from '@/constants/CustomColors';
 import { DriverEarnings } from '@/core/actions/ganancias-actions';
 
 const formatDOP = (value: number) =>
-    value.toLocaleString('es-DO', { style: 'currency', currency: 'DOP', maximumFractionDigits: 0 });
+    value.toLocaleString('es-DO', { style: 'currency', currency: 'DOP', maximumFractionDigits: 2 });
 
 interface EarningsCardProps {
     earnings?: DriverEarnings | null;
@@ -16,7 +16,7 @@ interface EarningsCardProps {
 const EarningsCard = ({ earnings, deliveries, isLoading = false }: EarningsCardProps) => {
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(30)).current;
-
+    console.log('earnings: ',earnings);
     useEffect(() => {
         Animated.parallel([
             Animated.timing(fadeAnim, { toValue: 1, duration: 700, useNativeDriver: true }),

@@ -121,7 +121,7 @@ const DeliveryModal: React.FC<DeliveryModalProps> = ({
                           : "Monto:"}
                       </Text>
                       <Text style={styles.infoItemValue}>
-                        RD$ {groupTotal.toFixed(2)}
+                        RD$ {groupTotal}
                       </Text>
                     </View>
                   )}
@@ -146,7 +146,7 @@ const DeliveryModal: React.FC<DeliveryModalProps> = ({
             {!isPickup && deliveries.length > 1 && (
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Total del grupo:</Text>
-                <Text style={styles.totalValue}>RD$ {totalAmount.toFixed(2)}</Text>
+                <Text style={styles.totalValue}>RD$ {totalAmount}</Text>
               </View>
             )}
 

@@ -118,7 +118,7 @@ export default function StatusUpdateModal({
 
   useEffect(() => {
     if (isDelivered && !isPickupType && !amountPaidEdited) {
-      setAmountPaid(totalAmmount.toFixed(2));
+      setAmountPaid(String(totalAmmount));
       if (totalAmmount === 0) {
         const transferencia = paymentMethods.find(
           (pm) => pm.title?.toLowerCase() === "transferencia",
@@ -370,7 +370,7 @@ export default function StatusUpdateModal({
             <Text style={styles.deliveryTitle}>Cliente: {itemTitle}</Text>
             {!isPickupType && (
               <Text style={styles.deliveryTitle}>
-                Total: ${totalAmmount.toFixed(2)}
+                Total: ${totalAmmount}
               </Text>
             )}
             <Text style={styles.currentStatus}>

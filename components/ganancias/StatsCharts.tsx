@@ -5,7 +5,7 @@ import { CustomColors } from '@/constants/CustomColors';
 import { MonthlyStatItem, WeeklyStatItem } from '@/core/actions/ganancias-actions';
 
 const formatDOP = (value: number) =>
-    value.toLocaleString('es-DO', { style: 'currency', currency: 'DOP', maximumFractionDigits: 0 });
+    value.toLocaleString('es-DO', { style: 'currency', currency: 'DOP', maximumFractionDigits: 2 });
 
 const AnimatedBar = ({ ratio, delay, color }: { ratio: number; delay: number; color: string }) => {
     const heightAnim = useRef(new Animated.Value(0)).current;

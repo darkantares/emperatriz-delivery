@@ -157,7 +157,7 @@ function TabOneScreenContent() {
     isLoading: gananciaLoading,
     refresh: refreshGanancias,
   } = useGanancias();
-
+ 
   const handlersRef = useRef({
     onDriverAssigned: (data: any) => { handleDeliveryAssigned(data); },
     onDriversGroupAssigned: (data: any) => { handleDriversGroupAssigned(data); },
