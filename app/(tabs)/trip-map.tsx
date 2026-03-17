@@ -50,7 +50,7 @@ const LEAFLET_MAP_HTML = `<!DOCTYPE html>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body, #map { width: 100%; height: 100%; background: #1a1a2e; }
+    html, body, #map { width: 100%; height: 100%; background: #f0f2f5; }
     .wp-pin {
       border-radius: 50%;
       border: 3px solid white;
@@ -72,7 +72,7 @@ const LEAFLET_MAP_HTML = `<!DOCTYPE html>
   <div id="map"></div>
   <script>
     var map = L.map('map', { zoomControl: true, attributionControl: false }).setView([18.4861, -69.9312], 13);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: ''
     }).addTo(map);
@@ -930,7 +930,7 @@ const styles = StyleSheet.create({
   },
   controlsContainer: {
     position: "absolute",
-    bottom: 160,
+    bottom: 150,
     left: 20,
     right: 20,
   },
