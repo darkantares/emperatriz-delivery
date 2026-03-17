@@ -51,13 +51,6 @@ const LEAFLET_MAP_HTML = `<!DOCTYPE html>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body, #map { width: 100%; height: 100%; background: #f0f2f5; }
-    .wp-pin {
-      border-radius: 50%;
-      border: 3px solid white;
-      display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
-      position: relative;
-    }
     .wp-badge {
       position: absolute; top: -6px; right: -6px;
       background: #DC143C; border-radius: 10px; min-width: 20px; height: 20px;
@@ -88,12 +81,22 @@ const LEAFLET_MAP_HTML = `<!DOCTYPE html>
     }
 
     function makeWpIcon(wp, isTarget) {
-      var color = wp.isFirstInRoute ? '#4CAF50' : wp.isLastInRoute ? '#F44336' : '#FF9800';
-      var size = isTarget ? 44 : 36;
-      var html = '<div class="wp-pin" style="background:' + color + ';width:' + size + 'px;height:' + size + 'px;">';
+      var color = wp.type === 'PICKUP' ? '#2E7D32' : '#C62828';
+      var w = isTarget ? 36 : 28;
+      var h = Math.round(w * 1.4);
+      var r = Math.round(w * 0.3);
+      var cx = w / 2, cy = w / 2;
+      var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '">'
+        + '<path d="M' + cx + ' 0 C' + (cx - w/2) + ' 0 0 ' + (w/2) + ' 0 ' + cy
+        + ' C0 ' + (cy + w * 0.45) + ' ' + cx + ' ' + h + ' ' + cx + ' ' + h
+        + ' C' + cx + ' ' + h + ' ' + w + ' ' + (cy + w * 0.45) + ' ' + w + ' ' + cy
+        + ' C' + w + ' ' + (w/2) + ' ' + (cx + w/2) + ' 0 ' + cx + ' 0Z" fill="' + color + '"/>'
+        + '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="white"/>'
+        + '</svg>';
+      var html = '<div style="position:relative;display:inline-block;">' + svg;
       if (wp.count > 1) html += '<div class="wp-badge">' + wp.count + '</div>';
       html += '</div>';
-      return L.divIcon({ html: html, className: '', iconSize: [size, size], iconAnchor: [size / 2, size] });
+      return L.divIcon({ html: html, className: '', iconSize: [w, h], iconAnchor: [w / 2, h] });
     }
 
     function initRoute(coords, waypoints, targetIdx) {
@@ -481,6 +484,7 @@ export default function TripMapScreen() {
       latitude: g.coordinate.latitude,
       longitude: g.coordinate.longitude,
       count: g.count,
+      type: g.type,
       isFirstInRoute: g.isFirstInRoute,
       isLastInRoute: g.isLastInRoute,
     }));
@@ -720,6 +724,22 @@ export default function TripMapScreen() {
           onMessage={handleWebViewMessage}
         />
 
+        {currentPosition && (
+          <TouchableOpacity
+            style={styles.centerButton}
+            onPress={() =>
+              sendToMap({
+                type: 'SET_VIEW',
+                latitude: currentPosition.latitude,
+                longitude: currentPosition.longitude,
+                zoom: 16,
+              })
+            }
+          >
+            <Text style={styles.centerButtonText}>📍</Text>
+          </TouchableOpacity>
+        )}
+
         {/* {__DEV__ && (
           <View style={styles.devControls}>
             <View style={styles.checkboxRow}>
@@ -958,6 +978,27 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  centerButton: {
+    position: "absolute",
+    top: 16,
+    right: 16,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 4,
+    elevation: 6,
+    zIndex: 10,
+  },
+  centerButtonText: {
+    fontSize: 22,
+    lineHeight: 26,
   },
   devControls: {
     position: "absolute",
