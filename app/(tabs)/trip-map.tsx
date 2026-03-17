@@ -3,13 +3,12 @@ import {
   View,
   StyleSheet,
   ActivityIndicator,
-  Dimensions,
   TouchableOpacity,
   Switch,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Location from "expo-location";
-import MapView, { Marker, Polyline, UrlTile } from "react-native-maps";
+import WebView from "react-native-webview";
 import { Text } from "@/components/Themed";
 import { CustomColors } from "@/constants/CustomColors";
 import { DeliveryItemAdapter } from "@/interfaces/delivery/deliveryAdapters";
@@ -39,6 +38,148 @@ interface WaypointGroup {
   isFirstInRoute: boolean;
   isLastInRoute: boolean;
 }
+
+// ---------------------------------------------------------------------------
+// Leaflet HTML – rendered inside a WebView; no Google Maps SDK required
+// ---------------------------------------------------------------------------
+const LEAFLET_MAP_HTML = `<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body, #map { width: 100%; height: 100%; background: #1a1a2e; }
+    .wp-pin {
+      border-radius: 50%;
+      border: 3px solid white;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      position: relative;
+    }
+    .wp-badge {
+      position: absolute; top: -6px; right: -6px;
+      background: #DC143C; border-radius: 10px; min-width: 20px; height: 20px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; color: white; font-weight: bold;
+      border: 2px solid white; padding: 0 3px;
+    }
+    .courier-wrap { font-size: 22px; line-height: 1; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script>
+    var map = L.map('map', { zoomControl: true, attributionControl: false }).setView([18.4861, -69.9312], 13);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19,
+      attribution: ''
+    }).addTo(map);
+
+    var routeLine = null, traveledLine = null, courierMarker = null;
+    var wpMarkers = [], wpData = [];
+    var courierVisible = true, wpVisible = true;
+
+    function sendMsg(data) {
+      if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify(data));
+      }
+    }
+
+    function makeWpIcon(wp, isTarget) {
+      var color = wp.isFirstInRoute ? '#4CAF50' : wp.isLastInRoute ? '#F44336' : '#FF9800';
+      var size = isTarget ? 44 : 36;
+      var html = '<div class="wp-pin" style="background:' + color + ';width:' + size + 'px;height:' + size + 'px;">';
+      if (wp.count > 1) html += '<div class="wp-badge">' + wp.count + '</div>';
+      html += '</div>';
+      return L.divIcon({ html: html, className: '', iconSize: [size, size], iconAnchor: [size / 2, size] });
+    }
+
+    function initRoute(coords, waypoints, targetIdx) {
+      if (routeLine) map.removeLayer(routeLine);
+      if (traveledLine) { map.removeLayer(traveledLine); traveledLine = null; }
+      wpMarkers.forEach(function(m) { map.removeLayer(m); });
+      wpMarkers = []; wpData = waypoints;
+
+      if (coords.length > 0) {
+        routeLine = L.polyline(coords, { color: '#00BFFF', weight: 5 }).addTo(map);
+        map.fitBounds(routeLine.getBounds(), { padding: [40, 40] });
+      }
+
+      waypoints.forEach(function(wp, i) {
+        var m = L.marker([wp.latitude, wp.longitude], {
+          icon: makeWpIcon(wp, i === targetIdx),
+          zIndexOffset: i === targetIdx ? 1000 : 0
+        });
+        m.on('click', function() { sendMsg({ type: 'MARKER_CLICK', groupIndex: i }); });
+        if (wpVisible) m.addTo(map);
+        wpMarkers.push(m);
+      });
+    }
+
+    function updatePosition(lat, lng) {
+      var ll = [lat, lng];
+      if (!courierMarker) {
+        var icon = L.divIcon({ html: '<div class="courier-wrap">\uD83C\uDFCD\uFE0F</div>', className: '', iconSize: [30, 30], iconAnchor: [15, 15] });
+        courierMarker = L.marker(ll, { icon: icon, zIndexOffset: 0 });
+        if (courierVisible) courierMarker.addTo(map);
+      } else {
+        courierMarker.setLatLng(ll);
+      }
+    }
+
+    function updateTraveled(coords) {
+      if (traveledLine) map.removeLayer(traveledLine);
+      if (coords.length > 1) {
+        traveledLine = L.polyline(coords, { color: '#FFD700', weight: 5 }).addTo(map);
+      }
+    }
+
+    function updateTarget(idx) {
+      wpMarkers.forEach(function(m, i) {
+        m.setIcon(makeWpIcon(wpData[i], i === idx));
+        m.setZIndexOffset(i === idx ? 1000 : 0);
+      });
+    }
+
+    function setView(lat, lng, zoom) {
+      map.setView([lat, lng], zoom !== undefined ? zoom : map.getZoom());
+    }
+
+    function updateVisibility(showCourier, showWaypoints) {
+      courierVisible = showCourier;
+      wpVisible = showWaypoints;
+      if (courierMarker) {
+        if (showCourier && !map.hasLayer(courierMarker)) map.addLayer(courierMarker);
+        else if (!showCourier && map.hasLayer(courierMarker)) map.removeLayer(courierMarker);
+      }
+      wpMarkers.forEach(function(m) {
+        if (showWaypoints && !map.hasLayer(m)) map.addLayer(m);
+        else if (!showWaypoints && map.hasLayer(m)) map.removeLayer(m);
+      });
+    }
+
+    function handleMessage(raw) {
+      try {
+        var msg = JSON.parse(raw);
+        switch (msg.type) {
+          case 'INIT_ROUTE':      initRoute(msg.routeCoordinates, msg.waypoints, msg.targetGroupIndex); break;
+          case 'UPDATE_POSITION': updatePosition(msg.latitude, msg.longitude); break;
+          case 'UPDATE_TRAVELED': updateTraveled(msg.traveledCoords); break;
+          case 'UPDATE_TARGET':   updateTarget(msg.groupIndex); break;
+          case 'SET_VIEW':        setView(msg.latitude, msg.longitude, msg.zoom); break;
+          case 'UPDATE_VISIBILITY': updateVisibility(msg.showCourier, msg.showWaypoints); break;
+        }
+      } catch(e) {}
+    }
+
+    document.addEventListener('message', function(e) { handleMessage(e.data); });
+    window.addEventListener('message', function(e) { handleMessage(e.data); });
+    sendMsg({ type: 'MAP_READY' });
+  </script>
+</body>
+</html>`;
 
 export default function TripMapScreen() {
   const router = useRouter();
@@ -79,12 +220,20 @@ export default function TripMapScreen() {
   const [deliveryStatusOverrides, setDeliveryStatusOverrides] = useState<
     Map<string, string>
   >(new Map());
+  const [mapReady, setMapReady] = useState<boolean>(false);
 
-  const mapRef = useRef<MapView>(null);
+  const webViewRef = useRef<WebView>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const locationSubscription = useRef<Location.LocationSubscription | null>(
     null,
   );
+
+  /** Send a typed message to the Leaflet map running inside the WebView. */
+  const sendToMap = (data: object) => {
+    webViewRef.current?.injectJavaScript(
+      `handleMessage(${JSON.stringify(JSON.stringify(data))});true;`,
+    );
+  };
 
   const handleProgressGroup = (deliveries: DeliveryItemAdapter[]) => {
     if (deliveries.length === 0) return;
@@ -225,19 +374,7 @@ export default function TripMapScreen() {
       setTotalDuration(trip.duration);
       setRemainingDistance(trip.distance);
       setRemainingDuration(trip.duration);
-
-      if (waypointsWithDeliveries.length > 0 && mapRef.current) {
-        const firstCoord = waypointsWithDeliveries[0].coordinate;
-        mapRef.current.animateToRegion(
-          {
-            latitude: firstCoord.latitude,
-            longitude: firstCoord.longitude,
-            latitudeDelta: 0.1,
-            longitudeDelta: 0.1,
-          },
-          1000,
-        );
-      }
+      // Map centering is handled by the INIT_ROUTE Leaflet call (fitBounds)
     } catch (err) {
       console.error("[TripMapScreen] Error procesando trip data:", err);
     }
@@ -333,6 +470,76 @@ export default function TripMapScreen() {
     });
   };
 
+  // -------------------------------------------------------------------------
+  // Sync React state → Leaflet map (WebView messages)
+  // -------------------------------------------------------------------------
+
+  // Send route + waypoints once the map is ready (or when route data arrives)
+  useEffect(() => {
+    if (!mapReady || routeCoordinates.length === 0 || groupedWaypoints.length === 0) return;
+    const waypoints = groupedWaypoints.map((g) => ({
+      latitude: g.coordinate.latitude,
+      longitude: g.coordinate.longitude,
+      count: g.count,
+      isFirstInRoute: g.isFirstInRoute,
+      isLastInRoute: g.isLastInRoute,
+    }));
+    sendToMap({
+      type: "INIT_ROUTE",
+      routeCoordinates: routeCoordinates.map((c) => [c.latitude, c.longitude]),
+      waypoints,
+      targetGroupIndex: currentTargetGroupIndex,
+    });
+  }, [mapReady, routeCoordinates, groupedWaypoints]);
+
+  // Keep the courier marker in sync with GPS / simulation position
+  useEffect(() => {
+    if (!mapReady || !currentPosition) return;
+    sendToMap({
+      type: "UPDATE_POSITION",
+      latitude: currentPosition.latitude,
+      longitude: currentPosition.longitude,
+    });
+  }, [mapReady, currentPosition]);
+
+  // Update the "already traveled" polyline segment
+  useEffect(() => {
+    if (!mapReady || !isTraveling || currentIndex === 0) return;
+    const traveledCoords = routeCoordinates
+      .slice(0, currentIndex + 1)
+      .map((c) => [c.latitude, c.longitude]);
+    sendToMap({ type: "UPDATE_TRAVELED", traveledCoords });
+  }, [mapReady, currentIndex, isTraveling, routeCoordinates]);
+
+  // Highlight the current target waypoint
+  useEffect(() => {
+    if (!mapReady) return;
+    sendToMap({ type: "UPDATE_TARGET", groupIndex: currentTargetGroupIndex });
+  }, [mapReady, currentTargetGroupIndex]);
+
+  // Show / hide layers (DEV controls)
+  useEffect(() => {
+    if (!mapReady) return;
+    sendToMap({
+      type: "UPDATE_VISIBILITY",
+      showCourier: !hideCourierIcon,
+      showWaypoints: !hideOtherIcons,
+    });
+  }, [mapReady, hideCourierIcon, hideOtherIcons]);
+
+  // Handle messages coming FROM the WebView (e.g. marker clicks)
+  const handleWebViewMessage = (event: { nativeEvent: { data: string } }) => {
+    try {
+      const msg = JSON.parse(event.nativeEvent.data) as { type: string; groupIndex?: number };
+      if (msg.type === "MAP_READY") {
+        setMapReady(true);
+      } else if (msg.type === "MARKER_CLICK" && msg.groupIndex !== undefined) {
+        const group = groupedWaypoints[msg.groupIndex];
+        if (group) handleProgressGroup(group.deliveries);
+      }
+    } catch (_) {}
+  };
+
   // Advance to the next group when all deliveries in the current one are completed
   useEffect(() => {
     if (groupedWaypoints.length === 0 || completedDeliveryIds.size === 0)
@@ -381,17 +588,12 @@ export default function TripMapScreen() {
           const expectedPosition = routeCoordinates[nextIndex];
           const actualPosition = simulateDeviation(expectedPosition);
           setCurrentPosition(actualPosition);
-          if (mapRef.current) {
-            mapRef.current.animateToRegion(
-              {
-                latitude: actualPosition.latitude,
-                longitude: actualPosition.longitude,
-                latitudeDelta: 0.01,
-                longitudeDelta: 0.01,
-              },
-              1000,
-            );
-          }
+          sendToMap({
+            type: 'SET_VIEW',
+            latitude: actualPosition.latitude,
+            longitude: actualPosition.longitude,
+            zoom: 15,
+          });
           const progressPercentage = nextIndex / routeCoordinates.length;
           setRemainingDistance(totalDistance * (1 - progressPercentage));
           setRemainingDuration(totalDuration * (1 - progressPercentage));
@@ -414,17 +616,12 @@ export default function TripMapScreen() {
                 longitude: location.coords.longitude,
               };
               setCurrentPosition(actualPosition);
-              if (mapRef.current) {
-                mapRef.current.animateToRegion(
-                  {
-                    latitude: actualPosition.latitude,
-                    longitude: actualPosition.longitude,
-                    latitudeDelta: 0.01,
-                    longitudeDelta: 0.01,
-                  },
-                  1000,
-                );
-              }
+              sendToMap({
+                type: 'SET_VIEW',
+                latitude: actualPosition.latitude,
+                longitude: actualPosition.longitude,
+                zoom: 15,
+              });
               let closestIndex = 0;
               let minDistance = Infinity;
               routeCoordinates.forEach((coord, index) => {
@@ -511,100 +708,19 @@ export default function TripMapScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
       <View style={styles.container}>
-        <MapView
-          ref={mapRef}
+        <WebView
+          ref={webViewRef}
           style={styles.map}
-          initialRegion={{
-            latitude: waypointsWithDeliveries[0]?.coordinate.latitude || 0,
-            longitude: waypointsWithDeliveries[0]?.coordinate.longitude || 0,
-            latitudeDelta: 0.1,
-            longitudeDelta: 0.1,
-          }}
-          mapType="none"
-        >
-          <UrlTile
-            urlTemplate="https://cartodb-basemaps-a.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png"
-            maximumZ={19}
-            flipY={false}
-          />
+          source={{ html: LEAFLET_MAP_HTML }}
+          originWhitelist={["*"]}
+          javaScriptEnabled
+          domStorageEnabled
+          onMessage={handleWebViewMessage}
+        />
 
-          {routeCoordinates.length > 0 && (
-            <Polyline
-              coordinates={routeCoordinates}
-              strokeColor="#00BFFF"
-              strokeWidth={5}
-            />
-          )}
-
-          {isTraveling && currentIndex > 0 && routeCoordinates.length > 0 && (
-            <Polyline
-              coordinates={routeCoordinates.slice(0, currentIndex + 1)}
-              strokeColor="#FFD700"
-              strokeWidth={5}
-            />
-          )}
-
-          {!hideOtherIcons &&
-            (() => {
-              const group = groupedWaypoints[currentTargetGroupIndex];
-              if (!group) return null;
-              const markerColor = group.isFirstInRoute
-                ? "#4CAF50"
-                : group.isLastInRoute
-                  ? "#F44336"
-                  : "#FF9800";
-              return (
-                <Marker
-                  key={`group-${group.coordinate.latitude}-${group.coordinate.longitude}`}
-                  coordinate={group.coordinate}
-                  zIndex={1000}
-                >
-                  <View style={styles.customMarker}>
-                    <View
-                      style={[
-                        styles.markerPin,
-                        { backgroundColor: markerColor },
-                      ]}
-                    >
-                      {group.count > 1 && (
-                        <View style={styles.markerBadge}>
-                          <Text style={styles.markerBadgeText}>
-                            {group.count}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                    <View
-                      style={[
-                        styles.markerArrow,
-                        { borderTopColor: markerColor },
-                      ]}
-                    />
-                  </View>
-                </Marker>
-              );
-            })()}
-
-          {currentPosition && !hideCourierIcon && (
-            <Marker
-              key="courier-position"
-              coordinate={currentPosition}
-              title="Tu posición"
-              description={isTraveling ? "En movimiento" : ""}
-              zIndex={0}
-            >
-              <View style={styles.courierMarker}>
-                <View style={styles.courierMarkerInner}>
-                  <Text style={styles.courierMarkerText}>🏍️</Text>
-                </View>
-              </View>
-            </Marker>
-          )}
-        </MapView>
-
-        {__DEV__ && (
+        {/* {__DEV__ && (
           <View style={styles.devControls}>
             <View style={styles.checkboxRow}>
               <Text style={styles.devLabel}>Ocultar icono conductor</Text>
@@ -621,7 +737,7 @@ export default function TripMapScreen() {
               />
             </View>
           </View>
-        )}
+        )} */}
 
         <View style={styles.controlsContainer}>
           {(() => {
@@ -706,10 +822,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: CustomColors.backgroundDarkest,
+    position: "relative",
   },
   map: {
-    width: Dimensions.get("window").width,
-    height: Dimensions.get("window").height,
+    ...StyleSheet.absoluteFillObject,
   },
   centerContainer: {
     flex: 1,
@@ -814,7 +930,7 @@ const styles = StyleSheet.create({
   },
   controlsContainer: {
     position: "absolute",
-    bottom: 130,
+    bottom: 160,
     left: 20,
     right: 20,
   },
