@@ -16,6 +16,7 @@ import { IDeliveryStatus } from "@/interfaces/delivery/deliveryStatus";
 import { AssignmentType } from "@/utils/enum";
 import { useRouteContext } from "@/contexts/RouteContext";
 import RouteInfoPanel from "@/components/RouteInfoPanel";
+import AssignmentDetailsModal from "@/components/AssignmentDetailsModal";
 import GroupStatusUpdateModal from "@/components/status-update/GroupStatusUpdateModal";
 import { useRouter } from "expo-router";
 
@@ -205,6 +206,10 @@ export default function TripMapScreen() {
     totalAmount: number;
   } | null>(null);
 
+  const [assignmentModalVisible, setAssignmentModalVisible] = useState(false);
+  const [selectedAssignment, setSelectedAssignment] = useState<DeliveryItemAdapter | null>(null);
+
+
   const [currentPosition, setCurrentPosition] = useState<Coordinate | null>(
     null,
   );
@@ -263,6 +268,15 @@ export default function TripMapScreen() {
       totalAmount,
     });
     setGroupStatusModalVisible(true);
+  };
+
+  const handleMarkerClick = (groupIndex: number) => {
+    const group = groupedWaypoints[groupIndex];
+    if (!group) return;
+
+    // Show a modal with assignment details and quick action buttons.
+    setSelectedAssignment(group.deliveries[0]);
+    setAssignmentModalVisible(true);
   };
 
   const groupWaypointsByCoordinates = (
@@ -538,8 +552,7 @@ export default function TripMapScreen() {
       if (msg.type === "MAP_READY") {
         setMapReady(true);
       } else if (msg.type === "MARKER_CLICK" && msg.groupIndex !== undefined) {
-        const group = groupedWaypoints[msg.groupIndex];
-        if (group) handleProgressGroup(group.deliveries);
+        handleMarkerClick(msg.groupIndex);
       }
     } catch (_) {}
   };
@@ -794,6 +807,15 @@ export default function TripMapScreen() {
           isTraveling={isTraveling}
           remainingDistance={remainingDistance}
           remainingDuration={remainingDuration}
+        />
+
+        <AssignmentDetailsModal
+          visible={assignmentModalVisible && !!selectedAssignment}
+          onClose={() => {
+            setAssignmentModalVisible(false);
+            setSelectedAssignment(null);
+          }}
+          assignment={selectedAssignment ?? ({} as DeliveryItemAdapter)}
         />
 
         {groupStatusModalParams && (
