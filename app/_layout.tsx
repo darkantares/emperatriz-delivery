@@ -6,7 +6,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useRef, useState } from 'react';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { View, Image, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Image, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { ActiveDeliveryProvider } from '@/context/ActiveDeliveryContext';
@@ -17,8 +17,9 @@ import { CustomColors } from '@/constants/CustomColors';
 import LoadingScreen from '@/components/LoadingScreen';
 import { NotificationHandler } from '@/components/NotificationHandler';
 import * as NavigationBar from 'expo-navigation-bar';
-import { checkApiConnectivity } from '@/services/api';
+import { api, checkApiConnectivity } from '@/services/api';
 import { setupDeepLinkListeners } from '@/utils/deepLinkHandler';
+import Constants from 'expo-constants';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -77,12 +78,14 @@ export default function RootLayout() {
 
 // Protección de rutas
 function ProtectedRouteGuard({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const { fetchDeliveries } = useDelivery();
   const segments = useSegments();
   const navigationState = useRootNavigationState();
   const lastOnline = useRef<boolean | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const registeredPushUsersRef = useRef<Set<number>>(new Set());
+  const isExpoGo = Constants.appOwnership === 'expo';
 
   useEffect(() => {
     if (isLoading || !navigationState?.key) return;
@@ -124,6 +127,102 @@ function ProtectedRouteGuard({ children }: { children: React.ReactNode }) {
       }
     };
   }, [isAuthenticated, isLoading]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user?.id) return;
+    if (isExpoGo) {
+      console.log('[Push] Skipping push token registration in Expo Go');
+      return;
+    }
+    if (registeredPushUsersRef.current.has(user.id)) return;
+
+    const registerPushToken = async () => {
+      try {
+        const Notifications = await import('expo-notifications');
+
+        if (Platform.OS === 'android') {
+          await Notifications.setNotificationChannelAsync('default', {
+            name: 'default',
+            importance: Notifications.AndroidImportance.MAX,
+            vibrationPattern: [0, 250, 250, 250],
+            lightColor: '#FF231F7C',
+          });
+        }
+
+        const permissions = await Notifications.getPermissionsAsync();
+        let finalStatus = permissions.status;
+
+        if (finalStatus !== 'granted') {
+          const requestResult = await Notifications.requestPermissionsAsync();
+          finalStatus = requestResult.status;
+        }
+
+        if (finalStatus !== 'granted') {
+          console.log('[Push] Permission not granted');
+          return;
+        }
+
+        const projectId =
+          Constants.expoConfig?.extra?.eas?.projectId ||
+          Constants.easConfig?.projectId;
+
+        const tokenResult = await Notifications.getExpoPushTokenAsync(
+          projectId ? { projectId } : undefined,
+        );
+
+        const registerResult = await api.post('/notifications/token', {
+          userId: user.id,
+          token: tokenResult.data,
+        });
+
+        if (registerResult.error) {
+          throw new Error(registerResult.error);
+        }
+
+        registeredPushUsersRef.current.add(user.id);
+        console.log('[Push] Token registered for user', user.id, registerResult.data?.data);
+      } catch (error) {
+        console.log('[Push] Error registering token:', error);
+      }
+    };
+
+    registerPushToken();
+  }, [isAuthenticated, isExpoGo, user?.id]);
+
+  useEffect(() => {
+    if (isExpoGo) {
+      return;
+    }
+
+    let receivedSubscription: { remove: () => void } | null = null;
+    let responseSubscription: { remove: () => void } | null = null;
+
+    const setupListeners = async () => {
+      try {
+        const Notifications = await import('expo-notifications');
+
+        receivedSubscription = Notifications.addNotificationReceivedListener(
+          (notification) => {
+            console.log('[Push] Notification received:', notification.request.content);
+          },
+        );
+
+        responseSubscription =
+          Notifications.addNotificationResponseReceivedListener((response) => {
+            console.log('[Push] Notification response:', response);
+          });
+      } catch (error) {
+        console.log('[Push] Error setting notification listeners:', error);
+      }
+    };
+
+    setupListeners();
+
+    return () => {
+      receivedSubscription?.remove();
+      responseSubscription?.remove();
+    };
+  }, [isExpoGo]);
   
   if (isLoading) {
     return <LoadingScreen />;
