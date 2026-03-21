@@ -105,7 +105,8 @@
           "root": "./app"
         }
       ],
-      "expo-notifications",
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging",
       "expo-audio",
       "expo-asset",
       "expo-build-properties"

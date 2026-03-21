@@ -3,10 +3,10 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { useFonts } from 'expo-font';
 import { Stack, router, useSegments, useRootNavigationState } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { View, Image, ActivityIndicator, StyleSheet, Platform, AppState, AppStateStatus } from 'react-native';
+import { View, Image, ActivityIndicator, StyleSheet } from 'react-native';
 
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { ActiveDeliveryProvider } from '@/context/ActiveDeliveryContext';
@@ -19,9 +19,8 @@ import { NotificationHandler } from '@/components/NotificationHandler';
 import * as NavigationBar from 'expo-navigation-bar';
 import { api, checkApiConnectivity } from '@/services/api';
 import { setupDeepLinkListeners } from '@/utils/deepLinkHandler';
-import Constants from 'expo-constants';
-import { NotificationType, queueNotification } from '@/services/notificationService';
 import { useBatteryOptimizationCheck } from '@/core/hooks/useBatteryOptimizationCheck';
+import { useFCMPushNotifications } from '@/core/hooks/useFCMPushNotifications';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -86,110 +85,8 @@ function ProtectedRouteGuard({ children }: { children: React.ReactNode }) {
   const navigationState = useRootNavigationState();
   const lastOnline = useRef<boolean | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const registeredPushUsersRef = useRef<Set<number>>(new Set());
-  const isExpoGo = Constants.executionEnvironment === 'storeClient';
 
-  const registerPushToken = useCallback(async () => {
-    if (!isAuthenticated || !user?.id || isExpoGo) return;
-
-    try {
-      const Notifications = await import('expo-notifications');
-
-      if (Platform.OS === 'android') {
-        await Notifications.setNotificationChannelAsync('default', {
-          name: 'default',
-          importance: Notifications.AndroidImportance.MAX,
-          vibrationPattern: [0, 250, 250, 250],
-          lightColor: '#FF231F7C',
-          description: 'Canal de notificaciones de alta prioridad',
-        });
-      }
-
-      const permissions = await Notifications.getPermissionsAsync();
-      let finalStatus = permissions.status;
-
-      if (finalStatus !== 'granted') {
-        const requestResult = await Notifications.requestPermissionsAsync();
-        finalStatus = requestResult.status;
-      }
-
-      if (finalStatus !== 'granted') {
-        console.log('[Push] Permission not granted');
-        return;
-      }
-
-      const projectId =
-        Constants.expoConfig?.extra?.eas?.projectId ||
-        Constants.easConfig?.projectId;
-
-      const tokenResult = await Notifications.getExpoPushTokenAsync(
-        projectId ? { projectId } : undefined,
-      );
-
-      const registerResult = await api.post('/notifications/token', {
-        userId: user.id,
-        token: tokenResult.data,
-      });
-
-      if (registerResult.error) {
-        throw new Error(registerResult.error);
-      }
-
-      registeredPushUsersRef.current.add(user.id);
-      console.log('[Push] Token registered for user', user.id, registerResult.data?.data);
-    } catch (error) {
-      console.log('[Push] Error registering token:', error);
-    }
-  }, [isAuthenticated, isExpoGo, user?.id]);
-
-  // Re-register push token when app comes to foreground.
-  // This handles the case where the backend restarted and lost the in-memory token.
-  useEffect(() => {
-    if (isExpoGo) return;
-
-    const handleAppStateChange = (nextState: AppStateStatus) => {
-      if (nextState === 'active' && isAuthenticated && user?.id) {
-        registeredPushUsersRef.current.delete(user.id);
-        registerPushToken();
-      }
-    };
-
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
-    return () => subscription.remove();
-  }, [isExpoGo, isAuthenticated, user?.id, registerPushToken]);
-
-  useEffect(() => {
-    if (isExpoGo) {
-      return;
-    }
-
-    let cancelled = false;
-
-    const configureNotifications = async () => {
-      try {
-        const Notifications = await import('expo-notifications');
-        if (cancelled) return;
-
-        Notifications.setNotificationHandler({
-          handleNotification: async () => ({
-            shouldShowAlert: true,
-            shouldShowBanner: true,
-            shouldShowList: true,
-            shouldPlaySound: true,
-            shouldSetBadge: false,
-          }),
-        });
-      } catch (error) {
-        console.log('[Push] Error setting notification handler:', error);
-      }
-    };
-
-    configureNotifications();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isExpoGo]);
+  useFCMPushNotifications(user?.id);
 
   useEffect(() => {
     if (isLoading || !navigationState?.key) return;
@@ -232,63 +129,6 @@ function ProtectedRouteGuard({ children }: { children: React.ReactNode }) {
     };
   }, [isAuthenticated, isLoading]);
 
-  useEffect(() => {
-    console.log('[EXPO] STARTING EXPO NOTIFICATION');
-
-    if (!isAuthenticated || !user?.id) {
-      console.log(isAuthenticated);
-      console.log(user);
-      console.log('NO AUTH O USER');
-      return;
-    }
-    if (isExpoGo) {
-      console.log('[Push] Skipping push token registration in Expo Go');
-      return;
-    }
-    if (registeredPushUsersRef.current.has(user.id)) return;
-
-    registerPushToken();
-  }, [isAuthenticated, isExpoGo, user?.id, registerPushToken]);
-
-  useEffect(() => {
-    if (isExpoGo) {
-      return;
-    }
-
-    let receivedSubscription: { remove: () => void } | null = null;
-    let responseSubscription: { remove: () => void } | null = null;
-
-    const setupListeners = async () => {
-      try {
-        const Notifications = await import('expo-notifications');
-
-        receivedSubscription = Notifications.addNotificationReceivedListener(
-          (notification) => {
-            const deliveredAt = new Date().toISOString();
-            console.log('[Push] Notification received:', notification.request.content, 'deliveredAt:', deliveredAt);
-            const title = notification.request.content.title || 'Nueva notificacion';
-            const body = notification.request.content.body || '';
-            queueNotification(NotificationType.INFO, title, body, true);
-          },
-        );
-
-        responseSubscription =
-          Notifications.addNotificationResponseReceivedListener((response) => {
-            console.log('[Push] Notification response:', response);
-          });
-      } catch (error) {
-        console.log('[Push] Error setting notification listeners:', error);
-      }
-    };
-
-    setupListeners();
-
-    return () => {
-      receivedSubscription?.remove();
-      responseSubscription?.remove();
-    };
-  }, [isExpoGo]);
-  
   if (isLoading) {
     return <LoadingScreen />;
   }
