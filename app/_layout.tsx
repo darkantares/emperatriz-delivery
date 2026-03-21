@@ -21,6 +21,7 @@ import { api, checkApiConnectivity } from '@/services/api';
 import { setupDeepLinkListeners } from '@/utils/deepLinkHandler';
 import Constants from 'expo-constants';
 import { NotificationType, queueNotification } from '@/services/notificationService';
+import { useBatteryOptimizationCheck } from '@/core/hooks/useBatteryOptimizationCheck';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -297,6 +298,8 @@ function ProtectedRouteGuard({ children }: { children: React.ReactNode }) {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
+
+  useBatteryOptimizationCheck();
 
   useEffect(() => {
     // Setup deep link listeners for handling shared locations
