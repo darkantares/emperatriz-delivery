@@ -27,7 +27,7 @@ const TopRoute = ({ route, isLoading = false }: TopRouteProps) => {
                         <View style={styles.info}>
                             <Text style={styles.label}>RUTA ESTRELLA</Text>
                             <Text style={styles.routeName} numberOfLines={2}>{Capitalize(route.routeName)}</Text>
-                            <Text style={styles.subtext}>{route.deliveryCount} entregas · {formatDOP(route.totalEarnings)} generado</Text>
+                            <Text style={styles.subtext}>{route.deliveryCount} entrega/s </Text>
                         </View>
                     ) : (
                         <View style={styles.info}>
