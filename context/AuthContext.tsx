@@ -45,13 +45,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsAuthenticated(isAuth);
 
         if (isAuth) {
-          // Obtener datos de autenticación guardados
-          const authData = await authService.getAuthData();
-          
-          if (authData.user) {
-            setUser(authData.user);
-            setCarrier(authData.carrier || null);
-            setRoles(authData.roles || []);
+          // Sincronizar usuario con backend en cada carga/recarga
+          const whoami = await authService.fetchWhoami();
+
+          if (whoami.success && whoami.data) {
+            setUser(whoami.data.user);
+            setCarrier(whoami.data.carrier || null);
+            setRoles(whoami.data.roles || []);
+          } else {
+            // Fallback a storage local si whoami falla temporalmente
+            const authData = await authService.getAuthData();
+
+            if (authData.user) {
+              setUser(authData.user);
+              setCarrier(authData.carrier || null);
+              setRoles(authData.roles || []);
+            }
           }
         }
       } catch (error) {

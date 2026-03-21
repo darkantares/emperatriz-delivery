@@ -117,6 +117,61 @@ export const authService = {
         }
     },
 
+    fetchWhoami: async (): Promise<{
+        success: boolean;
+        data?: {
+            user: IUserEntity;
+            roles: IRolesAllowedEntity[];
+            carrier: DeliveryPersonEntity | null;
+        };
+        error?: string;
+        details?: any;
+    }> => {
+        try {
+            const response = await api.get<IUserEntity>('auth/whoami');
+
+            if (response.error || !response.data) {
+                return {
+                    success: false,
+                    error: response.error || 'No se pudo obtener la informacion del usuario',
+                    details: response.details,
+                };
+            }
+
+            const userData = extractDataFromResponse<IUserEntity>(response);
+
+            if (!userData) {
+                return {
+                    success: false,
+                    error: 'Respuesta invalida del endpoint whoami',
+                    details: response,
+                };
+            }
+
+            const normalizedRoles = userData.userRoles ?? [];
+            const normalizedCarrier = userData.carrier ?? null;
+
+            await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(userData));
+            await AsyncStorage.setItem(USER_ROLES_KEY, JSON.stringify(normalizedRoles));
+            await AsyncStorage.setItem(CARRIER_DATA_KEY, JSON.stringify(normalizedCarrier));
+
+            return {
+                success: true,
+                data: {
+                    user: userData,
+                    roles: normalizedRoles,
+                    carrier: normalizedCarrier,
+                },
+            };
+        } catch (error) {
+            console.log('Error fetching whoami:', error);
+            return {
+                success: false,
+                error: 'Error al sincronizar la informacion del usuario',
+            };
+        }
+    },
+
     refreshToken: async () => {
         const refreshToken = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
         if (!refreshToken) return { success: false };

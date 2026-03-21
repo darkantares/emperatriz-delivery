@@ -76,15 +76,15 @@ class CourierLocationTrackingService {
    */
   initialize(config?: Partial<LocationTrackingConfig>) {
     this.config = { ...DEFAULT_CONFIG, ...config };
-    console.log('[LocationTracking] Inicializado con config:', this.config);
+    // console.log('[LocationTracking] Inicializado con config:', this.config);
     
     // Registrar listeners para respuestas del backend
     socketService.on('courier.location.ack', (data: any) => {
-      console.log('[LocationTracking] ✅ ACK recibido del backend:', data);
+      // console.log('[LocationTracking] ✅ ACK recibido del backend:', data);
     });
     
     socketService.on('courier.location.error', (error: any) => {
-      console.error('[LocationTracking] ❌ Error recibido del backend:', error);
+      // console.error('[LocationTracking] ❌ Error recibido del backend:', error);
     });
   }
 
@@ -93,7 +93,7 @@ class CourierLocationTrackingService {
    */
   setUserId(userId: number) {
     this.userId = userId;
-    console.log('[LocationTracking] User ID establecido:', userId);
+    // console.log('[LocationTracking] User ID establecido:', userId);
   }
 
   /**
@@ -102,19 +102,19 @@ class CourierLocationTrackingService {
    */
   async requestPermissions(): Promise<boolean> {
     try {
-      console.log('[LocationTracking] Solicitando permisos de ubicación...');
+      // console.log('[LocationTracking] Solicitando permisos de ubicación...');
 
       const { status: foregroundStatus } = await Location.requestForegroundPermissionsAsync();
 
       if (foregroundStatus !== 'granted') {
-        console.warn('[LocationTracking] Permisos de ubicación denegados');
+        // console.warn('[LocationTracking] Permisos de ubicación denegados');
         return false;
       }
 
-      console.log('[LocationTracking] Permisos de ubicación otorgados');
+      // console.log('[LocationTracking] Permisos de ubicación otorgados');
       return true;
     } catch (error) {
-      console.error('[LocationTracking] Error al solicitar permisos:', error);
+      // console.error('[LocationTracking] Error al solicitar permisos:', error);
       return false;
     }
   }
@@ -127,7 +127,7 @@ class CourierLocationTrackingService {
       const { status } = await Location.getForegroundPermissionsAsync();
       return status === 'granted';
     } catch (error) {
-      console.error('[LocationTracking] Error al verificar permisos:', error);
+      // console.error('[LocationTracking] Error al verificar permisos:', error);
       return false;
     }
   }
@@ -137,48 +137,48 @@ class CourierLocationTrackingService {
    */
   async startTracking(): Promise<boolean> {
     try {
-      console.log('[LocationTracking] startTracking() llamado');
+      // console.log('[LocationTracking] startTracking() llamado');
       
       if (this.isTracking) {
-        console.log('[LocationTracking] Ya está en tracking');
+        // console.log('[LocationTracking] Ya está en tracking');
         return true;
       }
 
       if (!this.userId) {
-        console.warn('[LocationTracking] ❌ No se puede iniciar tracking sin userId');
+        // console.warn('[LocationTracking] ❌ No se puede iniciar tracking sin userId');
         return false;
       }
-      console.log('[LocationTracking] ✅ userId configurado:', this.userId);
+      // console.log('[LocationTracking] ✅ userId configurado:', this.userId);
 
       // Verificar permisos
       const hasPermissions = await this.hasPermissions();
-      console.log('[LocationTracking] hasPermissions:', hasPermissions);
+      // console.log('[LocationTracking] hasPermissions:', hasPermissions);
       
       if (!hasPermissions) {
-        console.log('[LocationTracking] Solicitando permisos...');
+        // console.log('[LocationTracking] Solicitando permisos...');
         const granted = await this.requestPermissions();
         if (!granted) {
-          console.warn('[LocationTracking] ❌ No se puede iniciar sin permisos');
+          // console.warn('[LocationTracking] ❌ No se puede iniciar sin permisos');
           return false;
         }
-        console.log('[LocationTracking] ✅ Permisos otorgados');
+        // console.log('[LocationTracking] ✅ Permisos otorgados');
       }
 
       // Verificar que el WebSocket esté conectado
       const isSocketConnected = socketService.isConnected();
-      console.log('[LocationTracking] WebSocket conectado:', isSocketConnected);
+      // console.log('[LocationTracking] WebSocket conectado:', isSocketConnected);
       
       if (!isSocketConnected) {
-        console.warn('[LocationTracking] ❌ WebSocket no conectado, no se inicia tracking');
+        // console.warn('[LocationTracking] ❌ WebSocket no conectado, no se inicia tracking');
         return false;
       }
 
-      console.log('[LocationTracking] Iniciando tracking de ubicación...');
-      console.log('[LocationTracking] Config:', {
-        timeInterval: this.config.updateInterval,
-        distanceInterval: this.config.minDistance,
-        accuracy: 'Balanced'
-      });
+      // console.log('[LocationTracking] Iniciando tracking de ubicación...');
+      // console.log('[LocationTracking] Config:', {
+      //   timeInterval: this.config.updateInterval,
+      //   distanceInterval: this.config.minDistance,
+      //   accuracy: 'Balanced'
+      // });
 
       // Iniciar tracking de ubicación
       this.locationSubscription = await Location.watchPositionAsync(
@@ -188,16 +188,16 @@ class CourierLocationTrackingService {
           distanceInterval: this.config.minDistance, // 0 en dev = se dispara solo por tiempo
         },
         (location) => {
-          console.log('[LocationTracking] 📍 Nueva ubicación recibida del GPS');
+          // console.log('[LocationTracking] 📍 Nueva ubicación recibida del GPS');
           this.handleLocationUpdate(location);
         }
       );
 
       this.isTracking = true;
-      console.log('[LocationTracking] ✅ Tracking iniciado correctamente');
+      // console.log('[LocationTracking] ✅ Tracking iniciado correctamente');
       return true;
     } catch (error) {
-      console.error('[LocationTracking] ❌ Error al iniciar tracking:', error);
+      // console.error('[LocationTracking] ❌ Error al iniciar tracking:', error);
       this.isTracking = false;
       return false;
     }
@@ -209,11 +209,11 @@ class CourierLocationTrackingService {
   async stopTracking(): Promise<void> {
     try {
       if (!this.isTracking) {
-        console.log('[LocationTracking] No hay tracking activo');
+        // console.log('[LocationTracking] No hay tracking activo');
         return;
       }
 
-      console.log('[LocationTracking] Deteniendo tracking de ubicación...');
+      // console.log('[LocationTracking] Deteniendo tracking de ubicación...');
 
       if (this.locationSubscription) {
         this.locationSubscription.remove();
@@ -224,9 +224,9 @@ class CourierLocationTrackingService {
       this.lastSentLocation = null;
       this.lastSentTime = 0;
 
-      console.log('[LocationTracking] Tracking detenido');
+      // console.log('[LocationTracking] Tracking detenido');
     } catch (error) {
-      console.error('[LocationTracking] Error al detener tracking:', error);
+      // console.error('[LocationTracking] Error al detener tracking:', error);
     }
   }
 
@@ -235,16 +235,16 @@ class CourierLocationTrackingService {
    */
   private handleLocationUpdate(location: Location.LocationObject) {
     try {
-      console.log('[LocationTracking] 🔄 handleLocationUpdate() llamado');
-      console.log('[LocationTracking] Coordenadas:', {
-        lat: location.coords.latitude.toFixed(6),
-        lng: location.coords.longitude.toFixed(6),
-        accuracy: location.coords.accuracy?.toFixed(1)
-      });
+      // console.log('[LocationTracking] 🔄 handleLocationUpdate() llamado');
+      // console.log('[LocationTracking] Coordenadas:', {
+      //   lat: location.coords.latitude.toFixed(6),
+      //   lng: location.coords.longitude.toFixed(6),
+      //   accuracy: location.coords.accuracy?.toFixed(1)
+      // });
       
       // Verificar que el WebSocket esté conectado
       if (!socketService.isConnected()) {
-        console.log('[LocationTracking] ⚠️ WebSocket desconectado, no se envía ubicación');
+        // console.log('[LocationTracking] ⚠️ WebSocket desconectado, no se envía ubicación');
         return;
       }
 
@@ -252,13 +252,13 @@ class CourierLocationTrackingService {
       const now = Date.now();
       const timeSinceLastSent = now - this.lastSentTime;
 
-      console.log('[LocationTracking] Verificando throttling por tiempo:', {
-        timeSinceLastSent: `${(timeSinceLastSent / 1000).toFixed(1)}s`,
-        updateInterval: `${(this.config.updateInterval / 1000).toFixed(1)}s`
-      });
+      // console.log('[LocationTracking] Verificando throttling por tiempo:', {
+      //   timeSinceLastSent: `${(timeSinceLastSent / 1000).toFixed(1)}s`,
+      //   updateInterval: `${(this.config.updateInterval / 1000).toFixed(1)}s`
+      // });
 
       if (timeSinceLastSent < this.config.updateInterval) {
-        console.log('[LocationTracking] ⏭️ Throttling por tiempo, omitiendo envío');
+        // console.log('[LocationTracking] ⏭️ Throttling por tiempo, omitiendo envío');
         return;
       }
 
@@ -271,26 +271,26 @@ class CourierLocationTrackingService {
           location.coords.longitude
         );
 
-        console.log('[LocationTracking] Verificando throttling por distancia:', {
-          distance: `${distance.toFixed(1)}m`,
-          minDistance: `${this.config.minDistance}m`
-        });
+        // console.log('[LocationTracking] Verificando throttling por distancia:', {
+        //   distance: `${distance.toFixed(1)}m`,
+        //   minDistance: `${this.config.minDistance}m`
+        // });
 
         if (distance < this.config.minDistance) {
-          console.log('[LocationTracking] ⏭️ Throttling por distancia, omitiendo envío');
+          // console.log('[LocationTracking] ⏭️ Throttling por distancia, omitiendo envío');
           return;
         }
       }
 
       // Enviar ubicación al backend
-      console.log('[LocationTracking] ✅ Pasó throttling, enviando al backend...');
+      // console.log('[LocationTracking] ✅ Pasó throttling, enviando al backend...');
       this.sendLocationToBackend(location);
 
       // Actualizar estado
       this.lastSentLocation = location;
       this.lastSentTime = now;
     } catch (error) {
-      console.error('[LocationTracking] ❌ Error al manejar actualización de ubicación:', error);
+      // console.error('[LocationTracking] ❌ Error al manejar actualización de ubicación:', error);
     }
   }
 
@@ -299,10 +299,10 @@ class CourierLocationTrackingService {
    */
   private sendLocationToBackend(location: Location.LocationObject) {
     try {
-      console.log('[LocationTracking] 📤 sendLocationToBackend() llamado');
+      // console.log('[LocationTracking] 📤 sendLocationToBackend() llamado');
       
       if (!this.userId) {
-        console.warn('[LocationTracking] ❌ No se puede enviar ubicación sin userId');
+        // console.warn('[LocationTracking] ❌ No se puede enviar ubicación sin userId');
         return;
       }
 
@@ -316,21 +316,21 @@ class CourierLocationTrackingService {
         heading: location.coords.heading ?? undefined,
       };
 
-      console.log('[LocationTracking] Payload preparado:', payload);
-      console.log('[LocationTracking] Emitiendo evento courier.location.update...');
+      // console.log('[LocationTracking] Payload preparado:', payload);
+      // console.log('[LocationTracking] Emitiendo evento courier.location.update...');
 
       const sent = socketService.emit('courier.location.update', payload);
 
       if (sent) {
         console.log(
-          `[LocationTracking] ✅ Ubicación enviada exitosamente: (${payload.lat.toFixed(6)}, ${payload.lng.toFixed(6)}) ` +
+          // `[LocationTracking] ✅ Ubicación enviada exitosamente: (${payload.lat.toFixed(6)}, ${payload.lng.toFixed(6)}) ` +
           `accuracy: ${payload.accuracy.toFixed(1)}m`
         );
       } else {
-        console.warn('[LocationTracking] ⚠️ No se pudo enviar ubicación (emit retornó false)');
+        // console.warn('[LocationTracking] ⚠️ No se pudo enviar ubicación (emit retornó false)');
       }
     } catch (error) {
-      console.error('[LocationTracking] ❌ Error al enviar ubicación:', error);
+      // console.error('[LocationTracking] ❌ Error al enviar ubicación:', error);
     }
   }
 
@@ -382,7 +382,7 @@ class CourierLocationTrackingService {
     try {
       const hasPermissions = await this.hasPermissions();
       if (!hasPermissions) {
-        console.warn('[LocationTracking] No hay permisos para obtener ubicación');
+        // console.warn('[LocationTracking] ❌ No hay permisos para obtener ubicación');
         return null;
       }
 
@@ -392,7 +392,7 @@ class CourierLocationTrackingService {
 
       return location;
     } catch (error) {
-      console.error('[LocationTracking] Error al obtener ubicación actual:', error);
+      // console.error('[LocationTracking] Error al obtener ubicación actual:', error);
       return null;
     }
   }

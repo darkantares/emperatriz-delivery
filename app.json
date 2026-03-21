@@ -39,6 +39,7 @@
       }
     },
     "android": {
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#1A1125"
@@ -50,7 +51,7 @@
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION"
       ],
-      "package": "com.valentinrod.tiendasdominicanas",
+      "package": "com.valentinrod.tiendasdominicanas.mensajeria",
       "intentFilters": [
         {
           "action": "VIEW",
@@ -104,6 +105,7 @@
           "root": "./app"
         }
       ],
+      "expo-notifications",
       "expo-audio",
       "expo-asset",
       "expo-build-properties"
