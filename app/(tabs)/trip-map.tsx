@@ -119,7 +119,7 @@ const LEAFLET_MAP_HTML = `<!DOCTYPE html>
           icon: makeWpIcon(wp, i === targetIdx, i + 1),
           zIndexOffset: i === targetIdx ? 1000 : 0
         });
-        m.on('click', function() { sendMsg({ type: 'MARKER_CLICK', groupIndex: i }); });
+        m.on('click', function() { sendMsg({ type: 'MARKER_CLICK', groupIndex: i, deliveryId: wp.deliveryId }); });
         if (wpVisible) m.addTo(map);
         wpMarkers.push(m);
       });
@@ -295,9 +295,24 @@ export default function TripMapScreen() {
     const group = groupedWaypoints[groupIndex];
     if (!group) return;
 
-    // Show a modal with assignment details and quick action buttons.
     setSelectedAssignment(group.deliveries[0]);
     setAssignmentModalVisible(true);
+  };
+
+  const handleMarkerClickByDeliveryId = (deliveryId: string) => {
+    const found = tripDeliveries.find((d) => d.id === deliveryId);
+    if (found) {
+      setSelectedAssignment(found);
+      setAssignmentModalVisible(true);
+      return;
+    }
+
+    // fallback to group index if deliveryId not found
+    const group = groupedWaypoints.find((g) => g.deliveries.some((d) => d.id === deliveryId));
+    if (group) {
+      setSelectedAssignment(group.deliveries[0]);
+      setAssignmentModalVisible(true);
+    }
   };
 
   const groupWaypointsByCoordinates = (
@@ -522,6 +537,7 @@ export default function TripMapScreen() {
       type: g.type,
       isFirstInRoute: g.isFirstInRoute,
       isLastInRoute: g.isLastInRoute,
+      deliveryId: g.deliveries[0]?.id,
     }));
     sendToMap({
       type: "INIT_ROUTE",
@@ -569,11 +585,15 @@ export default function TripMapScreen() {
   // Handle messages coming FROM the WebView (e.g. marker clicks)
   const handleWebViewMessage = (event: { nativeEvent: { data: string } }) => {
     try {
-      const msg = JSON.parse(event.nativeEvent.data) as { type: string; groupIndex?: number };
+      const msg = JSON.parse(event.nativeEvent.data) as { type: string; groupIndex?: number; deliveryId?: string };
       if (msg.type === "MAP_READY") {
         setMapVersion(v => v + 1);
-      } else if (msg.type === "MARKER_CLICK" && msg.groupIndex !== undefined) {
-        handleMarkerClick(msg.groupIndex);
+      } else if (msg.type === "MARKER_CLICK") {
+        if (msg.deliveryId) {
+          handleMarkerClickByDeliveryId(msg.deliveryId);
+        } else if (msg.groupIndex !== undefined) {
+          handleMarkerClick(msg.groupIndex);
+        }
       }
     } catch (_) {}
   };

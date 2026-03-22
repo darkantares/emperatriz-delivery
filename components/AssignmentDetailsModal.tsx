@@ -9,6 +9,8 @@ import {
   Text,
 } from "react-native";
 import { DeliveryItemAdapter } from "@/interfaces/delivery/deliveryAdapters";
+import { IDeliveryStatus } from "@/interfaces/delivery/deliveryStatus";
+import { AssignmentType } from "@/utils/enum";
 import { CustomColors } from "@/constants/CustomColors";
 import { Capitalize } from "@/utils/capitalize";
 import { openWhatsAppMessage } from "@/utils/whatsapp";
@@ -41,6 +43,7 @@ export default function AssignmentDetailsModal({
   const direccion = assignment.deliveryAddress || "";
 
   const fullAddress = `${provincia}${provincia ? ', ' : ''}${municipio}${municipio ? ', ' : ''}${sector}${sector ? ', ' : ''}${direccion}`.trim();
+  const siteType = assignment.type === AssignmentType.PICKUP ? 'RECOGIDA' : 'ENTREGA';
 
   return (
     <Modal
@@ -59,6 +62,9 @@ export default function AssignmentDetailsModal({
           </View>
 
           <View style={styles.content}>
+            <View style={[styles.infoRow, { paddingVertical: 6, backgroundColor: '#2C2C2C', borderRadius: 10 }] }>
+              <Text style={[styles.value, { color: '#FFD700', fontWeight: '800' }]}>{siteType}</Text>
+            </View>
             <View style={styles.infoRow}>
               <Text style={styles.label}>Contacto:</Text>
               <Text style={styles.value}>{assignment.client}</Text>
