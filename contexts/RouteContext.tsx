@@ -17,6 +17,7 @@ interface RouteContextType {
   // Métodos
   startRoutes: (allDeliveries: DeliveryItemAdapter[]) => Promise<void>;
   recalculateRoutes: (allDeliveries: DeliveryItemAdapter[]) => Promise<void>;
+  recalculateRoutesViaBackend: () => Promise<void>;
   setTripDeliveries: (deliveries: DeliveryItemAdapter[]) => void;
 }
 
@@ -199,6 +200,65 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
     });
   };
 
+  // Recalcula la ruta vía backend (igual que startRoutes pero sin navegar al mapa)
+  const recalculateRoutesViaBackend = async () => {
+    console.log('[RouteContext] Recalculando ruta vía backend por nueva asignación...');
+
+    if (!user) return;
+    const carrierId = carrier?.id;
+    if (!carrierId) return;
+
+    setIsOptimizing(true);
+    try {
+      const { courierLocationTracking } = await import('@/services/courierLocationService');
+      const currentLocation = await courierLocationTracking.getCurrentLocation();
+      if (!currentLocation) {
+        console.warn('[RouteContext] No se pudo obtener ubicación para recalcular');
+        return;
+      }
+
+      const optimizedRoute = await getOptimizedRoute(carrierId, {
+        lat: currentLocation.coords.latitude,
+        lng: currentLocation.coords.longitude,
+      });
+
+      const freshDeliveries = await getDeliveries();
+      const routeData = prepareRouteData(freshDeliveries);
+      if (!routeData) {
+        console.warn('[RouteContext] No hay entregas pendientes con coordenadas tras recalcular');
+        return;
+      }
+      setTripDeliveries(routeData.pendingDeliveries);
+
+      const tripDataFromBackend: OsrmTripResult = {
+        code: 'Ok',
+        trips: [{
+          geometry: optimizedRoute.geometry,
+          distance: optimizedRoute.totalDistance,
+          duration: optimizedRoute.totalDuration,
+          legs: [],
+          weight_name: 'routability',
+          weight: optimizedRoute.totalDuration,
+        }],
+        waypoints: optimizedRoute.waypoints.map((wp: any, index: number) => ({
+          waypoint_index: index,
+          trips_index: 0,
+          location: [wp.location.lng, wp.location.lat],
+          name: wp.address,
+          distance: 0,
+          hint: '',
+        })),
+      };
+
+      setTripData(tripDataFromBackend);
+      console.log('[RouteContext] ✅ Ruta recalculada correctamente via backend');
+    } catch (error) {
+      console.error('[RouteContext] Error al recalcular ruta:', error);
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
+
 
   // Efecto para loguear cuando tripData llega
   React.useEffect(() => {
@@ -223,6 +283,7 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
     tripDeliveries,
     startRoutes,
     recalculateRoutes,
+    recalculateRoutesViaBackend,
     setTripDeliveries,
   };
 

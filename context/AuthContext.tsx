@@ -50,7 +50,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           if (whoami.success && whoami.data) {
             setUser(whoami.data.user);
-            setCarrier(whoami.data.carrier || null);
+            // If whoami didn't include carrier (backend relation missing), fall back to stored value
+            const resolvedCarrier = whoami.data.carrier ?? (await authService.getAuthData()).carrier ?? null;
+            setCarrier(resolvedCarrier);
             setRoles(whoami.data.roles || []);
           } else {
             // Fallback a storage local si whoami falla temporalmente

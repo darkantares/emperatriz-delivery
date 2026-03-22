@@ -15,6 +15,7 @@ import { DeliveryItemAdapter } from "@/interfaces/delivery/deliveryAdapters";
 import { IDeliveryStatus } from "@/interfaces/delivery/deliveryStatus";
 import { AssignmentType } from "@/utils/enum";
 import { useRouteContext } from "@/contexts/RouteContext";
+import { socketService, SocketEventType } from "@/services/websocketService";
 import RouteInfoPanel from "@/components/RouteInfoPanel";
 import AssignmentDetailsModal from "@/components/AssignmentDetailsModal";
 import GroupStatusUpdateModal from "@/components/status-update/GroupStatusUpdateModal";
@@ -66,7 +67,7 @@ const LEAFLET_MAP_HTML = `<!DOCTYPE html>
   <div id="map"></div>
   <script>
     var map = L.map('map', { zoomControl: true, attributionControl: false }).setView([18.4861, -69.9312], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
       maxZoom: 19,
       attribution: ''
     }).addTo(map);
@@ -81,18 +82,20 @@ const LEAFLET_MAP_HTML = `<!DOCTYPE html>
       }
     }
 
-    function makeWpIcon(wp, isTarget) {
+    function makeWpIcon(wp, isTarget, orderNum) {
       var color = wp.type === 'PICKUP' ? '#2E7D32' : '#C62828';
       var w = isTarget ? 36 : 28;
       var h = Math.round(w * 1.4);
       var r = Math.round(w * 0.3);
       var cx = w / 2, cy = w / 2;
+      var fontSize = orderNum > 9 ? Math.round(r * 0.75) : Math.round(r * 0.95);
       var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '">'
         + '<path d="M' + cx + ' 0 C' + (cx - w/2) + ' 0 0 ' + (w/2) + ' 0 ' + cy
         + ' C0 ' + (cy + w * 0.45) + ' ' + cx + ' ' + h + ' ' + cx + ' ' + h
         + ' C' + cx + ' ' + h + ' ' + w + ' ' + (cy + w * 0.45) + ' ' + w + ' ' + cy
         + ' C' + w + ' ' + (w/2) + ' ' + (cx + w/2) + ' 0 ' + cx + ' 0Z" fill="' + color + '"/>'
         + '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="white"/>'
+        + '<text x="' + cx + '" y="' + (cy + Math.round(fontSize * 0.38)) + '" text-anchor="middle" fill="#000000" font-size="' + fontSize + '" font-weight="bold" font-family="Arial,sans-serif">' + orderNum + '</text>'
         + '</svg>';
       var html = '<div style="position:relative;display:inline-block;">' + svg;
       if (wp.count > 1) html += '<div class="wp-badge">' + wp.count + '</div>';
@@ -113,7 +116,7 @@ const LEAFLET_MAP_HTML = `<!DOCTYPE html>
 
       waypoints.forEach(function(wp, i) {
         var m = L.marker([wp.latitude, wp.longitude], {
-          icon: makeWpIcon(wp, i === targetIdx),
+          icon: makeWpIcon(wp, i === targetIdx, i + 1),
           zIndexOffset: i === targetIdx ? 1000 : 0
         });
         m.on('click', function() { sendMsg({ type: 'MARKER_CLICK', groupIndex: i }); });
@@ -142,7 +145,7 @@ const LEAFLET_MAP_HTML = `<!DOCTYPE html>
 
     function updateTarget(idx) {
       wpMarkers.forEach(function(m, i) {
-        m.setIcon(makeWpIcon(wpData[i], i === idx));
+        m.setIcon(makeWpIcon(wpData[i], i === idx, i + 1));
         m.setZIndexOffset(i === idx ? 1000 : 0);
       });
     }
@@ -187,7 +190,7 @@ const LEAFLET_MAP_HTML = `<!DOCTYPE html>
 
 export default function TripMapScreen() {
   const router = useRouter();
-  const { tripData, tripLoading, tripError, tripDeliveries } =
+  const { tripData, tripLoading, tripError, tripDeliveries, recalculateRoutesViaBackend, setTripDeliveries } =
     useRouteContext();
 
   const [waypointsWithDeliveries, setWaypointsWithDeliveries] = useState<
@@ -228,13 +231,31 @@ export default function TripMapScreen() {
   const [deliveryStatusOverrides, setDeliveryStatusOverrides] = useState<
     Map<string, string>
   >(new Map());
-  const [mapReady, setMapReady] = useState<boolean>(false);
+  // Counter instead of boolean: every MAP_READY (including WebView remounts) increments
+  // this, guaranteeing all route-sync effects always re-fire.
+  const [mapVersion, setMapVersion] = useState<number>(0);
 
   const webViewRef = useRef<WebView>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const locationSubscription = useRef<Location.LocationSubscription | null>(
     null,
   );
+  // Keep latest recalculate function in ref so the socket handler never becomes stale
+  const recalculateRef = useRef(recalculateRoutesViaBackend);
+  useEffect(() => { recalculateRef.current = recalculateRoutesViaBackend; });
+
+  // Register socket listener once — ref ensures it always calls the latest function
+  useEffect(() => {
+    const handleNewAssignment = () => {
+      console.log('[TripMapScreen] Nueva asignación recibida, recalculando ruta vía backend');
+      recalculateRef.current();
+    };
+
+    socketService.on(SocketEventType.DRIVER_ASSIGNED, handleNewAssignment);
+    return () => {
+      socketService.off(SocketEventType.DRIVER_ASSIGNED, handleNewAssignment);
+    };
+  }, []);
 
   /** Send a typed message to the Leaflet map running inside the WebView. */
   const sendToMap = (data: object) => {
@@ -493,7 +514,7 @@ export default function TripMapScreen() {
 
   // Send route + waypoints once the map is ready (or when route data arrives)
   useEffect(() => {
-    if (!mapReady || routeCoordinates.length === 0 || groupedWaypoints.length === 0) return;
+    if (mapVersion === 0 || routeCoordinates.length === 0 || groupedWaypoints.length === 0) return;
     const waypoints = groupedWaypoints.map((g) => ({
       latitude: g.coordinate.latitude,
       longitude: g.coordinate.longitude,
@@ -508,49 +529,49 @@ export default function TripMapScreen() {
       waypoints,
       targetGroupIndex: currentTargetGroupIndex,
     });
-  }, [mapReady, routeCoordinates, groupedWaypoints]);
+  }, [mapVersion, routeCoordinates, groupedWaypoints]);
 
   // Keep the courier marker in sync with GPS / simulation position
   useEffect(() => {
-    if (!mapReady || !currentPosition) return;
+    if (mapVersion === 0 || !currentPosition) return;
     sendToMap({
       type: "UPDATE_POSITION",
       latitude: currentPosition.latitude,
       longitude: currentPosition.longitude,
     });
-  }, [mapReady, currentPosition]);
+  }, [mapVersion, currentPosition]);
 
   // Update the "already traveled" polyline segment
   useEffect(() => {
-    if (!mapReady || !isTraveling || currentIndex === 0) return;
+    if (mapVersion === 0 || !isTraveling || currentIndex === 0) return;
     const traveledCoords = routeCoordinates
       .slice(0, currentIndex + 1)
       .map((c) => [c.latitude, c.longitude]);
     sendToMap({ type: "UPDATE_TRAVELED", traveledCoords });
-  }, [mapReady, currentIndex, isTraveling, routeCoordinates]);
+  }, [mapVersion, currentIndex, isTraveling, routeCoordinates]);
 
   // Highlight the current target waypoint
   useEffect(() => {
-    if (!mapReady) return;
+    if (mapVersion === 0) return;
     sendToMap({ type: "UPDATE_TARGET", groupIndex: currentTargetGroupIndex });
-  }, [mapReady, currentTargetGroupIndex]);
+  }, [mapVersion, currentTargetGroupIndex]);
 
   // Show / hide layers (DEV controls)
   useEffect(() => {
-    if (!mapReady) return;
+    if (mapVersion === 0) return;
     sendToMap({
       type: "UPDATE_VISIBILITY",
       showCourier: !hideCourierIcon,
       showWaypoints: !hideOtherIcons,
     });
-  }, [mapReady, hideCourierIcon, hideOtherIcons]);
+  }, [mapVersion, hideCourierIcon, hideOtherIcons]);
 
   // Handle messages coming FROM the WebView (e.g. marker clicks)
   const handleWebViewMessage = (event: { nativeEvent: { data: string } }) => {
     try {
       const msg = JSON.parse(event.nativeEvent.data) as { type: string; groupIndex?: number };
       if (msg.type === "MAP_READY") {
-        setMapReady(true);
+        setMapVersion(v => v + 1);
       } else if (msg.type === "MARKER_CLICK" && msg.groupIndex !== undefined) {
         handleMarkerClick(msg.groupIndex);
       }
@@ -691,7 +712,9 @@ export default function TripMapScreen() {
     };
   }, []);
 
-  if (tripLoading) {
+  // Only block the map view on first load (no prior tripData).
+  // During recalculation tripData already exists, so the map stays visible.
+  if (tripLoading && !tripData) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.centerContainer}>

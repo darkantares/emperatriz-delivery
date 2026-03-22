@@ -28,8 +28,8 @@ export const authService = {
                 };
             }
 
-            // Extraer los datos del LoginResponse del OkResult
-            const loginData = response.data.value;
+            // Backend returns an OkResult serialized as { value: LoginResponse }
+            const loginData = (response.data as unknown as { value: LoginResponse }).value;
             console.log('LoginData: ', loginData);
             
             if (!loginData) {
@@ -153,14 +153,21 @@ export const authService = {
 
             await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(userData));
             await AsyncStorage.setItem(USER_ROLES_KEY, JSON.stringify(normalizedRoles));
-            await AsyncStorage.setItem(CARRIER_DATA_KEY, JSON.stringify(normalizedCarrier));
+            // Only persist carrier if the backend returned it to avoid overwriting a valid stored value
+            if (normalizedCarrier !== null) {
+                await AsyncStorage.setItem(CARRIER_DATA_KEY, JSON.stringify(normalizedCarrier));
+            }
+
+            // Resolve carrier: prefer fresh data from backend, fall back to stored value
+            const storedCarrierJson = await AsyncStorage.getItem(CARRIER_DATA_KEY);
+            const resolvedCarrier = normalizedCarrier ?? (storedCarrierJson ? JSON.parse(storedCarrierJson) : null);
 
             return {
                 success: true,
                 data: {
                     user: userData,
                     roles: normalizedRoles,
-                    carrier: normalizedCarrier,
+                    carrier: resolvedCarrier,
                 },
             };
         } catch (error) {
