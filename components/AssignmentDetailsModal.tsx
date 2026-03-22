@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { DeliveryItemAdapter } from "@/interfaces/delivery/deliveryAdapters";
 import { CustomColors } from "@/constants/CustomColors";
+import { Capitalize } from "@/utils/capitalize";
 import { openWhatsAppMessage } from "@/utils/whatsapp";
 
 export interface AssignmentDetailsModalProps {
@@ -33,6 +34,13 @@ export default function AssignmentDetailsModal({
     if (!assignment.phone) return;
     Linking.openURL(`tel:${assignment.phone}`);
   };
+
+  const provincia = Capitalize(assignment.provincia?.nombre || "");
+  const municipio = Capitalize(assignment.municipio?.nombre || "");
+  const sector = Capitalize(assignment.origin?.nombre || assignment.destiny?.nombre || "");
+  const direccion = assignment.deliveryAddress || "";
+
+  const fullAddress = `${provincia}${provincia ? ', ' : ''}${municipio}${municipio ? ', ' : ''}${sector}${sector ? ', ' : ''}${direccion}`.trim();
 
   return (
     <Modal
@@ -58,6 +66,9 @@ export default function AssignmentDetailsModal({
             <View style={styles.infoRow}>
               <Text style={styles.label}>Teléfono:</Text>
               <Text style={styles.value}>{assignment.phone || "Sin teléfono"}</Text>
+            </View>
+            <View style={[styles.infoRow, { justifyContent: 'flex-start', paddingVertical: 10 }] }>
+              <Text style={[styles.value, { width: '100%', textAlign: 'left' }]}>{`${fullAddress || ''}`.trim() || 'Sin dirección'}</Text>
             </View>
 
             <View style={styles.actionsRow}>
