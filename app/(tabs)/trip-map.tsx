@@ -266,6 +266,8 @@ export default function TripMapScreen() {
 
   const handleProgressGroup = (deliveries: DeliveryItemAdapter[]) => {
     if (deliveries.length === 0) return;
+    console.log('[TripMapScreen] Progresando grupo de entregas:', deliveries);
+    
     const type = deliveries[0].type;
     const totalAmount = deliveries.reduce(
       (sum, d) => sum + (d.deliveryCost || 0) + (d.amountToBeCharged || 0),
