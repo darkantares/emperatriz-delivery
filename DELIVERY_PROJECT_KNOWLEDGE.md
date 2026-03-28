@@ -97,7 +97,7 @@ Archivo: `app/_layout.tsx`
 
 Archivo: `app/(tabs)/_layout.tsx`
 
-- `index`: lista de envíos y flujo principal
+- `index`: lista de envios y flujo principal
 - `two`: ajustes / usuario / logout
 - `status-update`: ruta oculta del tab bar (`href: null`)
 
