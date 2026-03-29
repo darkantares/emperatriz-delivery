@@ -94,7 +94,7 @@ export const ActiveDeliveryCard = ({
                 </Text>
               </View>
 
-              {/* Recoger en */}
+              {/* Retirar En */}
               <View
                 style={{
                   flexDirection: "row",
