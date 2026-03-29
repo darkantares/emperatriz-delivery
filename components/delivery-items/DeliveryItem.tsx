@@ -18,6 +18,8 @@ export interface Item {
   client: string;
   phone: string;
   type: AssignmentType;
+  deliveryAddress: string;
+  currentStatus?: string;
 }
 
 interface DeliveryItemProps {
@@ -59,6 +61,9 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({
           <View style={styles.infoColumn}>
             <Text style={styles.clientText} numberOfLines={1}>
               {item.client}
+            </Text>
+            <Text style={styles.addressText}>
+              Dirección: {item.deliveryAddress}
             </Text>
             <View
               style={[
@@ -157,6 +162,12 @@ const styles = StyleSheet.create({
     color: CustomColors.textLight,
     fontSize: 13,
     fontWeight: "bold",
+  },
+  addressText: {
+    color: CustomColors.textLight,
+    fontSize: 12,
+    marginTop: 4,
+    opacity: 0.8,
   },
   actionsRow: {
     flexDirection: "row",

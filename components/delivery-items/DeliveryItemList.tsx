@@ -30,6 +30,7 @@ interface DeliveryItemListProps {
   contentContainerStyle?: StyleProp<ViewStyle>;
   style?: StyleProp<ViewStyle>;
   onProgress?: () => void;
+  onItemPress?: (item: DeliveryItemAdapter) => void;
 }
 
 export const DeliveryItemList: React.FC<DeliveryItemListProps> = ({
@@ -40,6 +41,7 @@ export const DeliveryItemList: React.FC<DeliveryItemListProps> = ({
   contentContainerStyle,
   style,
   onProgress,
+  onItemPress,
 }) => {
   const renderItem = ({ item, index }: { item: DeliveryItemAdapter; index: number }) => {
     // Convertir DeliveryItemAdapter a Item para compatibilidad
@@ -49,11 +51,14 @@ export const DeliveryItemList: React.FC<DeliveryItemListProps> = ({
       client: item.client,
       phone: item.phone,
       type: item.type,
+      deliveryAddress: item.deliveryAddress,
+      currentStatus: item.deliveryStatus?.title ?? "",
     };
     return (
       <AnimatedRow index={index}>
-        <DeliveryItem 
+        <DeliveryItem
           item={itemForComponent}
+          onPress={() => onItemPress?.(item)}
         />
       </AnimatedRow>
     );

@@ -15,6 +15,9 @@ import { useEffect, useRef, useState } from "react";
 import { CustomColors } from "@/constants/CustomColors";
 import { useDelivery } from "@/context/DeliveryContext";
 import { useRouteContext } from "@/contexts/RouteContext";
+import { AssignmentType } from "@/utils/enum";
+import { DeliveryItemAdapter } from "@/interfaces/delivery/deliveryAdapters";
+import GroupStatusUpdateModal from "@/components/status-update/GroupStatusUpdateModal";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import EarningsCard from "@/components/ganancias/EarningsCard";
@@ -86,7 +89,7 @@ const tabStyles = StyleSheet.create({
     flexDirection: "row",
     backgroundColor: CustomColors.backgroundDark,
     borderRadius: 12,
-    marginHorizontal: 20,
+    marginHorizontal: 14,
     padding: 3,
     position: "relative",
     overflow: "hidden",
@@ -158,6 +161,26 @@ function TabOneScreenContent() {
     refresh: refreshGanancias,
   } = useGanancias();
  
+  const [groupStatusModalVisible, setGroupStatusModalVisible] = useState(false);
+  const [groupStatusModalParams, setGroupStatusModalParams] = useState<{
+    ids: string[];
+    assignmentType: AssignmentType;
+    groupTitle: string;
+    currentStatus: string;
+    totalAmount: number;
+  } | null>(null);
+
+  const handleDeliveryItemPress = (delivery: DeliveryItemAdapter) => {
+    setGroupStatusModalParams({
+      ids: [delivery.id],
+      assignmentType: delivery.type,
+      groupTitle: `${delivery.type === AssignmentType.PICKUP ? "Recogida" : "Entrega"}: ${delivery.client}`,
+      currentStatus: delivery.deliveryStatus?.title || "",
+      totalAmount: Number(delivery.deliveryCost + delivery.amountToBeCharged),
+    });
+    setGroupStatusModalVisible(true);
+  };
+
   const handlersRef = useRef({
     onDriverAssigned: (data: any) => { handleDeliveryAssigned(data); },
     onDriversGroupAssigned: (data: any) => { handleDriversGroupAssigned(data); },
@@ -230,6 +253,7 @@ function TabOneScreenContent() {
               loading={loading}
               refreshing={refreshing}
               onRefresh={onRefresh}
+              onItemPress={handleDeliveryItemPress}
               contentContainerStyle={{ paddingBottom: 120 }}
               style={{ flex: 1 }}
             />
@@ -250,6 +274,23 @@ function TabOneScreenContent() {
 
               <RNView style={{ height: 120 }} />
             </ScrollView>
+          )}
+
+          {groupStatusModalParams && (
+            <GroupStatusUpdateModal
+              visible={groupStatusModalVisible}
+              onClose={() => setGroupStatusModalVisible(false)}
+              onSuccess={(newStatus) => {
+                setGroupStatusModalVisible(false);
+                fetchDeliveries();
+                Alert.alert("Estado actualizado", `Nuevo estado: ${newStatus}`);
+              }}
+              ids={groupStatusModalParams.ids}
+              assignmentType={groupStatusModalParams.assignmentType}
+              groupTitle={groupStatusModalParams.groupTitle}
+              currentStatus={groupStatusModalParams.currentStatus}
+              totalAmount={groupStatusModalParams.totalAmount}
+            />
           )}
 
           {/* Iniciar Rutas button — only if we have at least one delivery */}
