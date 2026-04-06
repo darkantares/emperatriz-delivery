@@ -193,9 +193,6 @@ export default function TripMapScreen() {
   const { tripData, tripLoading, tripError, tripDeliveries, recalculateRoutesViaBackend, setTripDeliveries } =
     useRouteContext();
 
-  const [waypointsWithDeliveries, setWaypointsWithDeliveries] = useState<
-    WaypointWithDelivery[]
-  >([]);
   const [groupedWaypoints, setGroupedWaypoints] = useState<WaypointGroup[]>([]);
   const [routeCoordinates, setRouteCoordinates] = useState<Coordinate[]>([]);
   const [totalDistance, setTotalDistance] = useState<number>(0);
@@ -221,8 +218,6 @@ export default function TripMapScreen() {
   const [remainingDistance, setRemainingDistance] = useState<number>(0);
   const [remainingDuration, setRemainingDuration] = useState<number>(0);
 
-  const [hideCourierIcon, setHideCourierIcon] = useState<boolean>(false);
-  const [hideOtherIcons, setHideOtherIcons] = useState<boolean>(false);
   const [currentTargetGroupIndex, setCurrentTargetGroupIndex] =
     useState<number>(0);
   const [completedDeliveryIds, setCompletedDeliveryIds] = useState<Set<string>>(
@@ -267,7 +262,7 @@ export default function TripMapScreen() {
   const handleProgressGroup = (deliveries: DeliveryItemAdapter[]) => {
     if (deliveries.length === 0) return;
     console.log('[TripMapScreen] Progresando grupo de entregas:', deliveries);
-    
+
     const type = deliveries[0].type;
     const totalAmount = deliveries.reduce(
       (sum, d) => sum + (d.deliveryCost || 0) + (d.amountToBeCharged || 0),
@@ -395,12 +390,6 @@ export default function TripMapScreen() {
           },
         );
 
-        setWaypointsWithDeliveries(waypointsData);
-        console.log(
-          "[TripMapScreen] Waypoints con deliveries:",
-          waypointsData.length,
-        );
-
         const grouped = groupWaypointsByCoordinates(waypointsData);
         setGroupedWaypoints(grouped);
         console.log("[TripMapScreen] Grupos creados:", grouped.length);
@@ -460,49 +449,6 @@ export default function TripMapScreen() {
       };
     }
     return coord;
-  };
-
-  const startTrip = async () => {
-    if (routeCoordinates.length === 0) {
-      console.log("[TripMapScreen] No hay ruta para iniciar viaje");
-      return;
-    }
-
-    if (__DEV__) {
-      setIsTraveling(true);
-      setCurrentIndex(0);
-      console.log("[TripMapScreen] Iniciando viaje simulado (DESARROLLO)");
-    } else {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== "granted") {
-          console.error("[TripMapScreen] Permiso de ubicación denegado");
-          return;
-        }
-        setIsTraveling(true);
-        setCurrentIndex(0);
-        console.log("[TripMapScreen] Iniciando seguimiento GPS (PRODUCCIÓN)");
-      } catch (err) {
-        console.error("[TripMapScreen] Error solicitando permisos:", err);
-      }
-    }
-  };
-
-  const stopTrip = () => {
-    setIsTraveling(false);
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-    if (locationSubscription.current) {
-      locationSubscription.current.remove();
-      locationSubscription.current = null;
-    }
-    console.log("[TripMapScreen] Viaje detenido");
-  };
-
-  const handleMarkerPress = (group: WaypointGroup) => {
-    handleProgressGroup(group.deliveries);
   };
 
   const handleGroupCompleted = (ids: string[], newStatus: string) => {
@@ -574,16 +520,6 @@ export default function TripMapScreen() {
     sendToMap({ type: "UPDATE_TARGET", groupIndex: currentTargetGroupIndex });
   }, [mapVersion, currentTargetGroupIndex]);
 
-  // Show / hide layers (DEV controls)
-  useEffect(() => {
-    if (mapVersion === 0) return;
-    sendToMap({
-      type: "UPDATE_VISIBILITY",
-      showCourier: !hideCourierIcon,
-      showWaypoints: !hideOtherIcons,
-    });
-  }, [mapVersion, hideCourierIcon, hideOtherIcons]);
-
   // Handle messages coming FROM the WebView (e.g. marker clicks)
   const handleWebViewMessage = (event: { nativeEvent: { data: string } }) => {
     try {
@@ -597,7 +533,7 @@ export default function TripMapScreen() {
           handleMarkerClick(msg.groupIndex);
         }
       }
-    } catch (_) {}
+    } catch (_) { }
   };
 
   // Advance to the next group when all deliveries in the current one are completed
@@ -797,25 +733,6 @@ export default function TripMapScreen() {
             <Text style={styles.centerButtonText}>📍</Text>
           </TouchableOpacity>
         )}
-
-        {/* {__DEV__ && (
-          <View style={styles.devControls}>
-            <View style={styles.checkboxRow}>
-              <Text style={styles.devLabel}>Ocultar icono conductor</Text>
-              <Switch
-                value={hideCourierIcon}
-                onValueChange={setHideCourierIcon}
-              />
-            </View>
-            <View style={styles.checkboxRow}>
-              <Text style={styles.devLabel}>Ocultar otros iconos</Text>
-              <Switch
-                value={hideOtherIcons}
-                onValueChange={setHideOtherIcons}
-              />
-            </View>
-          </View>
-        )} */}
 
         <View style={styles.controlsContainer}>
           {(() => {
