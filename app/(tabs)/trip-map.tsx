@@ -242,13 +242,18 @@ export default function TripMapScreen() {
   // Register socket listener once — ref ensures it always calls the latest function
   useEffect(() => {
     const handleNewAssignment = () => {
-      console.log('[TripMapScreen] Nueva asignación recibida, recalculando ruta vía backend');
+      console.log('[TripMapScreen] Evento de ruta requerido recibido, recalculando ruta vía backend');
       recalculateRef.current();
     };
 
     socketService.on(SocketEventType.DRIVER_ASSIGNED, handleNewAssignment);
+    socketService.on(SocketEventType.DRIVERS_GROUP_ASSIGNED, handleNewAssignment);
+    socketService.on(SocketEventType.DELIVERY_REORDERED, handleNewAssignment);
+
     return () => {
       socketService.off(SocketEventType.DRIVER_ASSIGNED, handleNewAssignment);
+      socketService.off(SocketEventType.DRIVERS_GROUP_ASSIGNED, handleNewAssignment);
+      socketService.off(SocketEventType.DELIVERY_REORDERED, handleNewAssignment);
     };
   }, []);
 
@@ -771,6 +776,12 @@ export default function TripMapScreen() {
           remainingDuration={remainingDuration}
         />
 
+        {tripLoading && tripData && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color={CustomColors.secondary} />
+          </View>
+        )}
+
         <AssignmentDetailsModal
           visible={assignmentModalVisible && !!selectedAssignment}
           onClose={() => {
@@ -983,6 +994,16 @@ const styles = StyleSheet.create({
   centerButtonText: {
     fontSize: 22,
     lineHeight: 26,
+  },
+  loadingOverlay: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 20,
   },
   devControls: {
     position: "absolute",

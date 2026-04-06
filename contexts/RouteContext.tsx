@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState, ReactNode } from 'react';
 import { router } from 'expo-router';
 import { useOsrmTrip } from '@/core/hooks/useOsrmTrip';
 import { DeliveryItemAdapter } from '@/interfaces/delivery/deliveryAdapters';
@@ -6,6 +6,7 @@ import { IDeliveryStatus } from '@/interfaces/delivery/deliveryStatus';
 import { getDeliveries, getOptimizedRoute } from '@/core/actions/delivery.actions';
 import { useAuth } from '@/context/AuthContext';
 import { OsrmTripResult } from '@/core/actions/osrm.actions';
+import { socketService, SocketEventType } from '@/services/websocketService';
 
 interface RouteContextType {
   // Estado
@@ -197,7 +198,7 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
   };
 
   // Recalcula la ruta vía backend (igual que startRoutes pero sin navegar al mapa)
-  const recalculateRoutesViaBackend = async () => {
+  const recalculateRoutesViaBackend = useCallback(async () => {
     console.log('[RouteContext] Recalculando ruta vía backend por nueva asignación...');
 
     if (!user) return;
@@ -253,7 +254,24 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
     } finally {
       setIsOptimizing(false);
     }
-  };
+  }, [carrier, user]);
+
+  useEffect(() => {
+    const handleRouteRefresh = () => {
+      console.log('[RouteContext] Evento socket recibido, recalculando ruta optimizada...');
+      recalculateRoutesViaBackend();
+    };
+
+    socketService.on(SocketEventType.DRIVER_ASSIGNED, handleRouteRefresh);
+    socketService.on(SocketEventType.DRIVERS_GROUP_ASSIGNED, handleRouteRefresh);
+    socketService.on(SocketEventType.DELIVERY_REORDERED, handleRouteRefresh);
+
+    return () => {
+      socketService.off(SocketEventType.DRIVER_ASSIGNED, handleRouteRefresh);
+      socketService.off(SocketEventType.DRIVERS_GROUP_ASSIGNED, handleRouteRefresh);
+      socketService.off(SocketEventType.DELIVERY_REORDERED, handleRouteRefresh);
+    };
+  }, [recalculateRoutesViaBackend]);
 
 
   // Efecto para loguear cuando tripData llega
