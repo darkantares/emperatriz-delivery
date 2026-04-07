@@ -65,7 +65,7 @@ export const authService = {
                     carrier: normalizedCarrier,
                 }
             };
-        } catch (error) {
+        } catch (error:any) {
             console.log('Login error:', error);
             return {
                 success: false,
@@ -111,7 +111,7 @@ export const authService = {
                 carrier: carrierJson ? JSON.parse(carrierJson) : null,
                 token
             };
-        } catch (error) {
+        } catch (error:any) {
             console.log('Error getting auth data:', error);
             return { user: null, roles: null, carrier: null, token: null };
         }
@@ -170,7 +170,7 @@ export const authService = {
                     carrier: resolvedCarrier,
                 },
             };
-        } catch (error) {
+        } catch (error:any) {
             console.log('Error fetching whoami:', error);
             return {
                 success: false,
@@ -208,7 +208,7 @@ export const authService = {
             }
 
             return { success: true };
-        } catch (error) {
+        } catch (error:any) {
             console.log('Error refreshing token:', error);
             return { success: false };
         }

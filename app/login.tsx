@@ -113,7 +113,7 @@ export default function LoginScreen() {
             } else {
                 console.log('Inicio de sesión exitoso');
             }
-        } catch (error) {
+        } catch (error:any) {
             const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
             Alert.alert(
                 'Error',

@@ -19,7 +19,7 @@ import { Linking, Platform, Alert } from 'react-native'
 //         await Linking.openURL(scheme)
 //         return true
 //       }
-//     } catch (error) {
+//     } catch (error:any) {
 //       console.warn(`No se pudo abrir con esquema: ${scheme}`, error)
 //     }
 //   }
@@ -28,7 +28,7 @@ import { Linking, Platform, Alert } from 'react-native'
 //   try {
 //     await Linking.openURL(webUrl)
 //     return false
-//   } catch (error) {
+//   } catch (error:any) {
 //     console.log('No se pudo abrir WhatsApp:', error)
 //     Alert.alert('Error', 'No se pudo abrir WhatsApp')
 //     return false
@@ -61,7 +61,7 @@ export const openWhatsAppMessage = async (
         await Linking.openURL(webWhatsappUrl);
         return true;
       }
-    } catch (error) {
+    } catch (error:any) {
       console.log('Error sending WhatsApp message:', error);
       return false;
     }

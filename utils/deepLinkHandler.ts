@@ -74,7 +74,7 @@ export function extractCoordinatesFromUrl(url: string): Coordinates | null {
 
     console.log('[DeepLink] Could not extract coordinates from URL');
     return null;
-  } catch (error) {
+  } catch (error:any) {
     console.error('[DeepLink] Error extracting coordinates:', error);
     return null;
   }
@@ -105,7 +105,7 @@ export async function sendCoordinatesToBackend(coordinates: Coordinates): Promis
     console.log('[DeepLink] Backend response:', JSON.stringify(data, null, 2));
     
     return data;
-  } catch (error) {
+  } catch (error:any) {
     console.error('[DeepLink] Error sending coordinates to backend:', error);
     throw error;
   }
@@ -132,7 +132,7 @@ export async function handleDeepLink(url: string): Promise<void> {
     } else {
       console.log('[DeepLink] No coordinates found in URL');
     }
-  } catch (error) {
+  } catch (error:any) {
     console.error('[DeepLink] Error handling deep link:', error);
   }
 }

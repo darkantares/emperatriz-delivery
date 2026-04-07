@@ -65,7 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
           }
         }
-      } catch (error) {
+      } catch (error:any) {
         console.log('Error checking authentication:', error);
         setIsAuthenticated(false);
         setUser(null);
@@ -108,7 +108,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               } else {
                 console.warn('[AuthContext] ❌ No se pudo iniciar location tracking');
               }
-            } catch (error) {
+            } catch (error:any) {
               console.error('[AuthContext] Error al iniciar tracking:', error);
             }
           }, 1000);
@@ -169,7 +169,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setRoles(result.data.roles || []);
 
       return { success: true };
-    } catch (error) {
+    } catch (error:any) {
       console.log('Login error:', error);
       return { 
         success: false, 

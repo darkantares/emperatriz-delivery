@@ -29,7 +29,7 @@ export const getBaseUrl = () => {
             url = API_URLS.PROD;
         }
         return url.endsWith('/') ? url.slice(0, -1) : url;
-    } catch (error) {
+    } catch (error:any) {
         console.log('Error al obtener URL base:', error);
         return API_URLS.DEFAULT;
     }
@@ -71,7 +71,7 @@ const getAuthOptions = async (options: Record<string, any> = {}): Promise<Reques
                 Authorization: `Bearer ${token}`,
             },
         };
-    } catch (error) {
+    } catch (error:any) {
         console.log('Error al obtener token de autenticación:', error);
         return options;
     }
@@ -162,7 +162,7 @@ const refreshToken = async (): Promise<{ success: boolean }> => {
         }
 
         return { success: true };
-    } catch (error) {
+    } catch (error:any) {
         console.log('Error al refrescar el token:', error);
         return { success: false };
     }
@@ -276,7 +276,7 @@ export const apiRequest = async <T>(endpoint: string, options: ApiOptions = {}):
         }
 
         return fetchResult;
-    } catch (error) {
+    } catch (error:any) {
         console.log('API Request Error:', error);
         return {
             error: `Error de conexión: ${error instanceof Error ? error.message : String(error)}`,
@@ -361,7 +361,7 @@ export const checkApiConnectivity = async () => {
             status: 200,
             message: 'Configuración de servidor correcta'
         };
-    } catch (error) {
+    } catch (error:any) {
         console.log('API connectivity check error:', error);
         return {
             success: false,

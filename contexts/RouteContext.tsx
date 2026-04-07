@@ -160,7 +160,7 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
       router.push('/(tabs)/trip-map');
 
       console.log('[RouteContext] ✅ Ruta optimizada cargada correctamente');
-    } catch (error) {
+    } catch (error:any) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('[RouteContext] Error al cargar ruta optimizada:', {
         errorMessage,
@@ -249,7 +249,7 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
 
       setTripData(tripDataFromBackend);
       console.log('[RouteContext] ✅ Ruta recalculada correctamente via backend');
-    } catch (error) {
+    } catch (error:any) {
       console.error('[RouteContext] Error al recalcular ruta:', error);
     } finally {
       setIsOptimizing(false);

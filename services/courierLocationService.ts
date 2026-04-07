@@ -113,7 +113,7 @@ class CourierLocationTrackingService {
 
       // console.log('[LocationTracking] Permisos de ubicación otorgados');
       return true;
-    } catch (error) {
+    } catch (error:any) {
       // console.error('[LocationTracking] Error al solicitar permisos:', error);
       return false;
     }
@@ -126,7 +126,7 @@ class CourierLocationTrackingService {
     try {
       const { status } = await Location.getForegroundPermissionsAsync();
       return status === 'granted';
-    } catch (error) {
+    } catch (error:any) {
       // console.error('[LocationTracking] Error al verificar permisos:', error);
       return false;
     }
@@ -196,7 +196,7 @@ class CourierLocationTrackingService {
       this.isTracking = true;
       // console.log('[LocationTracking] ✅ Tracking iniciado correctamente');
       return true;
-    } catch (error) {
+    } catch (error:any) {
       // console.error('[LocationTracking] ❌ Error al iniciar tracking:', error);
       this.isTracking = false;
       return false;
@@ -225,7 +225,7 @@ class CourierLocationTrackingService {
       this.lastSentTime = 0;
 
       // console.log('[LocationTracking] Tracking detenido');
-    } catch (error) {
+    } catch (error:any) {
       // console.error('[LocationTracking] Error al detener tracking:', error);
     }
   }
@@ -289,7 +289,7 @@ class CourierLocationTrackingService {
       // Actualizar estado
       this.lastSentLocation = location;
       this.lastSentTime = now;
-    } catch (error) {
+    } catch (error:any) {
       // console.error('[LocationTracking] ❌ Error al manejar actualización de ubicación:', error);
     }
   }
@@ -329,7 +329,7 @@ class CourierLocationTrackingService {
       } else {
         // console.warn('[LocationTracking] ⚠️ No se pudo enviar ubicación (emit retornó false)');
       }
-    } catch (error) {
+    } catch (error:any) {
       // console.error('[LocationTracking] ❌ Error al enviar ubicación:', error);
     }
   }
@@ -391,7 +391,7 @@ class CourierLocationTrackingService {
       });
 
       return location;
-    } catch (error) {
+    } catch (error:any) {
       // console.error('[LocationTracking] Error al obtener ubicación actual:', error);
       return null;
     }

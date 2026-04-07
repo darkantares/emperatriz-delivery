@@ -52,7 +52,7 @@ export interface RecentDeliveryItem {
 export const getDriverEarnings = async (): Promise<DriverEarnings> => {
   try {
     return await apiAction.get<DriverEarnings>(`${BackendUrls.CxpInvoices}/seller/earnings`);
-  } catch (error) {
+  } catch (error:any) {
     throw new Error('Unable to load driver earnings');
   }
 };
@@ -60,7 +60,7 @@ export const getDriverEarnings = async (): Promise<DriverEarnings> => {
 export const getDriverPaidInvoices = async (): Promise<PaidInvoice[]> => {
   try {
     return await apiAction.get<PaidInvoice[]>(`${BackendUrls.CxpInvoices}/seller/paid-invoices`);
-  } catch (error) {
+  } catch (error:any) {
     throw new Error('Unable to load driver paid invoices');
   }
 };
@@ -68,7 +68,7 @@ export const getDriverPaidInvoices = async (): Promise<PaidInvoice[]> => {
 export const getDriverMonthlyStats = async (): Promise<MonthlyStatItem[]> => {
   try {
     return await apiAction.get<MonthlyStatItem[]>(`${BackendUrls.CxpInvoices}/seller/monthly-stats`);
-  } catch (error) {
+  } catch (error:any) {
     throw new Error('Unable to load driver monthly stats');
   }
 };
@@ -76,7 +76,7 @@ export const getDriverMonthlyStats = async (): Promise<MonthlyStatItem[]> => {
 export const getDriverWeeklyStats = async (): Promise<WeeklyStatItem[]> => {
   try {
     return await apiAction.get<WeeklyStatItem[]>(`${BackendUrls.CxpInvoices}/seller/weekly-stats`);
-  } catch (error) {
+  } catch (error:any) {
     throw new Error('Unable to load driver weekly stats');
   }
 };
@@ -84,7 +84,7 @@ export const getDriverWeeklyStats = async (): Promise<WeeklyStatItem[]> => {
 export const getDriverDeliveryStats = async (): Promise<number> => {
   try {
     return await apiAction.get<number>(`${BackendUrls.DeliveryAssignments}/driver/stats`);
-  } catch (error) {
+  } catch (error:any) {
     throw new Error('Unable to load driver delivery stats');
   }
 };
@@ -92,7 +92,7 @@ export const getDriverDeliveryStats = async (): Promise<number> => {
 export const getDriverTopRoute = async (): Promise<DriverTopRoute | null> => {
   try {
     return await apiAction.get<DriverTopRoute | null>(`${BackendUrls.DeliveryAssignments}/driver/top-route`);
-  } catch (error) {
+  } catch (error:any) {
     throw new Error('Unable to load driver top route');
   }
 };
@@ -100,7 +100,7 @@ export const getDriverTopRoute = async (): Promise<DriverTopRoute | null> => {
 export const getDriverRecentDeliveries = async (): Promise<RecentDeliveryItem[]> => {
   try {
     return await apiAction.get<RecentDeliveryItem[]>(`${BackendUrls.DeliveryAssignments}/driver/recent-deliveries`);
-  } catch (error) {
+  } catch (error:any) {
     throw new Error('Unable to load driver recent deliveries');
   }
 };

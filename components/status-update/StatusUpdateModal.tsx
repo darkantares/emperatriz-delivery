@@ -347,7 +347,7 @@ export default function StatusUpdateModal({
         await fetchDeliveries();
         onSuccess?.(selectedStatus);
         onClose();
-      } catch (error) {
+      } catch (error:any) {
         Alert.alert(
           "Error",
           `Ocurrió un error inesperado: ${

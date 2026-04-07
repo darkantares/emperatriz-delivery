@@ -119,7 +119,7 @@ class SocketService {
 
       this.socket.connect();
       return true;
-    } catch (error) {
+    } catch (error:any) {
       console.log("Error al conectar Socket.IO:", error);
       this._connected = false;
       this.notifyConnectionListeners();
@@ -247,7 +247,7 @@ class SocketService {
       eventListeners.forEach(callback => {
         try {
           callback(data);
-        } catch (error) {
+        } catch (error:any) {
           console.log(`Error en listener de evento ${event}:`, error);
         }
       });
@@ -258,7 +258,7 @@ class SocketService {
     this.connectionListeners.forEach(callback => {
       try {
         callback(this._connected);
-      } catch (error) {
+      } catch (error:any) {
         console.log('Error en listener de conexión:', error);
       }
     });

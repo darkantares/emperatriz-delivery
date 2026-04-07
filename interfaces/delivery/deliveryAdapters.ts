@@ -60,7 +60,7 @@ export function adaptDeliveriesToAdapter(deliveries: IDeliveryAssignmentEntity[]
       relatedOrder: delivery.relatedOrder,
       enterprise: delivery.enterprise.title,
     }));    
-  } catch (error) {
+  } catch (error:any) {
     console.log('Error al adaptar entregas:', error);
     return [];
   }

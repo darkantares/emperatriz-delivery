@@ -28,7 +28,7 @@ async function isBatteryOptimizationEnabled(): Promise<boolean> {
   try {
     const batteryOptModule = await import('react-native-battery-optimization-check');
     return await batteryOptModule.BatteryOptEnabled();
-  } catch (error) {
+  } catch (error:any) {
     console.log('[BatteryOptimization] Could not check battery optimization:', error);
     return false;
   }
@@ -42,7 +42,7 @@ export async function openBatteryOptimizationSettings(): Promise<void> {
       'android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS',
     );
     return;
-  } catch (error) {
+  } catch (error:any) {
     console.log('[BatteryOptimization] Failed to open optimization settings:', error);
   }
 
@@ -57,13 +57,13 @@ export async function openBatteryOptimizationSettings(): Promise<void> {
       );
       return;
     }
-  } catch (error) {
+  } catch (error:any) {
     console.log('[BatteryOptimization] Failed to open app details settings:', error);
   }
 
   try {
     await Linking.openSettings();
-  } catch (error) {
+  } catch (error:any) {
     console.log('[BatteryOptimization] Failed to open settings fallback:', error);
   }
 }
@@ -103,7 +103,7 @@ export function useBatteryOptimizationCheck() {
             },
           },
         ]);
-      } catch (error) {
+      } catch (error:any) {
         console.log('[BatteryOptimization] Error while checking optimization:', error);
       }
     };

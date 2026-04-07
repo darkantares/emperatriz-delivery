@@ -286,7 +286,7 @@ export default function GroupStatusUpdateModal({
       await fetchDeliveries();
       onSuccess?.(selectedStatus);
       onClose();
-    } catch (error) {
+    } catch (error:any) {
       Alert.alert(
         "Error",
         `Ocurrió un error: ${error instanceof Error ? error.message : "Error desconocido"}`,
