@@ -89,7 +89,7 @@ const tabStyles = StyleSheet.create({
     flexDirection: "row",
     backgroundColor: CustomColors.backgroundDark,
     borderRadius: 12,
-    marginHorizontal: 14,
+    marginHorizontal: 2,
     padding: 3,
     position: "relative",
     overflow: "hidden",

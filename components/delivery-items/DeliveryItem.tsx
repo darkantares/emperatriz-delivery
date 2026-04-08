@@ -64,8 +64,8 @@ const styles = StyleSheet.create({
   itemContainer: {
     padding: 18,
     borderRadius: 20,
-    marginHorizontal: 14,
-    marginBottom: 12,
+    marginHorizontal: 2,
+    marginBottom: 6,
     backgroundColor: CustomColors.backgroundDark,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
