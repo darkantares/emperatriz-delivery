@@ -33,13 +33,13 @@ export default function LoginScreen() {
     const [apiStatus, setApiStatus] = useState<{ connected: boolean, message: string }>({
         connected: true,
         message: ''
-    });  
-    
+    });
+
     const { login: authLogin } = useAuth();
     const login = authLogin as (email: string, password: string) => Promise<LoginResult>;
 
     React.useEffect(() => {
-        
+
         const checkConnection = async () => {
             await authService.logout();
             const result = await checkApiConnectivity();
@@ -65,14 +65,14 @@ export default function LoginScreen() {
         });
 
         return result.success;
-    };    
-    
+    };
+
     const handleLogin = async () => {
         if (!email || !password) {
             Alert.alert('Error', 'Por favor ingresa tu email y contraseña');
             return;
         }
-        
+
         // Primero verificamos la conexión
         setIsLoading(true);
         const isConnected = await checkServerConnection();
@@ -91,7 +91,7 @@ export default function LoginScreen() {
 
             if (!result.success) {
                 let errorMessage = result.message || 'Credenciales incorrectas';
-                
+
                 // Intentamos extraer un mensaje más detallado si existe
                 if (result.details) {
                     if (typeof result.details === 'object') {
@@ -108,12 +108,12 @@ export default function LoginScreen() {
                         errorMessage = `${errorMessage}\n\nDetalles: ${result.details}`;
                     }
                 }
-                
+
                 Alert.alert('Error de inicio de sesión', errorMessage);
             } else {
                 console.log('Inicio de sesión exitoso');
             }
-        } catch (error:any) {
+        } catch (error: any) {
             const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
             Alert.alert(
                 'Error',
@@ -124,7 +124,7 @@ export default function LoginScreen() {
             setIsLoading(false);
         }
     };
-    
+
     return (
         <SafeAreaView style={styles.safeArea}>
             <StatusBar style="light" />
@@ -139,7 +139,7 @@ export default function LoginScreen() {
                             style={styles.logo}
                             resizeMode="contain"
                         />
-                        <Text style={styles.title}>Emperatriz Delivery</Text>
+                        <Text style={styles.title}>Tiendas Dominicanas</Text>
                         <Text style={styles.apiUrl}>
                             {__DEV__ ? (
                                 <>
@@ -193,7 +193,7 @@ export default function LoginScreen() {
                                     value={password}
                                     onChangeText={setPassword}
                                     secureTextEntry={!showPassword}
-                                />                
+                                />
                                 <TouchableOpacity
                                     style={styles.eyeIcon}
                                     onPress={() => setShowPassword(!showPassword)}
@@ -211,13 +211,13 @@ export default function LoginScreen() {
                             style={styles.loginButton}
                             onPress={handleLogin}
                             disabled={isLoading}
-                        >              
-                        {isLoading ? (
-                            <ActivityIndicator color={CustomColors.textLight} />
-                        ) : (
-                            <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
-                        )}
-                        </TouchableOpacity>            
+                        >
+                            {isLoading ? (
+                                <ActivityIndicator color={CustomColors.textLight} />
+                            ) : (
+                                <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
+                            )}
+                        </TouchableOpacity>
                         <TouchableOpacity style={styles.forgotPassword}>
                             <Text style={styles.forgotPasswordText}>¿Olvidaste tu contraseña?</Text>
                         </TouchableOpacity>
@@ -264,9 +264,9 @@ const styles = StyleSheet.create({
         borderRadius: 4,
     },
     logo: {
-        width: 120,
-        height: 120,
-        marginBottom: 20,
+        width: 250,
+        height: 250,
+        // marginBottom: 20,
     },
     title: {
         fontSize: 28,

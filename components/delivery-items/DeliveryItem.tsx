@@ -29,10 +29,10 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item }) => {
       <View style={styles.contentContainer}>
         <View style={styles.headerRow}>
           <View style={styles.infoColumn}>
-            <Text style={styles.clientText} numberOfLines={1}>
+            <Text style={styles.clientText}>
               {item.client}
             </Text>
-            <Text style={styles.addressText} numberOfLines={2}>
+            <Text style={styles.addressText}>
               Dirección: {item.deliveryAddress}
             </Text>
           </View>
@@ -48,10 +48,10 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item }) => {
           </View>
         </View>
         <View style={styles.metaRow}>
-          <Text style={styles.titleText} numberOfLines={1}>
+          <Text style={styles.titleText}>
             {item.title}
           </Text>
-          <Text style={styles.statusText} numberOfLines={1}>
+          <Text style={styles.statusText}>
             {item.currentStatus || 'Pendiente'}
           </Text>
         </View>

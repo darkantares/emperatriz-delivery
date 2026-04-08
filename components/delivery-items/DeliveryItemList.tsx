@@ -16,6 +16,7 @@ import { Swipeable, RectButton } from 'react-native-gesture-handler';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { DeliveryItem } from './DeliveryItem';
 import { CustomColors } from '@/constants/CustomColors';
+import { useAuth } from '@/context/AuthContext';
 import { openWhatsAppMessage } from '@/utils/whatsapp';
 import { DeliveryItemAdapter } from '@/interfaces/delivery/deliveryAdapters';
 
@@ -68,8 +69,11 @@ export const DeliveryItemList: React.FC<DeliveryItemListProps> = ({
   style,
   onItemPress,
 }) => {
+  const { carrier } = useAuth();
   const openSwipeableRef = useRef<Swipeable | null>(null);
   const rowSwipeables = useRef(new Map<string, Swipeable | null>());
+
+  const getMessengerPhone = (item: DeliveryItemAdapter) => carrier?.phone ?? item.phone;
 
   const closeOpenRow = () => {
     if (openSwipeableRef.current) {
@@ -81,29 +85,32 @@ export const DeliveryItemList: React.FC<DeliveryItemListProps> = ({
   const formatPhone = (phone: string) => phone.replace(/\D/g, '');
 
   const handleWhatsApp = async (item: DeliveryItemAdapter) => {
-    if (!item.phone) {
+    const phone = getMessengerPhone(item);
+    if (!phone) {
       Alert.alert('WhatsApp', 'El número de teléfono no está disponible.');
       return;
     }
 
-    const success = await openWhatsAppMessage(formatPhone(item.phone));
+    const success = await openWhatsAppMessage(formatPhone(phone));
     if (!success) Alert.alert('WhatsApp', 'No se pudo abrir WhatsApp.');
     closeOpenRow();
   };
 
   const handleCall = (item: DeliveryItemAdapter) => {
-    if (!item.phone) {
+    const phone = getMessengerPhone(item);
+    if (!phone) {
       Alert.alert('Llamada', 'El número de teléfono no está disponible.');
       return;
     }
 
-    const phoneNumber = formatPhone(item.phone);
+    const phoneNumber = formatPhone(phone);
     Linking.openURL(`tel:${phoneNumber}`);
     closeOpenRow();
   };
 
   const handleSendCoordinatesWhatsApp = async (item: DeliveryItemAdapter) => {
-    if (!item.phone) {
+    const phone = getMessengerPhone(item);
+    if (!phone) {
       Alert.alert('WhatsApp', 'El número de teléfono no está disponible.');
       return;
     }
@@ -120,7 +127,7 @@ ${item.deliveryAddress}
 Lat: ${lat}
 Lon: ${lon}
 https://maps.google.com/?q=${lat},${lon}`;
-    const success = await openWhatsAppMessage(formatPhone(item.phone), message);
+    const success = await openWhatsAppMessage(formatPhone(phone), message);
     if (!success) Alert.alert('WhatsApp', 'No se pudo abrir WhatsApp.');
     closeOpenRow();
   };

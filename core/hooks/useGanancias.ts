@@ -31,15 +31,6 @@ export const useGanancias = () => {
 
   const fetchData = useCallback(async () => {
     if (!isAuthenticated) {
-      setIsLoading(false);
-      setError(null);
-      setEarnings(null);
-      setPaidInvoices([]);
-      setMonthlyStats([]);
-      setWeeklyStats([]);
-      setDeliveryStats(null);
-      setTopRoute(null);
-      setRecentDeliveries([]);
       return;
     }
 
@@ -77,9 +68,22 @@ export const useGanancias = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      setIsLoading(false);
+      setError(null);
+      setEarnings(null);
+      setPaidInvoices([]);
+      setMonthlyStats([]);
+      setWeeklyStats([]);
+      setDeliveryStats(null);
+      setTopRoute(null);
+      setRecentDeliveries([]);
+      return;
+    }
+
     fetchData();
   }, [fetchData, isAuthenticated]);
 
