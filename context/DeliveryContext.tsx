@@ -102,14 +102,15 @@ export const DeliveryProvider: React.FC<DeliveryProviderProps> = ({ children }) 
         setAllDeliveries(update);
     };
 
-    const handleDeliveryAssigned = (data: DeliveryItemAdapter) => {        
-        setDeliveries((currentDeliveries) => upsertById(currentDeliveries, [data]));
-        setAllDeliveries((currentDeliveries) => upsertById(currentDeliveries, [data]));
+    const handleDeliveryAssigned = (_data: DeliveryItemAdapter) => {
+        // Refrescar desde la API para obtener la lista completa y ordenada del mensajero
+        fetchDeliveries();
     };
 
     const handleDriversGroupAssigned = (data: DeliveryItemAdapter[]) => {
-        setDeliveries((currentDeliveries) => upsertById(currentDeliveries, data));
-        setAllDeliveries((currentDeliveries) => upsertById(currentDeliveries, data));
+        // Reemplazar toda la lista con la recibida (ya viene completa y ordenada desde el backend)
+        setDeliveries(data);
+        setAllDeliveries(data);
     };
 
     const handleDeliveryReordered = (_data: DeliveryItemAdapter) => {
