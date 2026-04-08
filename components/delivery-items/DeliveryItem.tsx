@@ -48,11 +48,11 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item }) => {
           </View>
         </View>
         <View style={styles.metaRow}>
-          <Text style={styles.statusText} numberOfLines={1}>
-            Estado: {item.currentStatus || 'Pendiente'}
-          </Text>
           <Text style={styles.titleText} numberOfLines={1}>
             {item.title}
+          </Text>
+          <Text style={styles.statusText} numberOfLines={1}>
+            {item.currentStatus || 'Pendiente'}
           </Text>
         </View>
       </View>
@@ -129,17 +129,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
-  statusText: {
+  titleText: {
     color: CustomColors.textLight,
     fontSize: 13,
     opacity: 0.8,
     flex: 1,
   },
-  titleText: {
+  statusText: {
     color: CustomColors.textLight,
     fontSize: 12,
     opacity: 0.7,
-    flex: 1,
     textAlign: 'right',
+    minWidth: 90,
   },
 });
