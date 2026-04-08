@@ -256,24 +256,6 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
     }
   }, [carrier, user]);
 
-  useEffect(() => {
-    const handleRouteRefresh = () => {
-      console.log('[RouteContext] Evento socket recibido, recalculando ruta optimizada...');
-      recalculateRoutesViaBackend();
-    };
-
-    socketService.on(SocketEventType.DRIVER_ASSIGNED, handleRouteRefresh);
-    socketService.on(SocketEventType.DRIVERS_GROUP_ASSIGNED, handleRouteRefresh);
-    socketService.on(SocketEventType.DELIVERY_REORDERED, handleRouteRefresh);
-
-    return () => {
-      socketService.off(SocketEventType.DRIVER_ASSIGNED, handleRouteRefresh);
-      socketService.off(SocketEventType.DRIVERS_GROUP_ASSIGNED, handleRouteRefresh);
-      socketService.off(SocketEventType.DELIVERY_REORDERED, handleRouteRefresh);
-    };
-  }, [recalculateRoutesViaBackend]);
-
-
   // Efecto para loguear cuando tripData llega
   React.useEffect(() => {
     if (tripData) {
