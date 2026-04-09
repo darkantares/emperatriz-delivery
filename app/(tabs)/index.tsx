@@ -5,7 +5,6 @@ import {
   Text,
   ScrollView,
   View as RNView,
-  Animated,
   Dimensions,
 } from "react-native";
 import { View } from "@/components/Themed";
@@ -41,33 +40,16 @@ const SegmentedTabs = ({
   activeTab: Tab;
   onTabChange: (tab: Tab) => void;
 }) => {
-  const TAB_W = (SCREEN_WIDTH - 40 - 6) / TABS.length;
-  const initialIndex = TABS.indexOf(activeTab);
-  const indicatorAnim = useRef(new Animated.Value(initialIndex * TAB_W)).current;
-
-  const handlePress = (tab: Tab, index: number) => {
-    onTabChange(tab);
-    Animated.spring(indicatorAnim, {
-      toValue: index * TAB_W,
-      useNativeDriver: true,
-      tension: 80,
-      friction: 10,
-    }).start();
-  };
-
   return (
     <RNView style={tabStyles.container}>
-      <Animated.View
-        style={[
-          tabStyles.indicator,
-          { width: TAB_W, transform: [{ translateX: indicatorAnim }] },
-        ]}
-      />
-      {TABS.map((tab, index) => (
+      {TABS.map((tab) => (
         <TouchableOpacity
           key={tab}
-          style={[tabStyles.tab, { width: TAB_W }]}
-          onPress={() => handlePress(tab, index)}
+          style={[
+            tabStyles.tab,
+            activeTab === tab && tabStyles.tabActive,
+          ]}
+          onPress={() => onTabChange(tab)}
           activeOpacity={0.7}
         >
           <Text
@@ -93,6 +75,7 @@ const tabStyles = StyleSheet.create({
     padding: 3,
     position: "relative",
     overflow: "hidden",
+    justifyContent: "center",
     borderWidth: 1,
     borderColor: CustomColors.divider,
   },
@@ -104,9 +87,16 @@ const tabStyles = StyleSheet.create({
     borderRadius: 9,
     backgroundColor: CustomColors.primary,
   },
+  tabActive: {
+    backgroundColor: CustomColors.primary,
+    borderRadius: 9,
+  },
   tab: {
     paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginHorizontal: 2,
     alignItems: "center",
+    justifyContent: "center",
     zIndex: 1,
   },
   tabText: {
@@ -114,6 +104,7 @@ const tabStyles = StyleSheet.create({
     fontWeight: "600",
     color: CustomColors.textLight,
     opacity: 0.5,
+    textAlign: "center",
   },
   activeTabText: {
     color: "#FFFFFF",

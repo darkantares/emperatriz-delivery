@@ -103,7 +103,7 @@ export default PayoutHistory;
 
 const styles = StyleSheet.create({
     summaryWrapper: {
-        marginHorizontal: 20,
+        marginHorizontal: 2,
         marginBottom: 24,
         borderRadius: 20,
         shadowColor: '#000',

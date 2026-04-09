@@ -138,7 +138,7 @@ export default StatsCharts;
 
 const styles = StyleSheet.create({
     chartWrapper: {
-        marginHorizontal: 20,
+        marginHorizontal: 2,
         marginBottom: 16,
         borderRadius: 20,
         shadowColor: '#000',

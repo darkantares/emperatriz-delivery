@@ -72,7 +72,7 @@ export default EarningsCard;
 
 const styles = StyleSheet.create({
     wrapper: {
-        marginHorizontal: 20,
+        marginHorizontal: 2,
         marginBottom: 16,
         borderRadius: 20,
         shadowColor: '#000',
