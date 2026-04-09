@@ -3,6 +3,7 @@ import { Text } from '@/components/Themed';
 import React from 'react';
 import { CustomColors } from '@/constants/CustomColors';
 import { AssignmentType } from '@/utils/enum';
+import { Capitalize } from '@/utils/capitalize';
 
 export interface Item {
   id: string;
@@ -29,31 +30,28 @@ export const DeliveryItem: React.FC<DeliveryItemProps> = ({ item }) => {
       <View style={styles.contentContainer}>
         <View style={styles.headerRow}>
           <View style={styles.infoColumn}>
-            <Text style={styles.clientText}>
-              {item.client}
-            </Text>
+            <View style={styles.metaRow}>
+              <Text style={styles.clientText}>
+                {item.client}
+              </Text>
+              <View
+                style={[
+                  styles.typeIndicator,
+                  item.type === AssignmentType.PICKUP ? styles.pickupIndicator : styles.deliveryIndicator,
+                ]}
+              >
+                <Text style={styles.typeText}>
+                  {item.type === AssignmentType.PICKUP ? 'Recogida' : 'Entrega'}
+                </Text>
+              </View>
+            </View>
+
             <Text style={styles.addressText}>
-              Dirección: {item.deliveryAddress}
+              {item.deliveryAddress}
             </Text>
           </View>
-          <View
-            style={[
-              styles.typeIndicator,
-              item.type === AssignmentType.PICKUP ? styles.pickupIndicator : styles.deliveryIndicator,
-            ]}
-          >
-            <Text style={styles.typeText}>
-              {item.type === AssignmentType.PICKUP ? 'Recogida' : 'Entrega'}
-            </Text>
-          </View>
-        </View>
-        <View style={styles.metaRow}>
-          <Text style={styles.titleText}>
-            {item.title}
-          </Text>
-          <Text style={styles.statusText}>
-            {item.currentStatus || 'Pendiente'}
-          </Text>
+
+
         </View>
       </View>
     </View>
@@ -104,7 +102,7 @@ const styles = StyleSheet.create({
   },
   addressText: {
     color: CustomColors.textLight,
-    fontSize: 13,
+    fontSize: 14,
     opacity: 0.78,
   },
   typeIndicator: {
@@ -134,12 +132,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     opacity: 0.8,
     flex: 1,
-  },
-  statusText: {
-    color: CustomColors.textLight,
-    fontSize: 12,
-    opacity: 0.7,
-    textAlign: 'right',
-    minWidth: 90,
   },
 });
