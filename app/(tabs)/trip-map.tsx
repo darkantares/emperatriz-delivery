@@ -230,6 +230,8 @@ export default function TripMapScreen() {
   // this, guaranteeing all route-sync effects always re-fire.
   const [mapVersion, setMapVersion] = useState<number>(0);
   const [isManualSimulation, setIsManualSimulation] = useState<boolean>(false);
+  const [isDeviating, setIsDeviating] = useState<boolean>(false);
+  const [deviationDetectedTime, setDeviationDetectedTime] = useState<number>(0);
 
   const webViewRef = useRef<WebView>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -244,11 +246,18 @@ export default function TripMapScreen() {
   const routeCoordinatesRef = useRef<Coordinate[]>([]);
   const totalDistanceRef = useRef<number>(0);
   const totalDurationRef = useRef<number>(0);
+
+  // Deviation detection configuration and state
+  const deviationThresholdRef = useRef<number>(80); // metros
+  const deviationDebounceRef = useRef<number>(30000); // 30 segundos (evitar multiples recalculos)
+  const recalculationPendingRef = useRef<boolean>(false);
+  const isDeviatingRef = useRef<boolean>(false);
   useEffect(() => {
     routeCoordinatesRef.current = routeCoordinates;
     totalDistanceRef.current = totalDistance;
     totalDurationRef.current = totalDuration;
-  }, [routeCoordinates, totalDistance, totalDuration]);
+    isDeviatingRef.current = isDeviating;
+  }, [routeCoordinates, totalDistance, totalDuration, isDeviating]);
 
   // Register socket listener once — ref ensures it always calls the latest function
   useEffect(() => {
@@ -465,6 +474,60 @@ export default function TripMapScreen() {
       };
     }
     return coord;
+  };
+
+  /**
+   * Detecta si el mensajero se ha desviado de la ruta trazada
+   * @param actualPosition - Posicion actual del mensajero
+   * @param minDistance - Distancia minima al punto mas cercano de la ruta
+   */
+  const detectRouteDeviation = (actualPosition: Coordinate, minDistance: number): void => {
+    const now = Date.now();
+    const hasDeviationThresholdExceeded = minDistance > deviationThresholdRef.current;
+    const isDeviation = hasDeviationThresholdExceeded && !isDeviatingRef.current;
+    const isRecovering = !hasDeviationThresholdExceeded && isDeviatingRef.current;
+
+    if (isDeviation) {
+      // Usuario se acaba de desviar
+      console.log(
+        `[TripMapScreen] DESVIACION DETECTADA - Distancia a ruta: ${minDistance.toFixed(0)}m (umbral: ${deviationThresholdRef.current}m)`,
+      );
+      setIsDeviating(true);
+      setDeviationDetectedTime(now);
+    } else if (isRecovering) {
+      // Usuario regreso a la ruta
+      console.log(
+        `[TripMapScreen] DESVIACION RESUELTA - De vuelta en la ruta (distancia: ${minDistance.toFixed(0)}m)`,
+      );
+      setIsDeviating(false);
+      recalculationPendingRef.current = false; // Cancelar recalculo pendiente si estaba
+    }
+  };
+
+  /**
+   * Recalcula la ruta cuando se detecta una desviacion prolongada
+   * @param currentPosition - Posicion actual del mensajero
+   */
+  const recalculateRouteOnDeviation = (currentPosition: Coordinate): void => {
+    const now = Date.now();
+    const timeSinceDeviation = now - deviationDetectedTime;
+    const shouldRecalculate =
+      isDeviatingRef.current &&
+      timeSinceDeviation > deviationDebounceRef.current &&
+      !recalculationPendingRef.current;
+
+    if (shouldRecalculate) {
+      console.log(
+        `[TripMapScreen] RECALCULANDO RUTA - Desviacion persistente por ${(timeSinceDeviation / 1000).toFixed(0)}s`,
+      );
+      recalculationPendingRef.current = true;
+      
+      // Llamar al backend para recalcular la ruta desde la posicion actual
+      // recalculateRoutesViaBackend() maneja la recepcion de nuevos datos
+      // y automaticamente actualiza routeCoordinates, lo que dispara el useEffect
+      // que redibuja el mapa con INIT_ROUTE
+      recalculateRef.current();
+    }
   };
 
   const handleGroupCompleted = (ids: string[], newStatus: string) => {
@@ -720,7 +783,7 @@ export default function TripMapScreen() {
               longitude: actualPosition.longitude,
             });
 
-            // Calcular índice más cercano en la ruta si estamos viajando
+            // Calcular indice mas cercano en la ruta si estamos viajando
             if (isTraveling && routeCoordinatesRef.current.length > 0) {
               let closestIndex = 0;
               let minDistance = Infinity;
@@ -741,6 +804,10 @@ export default function TripMapScreen() {
               setRemainingDuration(
                 totalDurationRef.current * (1 - progressPercentage),
               );
+
+              // NUEVO: Detectar y manejar desviaciones de ruta
+              detectRouteDeviation(actualPosition, minDistance);
+              recalculateRouteOnDeviation(actualPosition);
 
               // Detectar llegada al destino
               if (routeCoordinatesRef.current.length > 0) {
