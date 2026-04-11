@@ -350,7 +350,7 @@ export default function StatusUpdateModal({
       } catch (error:any) {
         Alert.alert(
           "Error",
-          `Ocurrió un error inesperado: ${
+          `Ocurrio un error inesperado: ${
             error instanceof Error ? error.message : "Error desconocido"
           }`,
           [{ text: "OK" }],

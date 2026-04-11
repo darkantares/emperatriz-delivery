@@ -37,21 +37,12 @@ interface LocationTrackingConfig {
   autoStart: boolean;
 }
 
-// Configuración para DESARROLLO: se dispara cada 10 segundos sin necesidad de moverse
-// Configuración para PRODUCCIÓN: 15 segundos + 10 metros de movimiento
-const IS_DEVELOPMENT = __DEV__; // Expo define __DEV__ automáticamente
-
-const DEFAULT_CONFIG: LocationTrackingConfig = IS_DEVELOPMENT 
-  ? {
-      updateInterval: 10000, // 10 segundos (más rápido para testing)
-      minDistance: 0, // 0 = se dispara solo por tiempo, sin necesidad de moverse
-      autoStart: true,
-    }
-  : {
-      updateInterval: 15000, // 15 segundos
-      minDistance: 10, // 10 metros
-      autoStart: true,
-    };
+// Configuración estándar de tracking: 15 segundos y 10 metros de distancia mínima
+const DEFAULT_CONFIG: LocationTrackingConfig = {
+  updateInterval: 15000, // 15 segundos
+  minDistance: 10, // 10 metros
+  autoStart: true,
+};
 
 /**
  * Servicio para gestionar el tracking de ubicación del mensajero
@@ -248,38 +239,36 @@ class CourierLocationTrackingService {
         return;
       }
 
-      // Verificar throttling por tiempo
       const now = Date.now();
       const timeSinceLastSent = now - this.lastSentTime;
 
-      // console.log('[LocationTracking] Verificando throttling por tiempo:', {
+      // console.log('[LocationTracking] Verificando condiciones de envío:', {
       //   timeSinceLastSent: `${(timeSinceLastSent / 1000).toFixed(1)}s`,
-      //   updateInterval: `${(this.config.updateInterval / 1000).toFixed(1)}s`
+      //   updateInterval: `${(this.config.updateInterval / 1000).toFixed(1)}s`,
+      //   minDistance: `${this.config.minDistance}m`
       // });
 
-      if (timeSinceLastSent < this.config.updateInterval) {
-        // console.log('[LocationTracking] ⏭️ Throttling por tiempo, omitiendo envío');
-        return;
-      }
-
-      // Verificar throttling por distancia
+      let distance = 0;
       if (this.lastSentLocation) {
-        const distance = this.calculateDistance(
+        distance = this.calculateDistance(
           this.lastSentLocation.coords.latitude,
           this.lastSentLocation.coords.longitude,
           location.coords.latitude,
           location.coords.longitude
         );
 
-        // console.log('[LocationTracking] Verificando throttling por distancia:', {
+        // console.log('[LocationTracking] Verificando distancia:', {
         //   distance: `${distance.toFixed(1)}m`,
         //   minDistance: `${this.config.minDistance}m`
         // });
+      }
 
-        if (distance < this.config.minDistance) {
-          // console.log('[LocationTracking] ⏭️ Throttling por distancia, omitiendo envío');
-          return;
-        }
+      const shouldSendByDistance = !this.lastSentLocation || distance >= this.config.minDistance;
+      const shouldSendByTime = timeSinceLastSent >= this.config.updateInterval;
+
+      if (!shouldSendByDistance && !shouldSendByTime) {
+        // console.log('[LocationTracking] ⏭️ No cumple distancia ni tiempo de envío, omitiendo');
+        return;
       }
 
       // Enviar ubicación al backend

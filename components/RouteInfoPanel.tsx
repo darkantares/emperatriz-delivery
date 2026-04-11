@@ -38,12 +38,6 @@ const RouteInfoPanel: React.FC<RouteInfoPanelProps> = ({
           {Math.round((isTraveling && remainingDuration !== undefined ? remainingDuration : totalDuration) / 60)} min
         </Text>
       </View>
-      {isTraveling && (
-        <View style={styles.infoPanelRow}>
-          <Text style={styles.infoPanelLabel}>Estado:</Text>
-          <Text style={[styles.infoPanelValue, styles.statusActive]}>🔵 En movimiento</Text>
-        </View>
-      )}
     </View>
   );
 };

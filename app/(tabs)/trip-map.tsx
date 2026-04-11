@@ -229,6 +229,7 @@ export default function TripMapScreen() {
   // Counter instead of boolean: every MAP_READY (including WebView remounts) increments
   // this, guaranteeing all route-sync effects always re-fire.
   const [mapVersion, setMapVersion] = useState<number>(0);
+  const [isManualSimulation, setIsManualSimulation] = useState<boolean>(false);
 
   const webViewRef = useRef<WebView>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -238,6 +239,16 @@ export default function TripMapScreen() {
   // Keep latest recalculate function in ref so the socket handler never becomes stale
   const recalculateRef = useRef(recalculateRoutesViaBackend);
   useEffect(() => { recalculateRef.current = recalculateRoutesViaBackend; });
+
+  // Keep route data in refs for GPS callback without stale closures
+  const routeCoordinatesRef = useRef<Coordinate[]>([]);
+  const totalDistanceRef = useRef<number>(0);
+  const totalDurationRef = useRef<number>(0);
+  useEffect(() => {
+    routeCoordinatesRef.current = routeCoordinates;
+    totalDistanceRef.current = totalDistance;
+    totalDurationRef.current = totalDuration;
+  }, [routeCoordinates, totalDistance, totalDuration]);
 
   // Register socket listener once — ref ensures it always calls the latest function
   useEffect(() => {
@@ -463,6 +474,13 @@ export default function TripMapScreen() {
       ids.forEach((id) => next.set(id, newStatus));
       return next;
     });
+
+    // Start traveling when marking as IN_PROGRESS
+    if (newStatus === IDeliveryStatus.IN_PROGRESS) {
+      console.log('[TripMapScreen] Iniciando viaje (estado: EN PROGRESO)');
+      setIsTraveling(true);
+    }
+
     const terminalStatuses: string[] = [
       IDeliveryStatus.DELIVERED,
       IDeliveryStatus.CANCELLED,
@@ -564,7 +582,8 @@ export default function TripMapScreen() {
   }, [completedDeliveryIds, tripDeliveries, router]);
 
   useEffect(() => {
-    if (!isTraveling || routeCoordinates.length === 0) {
+    const shouldRun = __DEV__ ? isManualSimulation : isTraveling;
+    if (!shouldRun || routeCoordinates.length === 0) {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
@@ -577,7 +596,7 @@ export default function TripMapScreen() {
     }
 
     if (__DEV__) {
-      console.log("[TripMapScreen] Iniciando simulación automática");
+      console.log("[TripMapScreen] Iniciando simulación manual");
       intervalRef.current = setInterval(() => {
         setCurrentIndex((prevIndex) => {
           const nextIndex = prevIndex + 1;
@@ -666,7 +685,91 @@ export default function TripMapScreen() {
         locationSubscription.current = null;
       }
     };
-  }, [isTraveling, routeCoordinates, totalDistance, totalDuration]);
+  }, [isTraveling, isManualSimulation, routeCoordinates, totalDistance, totalDuration]);
+
+  // =========================================================================
+  // GPS TRACKING: Inicia cuando la ruta está lista, corre continuamente
+  // SIN esperar a isTraveling, para mantener posición actualizada siempre
+  // =========================================================================
+  useEffect(() => {
+    // Solo iniciar si tenemos ruta cargada y no estamos en simulación
+    if (groupedWaypoints.length === 0 || __DEV__) return;
+
+    console.log('[TripMapScreen] Iniciando tracking GPS continuo (ruta lista)');
+    
+    (async () => {
+      try {
+        const subscription = await Location.watchPositionAsync(
+          {
+            accuracy: Location.Accuracy.BestForNavigation,
+            timeInterval: 1000, // Actualizar cada 1 segundo
+            distanceInterval: 0, // Sin mínimo de distancia (reportar todos los cambios)
+          },
+          (location) => {
+            const actualPosition: Coordinate = {
+              latitude: location.coords.latitude,
+              longitude: location.coords.longitude,
+            };
+            // Actualizar posición del mensajero
+            setCurrentPosition(actualPosition);
+
+            // Enviar al mapa para centrar seguimiento
+            sendToMap({
+              type: 'UPDATE_POSITION',
+              latitude: actualPosition.latitude,
+              longitude: actualPosition.longitude,
+            });
+
+            // Calcular índice más cercano en la ruta si estamos viajando
+            if (isTraveling && routeCoordinatesRef.current.length > 0) {
+              let closestIndex = 0;
+              let minDistance = Infinity;
+              routeCoordinatesRef.current.forEach((coord, index) => {
+                const distance = calculateDistance(actualPosition, coord);
+                if (distance < minDistance) {
+                  minDistance = distance;
+                  closestIndex = index;
+                }
+              });
+              setCurrentIndex(closestIndex);
+
+              const progressPercentage =
+                closestIndex / routeCoordinatesRef.current.length;
+              setRemainingDistance(
+                totalDistanceRef.current * (1 - progressPercentage),
+              );
+              setRemainingDuration(
+                totalDurationRef.current * (1 - progressPercentage),
+              );
+
+              // Detectar llegada al destino
+              if (routeCoordinatesRef.current.length > 0) {
+                const lastPoint =
+                  routeCoordinatesRef.current[
+                    routeCoordinatesRef.current.length - 1
+                  ];
+                if (calculateDistance(actualPosition, lastPoint) < 20) {
+                  console.log('[TripMapScreen] Destino alcanzado (GPS continuo)');
+                  setIsTraveling(false);
+                }
+              }
+            }
+          },
+        );
+        locationSubscription.current = subscription;
+      } catch (err: any) {
+        console.error('[TripMapScreen] Error en tracking GPS continuo:', err);
+      }
+    })();
+
+    return () => {
+      if (locationSubscription.current) {
+        console.log('[TripMapScreen] Limpiando tracking GPS continuo');
+        locationSubscription.current.remove();
+        locationSubscription.current = null;
+      }
+    };
+  }, [groupedWaypoints.length, isTraveling, calculateDistance]);
 
   useEffect(() => {
     return () => {
@@ -736,6 +839,20 @@ export default function TripMapScreen() {
             }
           >
             <Text style={styles.centerButtonText}>📍</Text>
+          </TouchableOpacity>
+        )}
+
+        {__DEV__ && routeCoordinates.length > 0 && (
+          <TouchableOpacity
+            style={[
+              styles.simulationButton,
+              isManualSimulation && styles.simulationButtonActive,
+            ]}
+            onPress={() => setIsManualSimulation(!isManualSimulation)}
+          >
+            <Text style={styles.simulationButtonText}>
+              {isManualSimulation ? '⏸' : '▶️'}
+            </Text>
           </TouchableOpacity>
         )}
 
@@ -994,6 +1111,30 @@ const styles = StyleSheet.create({
   centerButtonText: {
     fontSize: 22,
     lineHeight: 26,
+  },
+  simulationButton: {
+    position: "absolute",
+    top: 70,
+    right: 16,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: "#2196F3",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 4,
+    elevation: 6,
+    zIndex: 10,
+  },
+  simulationButtonActive: {
+    backgroundColor: "#FFC107",
+  },
+  simulationButtonText: {
+    fontSize: 18,
+    lineHeight: 22,
   },
   loadingOverlay: {
     position: "absolute",

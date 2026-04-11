@@ -259,6 +259,7 @@ export default function GroupStatusUpdateModal({
       const commonImageUris = evidenceUris.length > 0 ? evidenceUris : undefined;
 
       if (ids.length === 1) {
+        console.log('there is 1 id, calling updateDeliveryStatusUnified')
         await updateDeliveryStatusUnified({
           id: ids[0],
           status: statusId,
@@ -270,6 +271,7 @@ export default function GroupStatusUpdateModal({
           imageUris: commonImageUris,
         });
       } else {
+        console.log('there isnt ids');        
         const numericIds = ids.map((id) => Number(id));
         await updateDeliveryStatusBatch(
           numericIds,
@@ -289,7 +291,7 @@ export default function GroupStatusUpdateModal({
     } catch (error:any) {
       Alert.alert(
         "Error",
-        `Ocurrió un error: ${error instanceof Error ? error.message : "Error desconocido"}`,
+        `Ocurrio un error: ${error instanceof Error ? error.message : "Error desconocido"}`,
         [{ text: "OK" }],
       );
     } finally {
