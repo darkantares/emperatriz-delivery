@@ -79,7 +79,7 @@ export const DeliveryProvider: React.FC<DeliveryProviderProps> = ({ children }) 
 
             setAllDeliveries(deliveriesData);
             setDeliveries(deliveriesData);
-        } catch (err) {
+        } catch (err: any) {
             const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
             setError(errorMessage);
             console.log('Error al cargar entregas 2:', err);

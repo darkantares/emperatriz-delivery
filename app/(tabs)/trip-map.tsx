@@ -424,7 +424,7 @@ export default function TripMapScreen() {
       setRemainingDistance(trip.distance);
       setRemainingDuration(trip.duration);
       // Map centering is handled by the INIT_ROUTE Leaflet call (fitBounds)
-    } catch (err) {
+    } catch (err: any) {
       console.error("[TripMapScreen] Error procesando trip data:", err);
     }
   }, [tripData, tripDeliveries]);
@@ -646,7 +646,7 @@ export default function TripMapScreen() {
             },
           );
           locationSubscription.current = subscription;
-        } catch (err) {
+        } catch (err: any) {
           console.error(
             "[TripMapScreen] Error iniciando seguimiento GPS:",
             err,

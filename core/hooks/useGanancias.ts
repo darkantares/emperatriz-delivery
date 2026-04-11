@@ -62,7 +62,7 @@ export const useGanancias = () => {
       setDeliveryStats(deliveryStatsData);
       setTopRoute(topRouteData);
       setRecentDeliveries(recentDeliveriesData);
-    } catch (err) {
+    } catch (err: any) {
       console.error('useGanancias fetch error', err);
       setError(err instanceof Error ? err.message : 'Error loading data');
     } finally {

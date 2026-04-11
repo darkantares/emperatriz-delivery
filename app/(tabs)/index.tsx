@@ -212,7 +212,7 @@ function TabOneScreenContent() {
   const handleStartRoutes = async () => {
     try {
       await startRoutes(allDeliveries);
-    } catch (err) {
+    } catch (err: any) {
       const errorMessage = err instanceof Error ? err.message : 'Ocurrió un error desconocido al calcular la ruta optimizada.';
       Alert.alert("Error", errorMessage, [{ text: "Entendido" }]);
     }

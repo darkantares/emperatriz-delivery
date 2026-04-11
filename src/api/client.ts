@@ -24,7 +24,7 @@ zodClient.interceptors.request.use(async (config) => {
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
-    } catch (err) {
+    } catch (err: any) {
         console.log('[zodClient] Could not read auth token', err);
     }
     return config;

@@ -50,7 +50,7 @@ export function useFCMPushNotifications(userId: number | undefined | null) {
 
       registeredRef.current = true;
       console.log('[FCM] Token registered for user', userId);
-    } catch (err) {
+    } catch (err: any) {
       console.log('[FCM] Error during token registration:', err);
     }
   }, [userId]);
