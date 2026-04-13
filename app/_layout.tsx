@@ -57,7 +57,9 @@ export default function RootLayout() {
 
   useEffect(() => {
     // Oculta los botones de Android
-    NavigationBar.setVisibilityAsync('hidden');
+    NavigationBar.setVisibilityAsync('hidden').catch(() => {
+      // Silently ignore if activity is no longer available
+    });
 
     // Los muestra solo si el usuario desliza desde abajo
 
@@ -104,7 +106,9 @@ function ProtectedRouteGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
       // Oculta los botones de Android
-      NavigationBar.setVisibilityAsync('hidden');
+      NavigationBar.setVisibilityAsync('hidden').catch(() => {
+        // Silently ignore if activity is no longer available
+      });
   }, []);
   
   useEffect(() => {
