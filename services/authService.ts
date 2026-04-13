@@ -1,13 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LoginResponse, IUserEntity, IRolesAllowedEntity, DeliveryPersonEntity } from '@/interfaces/auth';
 import { api, extractDataFromResponse } from './api';
+import { storeTokens, clearTokens } from './auth-fetch';
 
 // Keys para almacenamiento
-const AUTH_TOKEN_KEY = 'auth_token';
-const REFRESH_TOKEN_KEY = 'refresh_token';
-const USER_DATA_KEY = 'user_data';
-const USER_ROLES_KEY = 'user_roles';
-const CARRIER_DATA_KEY = 'carrier_data';
+export const AUTH_TOKEN_KEY = 'auth_token';
+export const REFRESH_TOKEN_KEY = 'refresh_token';
+export const USER_DATA_KEY = 'user_data';
+export const USER_ROLES_KEY = 'user_roles';
+export const CARRIER_DATA_KEY = 'carrier_data';
 
 // Servicio de autenticación
 export const authService = {
@@ -47,9 +48,8 @@ export const authService = {
             const normalizedRoles = loginData.roles ?? loginData.user?.userRoles ?? [];
             const normalizedCarrier = loginData.carrier ?? null;
 
-            // Guardar tokens
-            await AsyncStorage.setItem(AUTH_TOKEN_KEY, loginData.access_token);
-            await AsyncStorage.setItem(REFRESH_TOKEN_KEY, loginData.refresh_token);
+            // Guardar tokens usando el servicio centralizado
+            await storeTokens(loginData.access_token, loginData.refresh_token);
 
             // Guardar datos del usuario y roles
             await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(loginData.user));
@@ -76,9 +76,8 @@ export const authService = {
 
     logout: async () => {
         // Eliminar todos los datos de autenticación
+        await clearTokens();
         await AsyncStorage.multiRemove([
-            AUTH_TOKEN_KEY,
-            REFRESH_TOKEN_KEY,
             USER_DATA_KEY,
             USER_ROLES_KEY,
             CARRIER_DATA_KEY
@@ -177,49 +176,6 @@ export const authService = {
                 error: 'Error al sincronizar la informacion del usuario',
             };
         }
-    },
-
-    refreshToken: async () => {
-        const refreshToken = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
-        if (!refreshToken) return { success: false };
-
-        try {
-            // Implementa la lógica para refrescar el token usando el refresh_token
-            const response = await api.post<{ access_token: string; refresh_token?: string }>('/auth/refresh-token', { refresh_token: refreshToken });
-
-            if (response.error || !response.data) {
-                return { success: false };
-            }
-
-            // Extraer los datos del responseData usando nuestra función de utilidad
-            const tokenData = extractDataFromResponse<{ access_token: string; refresh_token?: string }>(response);
-            
-            if (!tokenData) {
-                console.log('Error parsing token refresh response:', response);
-                return { success: false };
-            }
-
-            // Actualizar el token de acceso
-            await AsyncStorage.setItem(AUTH_TOKEN_KEY, tokenData.access_token);
-
-            // Si el servidor devuelve un nuevo refresh token, actualizarlo también
-            if (tokenData.refresh_token) {
-                await AsyncStorage.setItem(REFRESH_TOKEN_KEY, tokenData.refresh_token);
-            }
-
-            return { success: true };
-        } catch (error:any) {
-            console.log('Error refreshing token:', error);
-            return { success: false };
-        }
     }
 };
 
-// Exportar las constantes para que puedan ser utilizadas por otros servicios
-export {
-    AUTH_TOKEN_KEY,
-    REFRESH_TOKEN_KEY,
-    USER_DATA_KEY,
-    USER_ROLES_KEY,
-    CARRIER_DATA_KEY
-};

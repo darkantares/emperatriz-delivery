@@ -3,10 +3,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ResponseAPI, FetchResponse } from '@/interfaces/global';
 import { Platform } from 'react-native';
 import { findSchema } from '@/src/api/schemaRegistry';
+import { getStoredTokens } from './auth-fetch';
+import { captureTokensFromHeaders } from './token-refresh-response';
 
 // Keys para almacenamiento
 export const AUTH_TOKEN_KEY = 'auth_token';
-const REFRESH_TOKEN_KEY = 'refresh_token';
 
 let authFailureHandler: (() => void | Promise<void>) | null = null;
 
@@ -57,18 +58,18 @@ const defaultOptions = {
     },
 };
 
-// Función para añadir token de autorización a las opciones
+// Función para añadir token de autorización a las opciones (usa tokens centralizados)
 const getAuthOptions = async (options: Record<string, any> = {}): Promise<RequestInit> => {
     try {
-        const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
-        if (!token) {
+        const { accessToken } = await getStoredTokens();
+        if (!accessToken) {
             return options;
         }
         return {
             ...options,
             headers: {
                 ...(options.headers || {}),
-                Authorization: `Bearer ${token}`,
+                Authorization: `Bearer ${accessToken}`,
             },
         };
     } catch (error:any) {
@@ -119,55 +120,6 @@ const handleSuccessResponse = async <T>(response: Response): Promise<FetchRespon
     }
 };
 
-// Función para refrescar el token de autenticación
-const refreshToken = async (): Promise<{ success: boolean }> => {
-    try {
-        const refreshTokenValue = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
-        if (!refreshTokenValue) {
-            return { success: false };
-        }
-
-        // Endpoint para refrescar el token
-        const refreshEndpoint = '/auth/refresh-token';
-        const url = `${API_URL}${refreshEndpoint}`;
-
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ refresh_token: refreshTokenValue })
-        });
-
-        if (!response.ok) {
-            return { success: false };
-        }
-
-        const tokenData = await response.json();
-
-        // Extraer datos del token refrescado
-        const newTokenData = extractDataFromResponse<{ access_token: string; refresh_token?: string }>(tokenData);
-
-        if (!newTokenData || !newTokenData.access_token) {
-            console.log('La respuesta de refresh token no tiene el formato esperado');
-            return { success: false };
-        }
-
-        // Guardar el nuevo token
-        await AsyncStorage.setItem(AUTH_TOKEN_KEY, newTokenData.access_token);
-
-        // Si también recibimos un nuevo refresh token, guardarlo
-        if (newTokenData.refresh_token) {
-            await AsyncStorage.setItem(REFRESH_TOKEN_KEY, newTokenData.refresh_token);
-        }
-
-        return { success: true };
-    } catch (error:any) {
-        console.log('Error al refrescar el token:', error);
-        return { success: false };
-    }
-};
-
 // Función genérica para hacer peticiones a la API
 export const apiRequest = async <T>(endpoint: string, options: ApiOptions = {}): Promise<FetchResponse<T>> => {
     try {
@@ -200,40 +152,6 @@ export const apiRequest = async <T>(endpoint: string, options: ApiOptions = {}):
         const response = await fetch(url, requestOptions);
 
         if (!response.ok) {
-
-            // Si el error es 401 (Unauthorized), intentar refrescar el token
-            if (response.status === 401) {
-                const refreshResult = await refreshToken();
-
-                if (refreshResult.success) {
-                    // Reintento con el nuevo token
-                    const newAuthOptions = await getAuthOptions(options);
-                    const retryRequestOptions = isFormData 
-                        ? { ...newAuthOptions }
-                        : {
-                            ...defaultOptions,
-                            ...newAuthOptions,
-                            headers: {
-                                ...defaultOptions.headers,
-                                ...((newAuthOptions as any).headers || {})
-                            }
-                        };
-                    
-                    const retryResponse = await fetch(url, retryRequestOptions);
-
-                    if (retryResponse.ok) {
-                        return handleSuccessResponse<T>(retryResponse);
-                    }
-                } else {
-                    console.log('No se pudo refrescar el token, usuario debe iniciar sesión nuevamente');
-                    try {
-                        await authFailureHandler?.();
-                    } catch (handlerError) {
-                        console.log('Error al ejecutar authFailureHandler:', handlerError);
-                    }
-                }
-            }
-
             try {
                 // Intentar obtener detalles del error
                 const errorData = await response.json();
@@ -264,6 +182,10 @@ export const apiRequest = async <T>(endpoint: string, options: ApiOptions = {}):
 
         // Procesar la respuesta exitosa
         const fetchResult = await handleSuccessResponse<T>(response);
+
+        // Capturar los nuevos tokens devueltos por el backend en los headers
+        // El backend refresca automáticamente el token en el middleware
+        await captureTokensFromHeaders(response);
 
         // Validate the parsed data against any registered Zod schema for this endpoint
         const schema = findSchema(formattedEndpoint);
