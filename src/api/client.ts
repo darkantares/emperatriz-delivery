@@ -3,6 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL, AUTH_TOKEN_KEY } from '@/services/api';
 import { findSchema } from './schemaRegistry';
 
+const REFRESH_TOKEN_KEY = 'refresh_token';
+
 /**
  * Axios client with automatic Zod response validation via interceptor.
  *
@@ -17,38 +19,65 @@ export const zodClient = axios.create({
     headers: { 'Content-Type': 'application/json' },
 });
 
-// Attach the auth token to every outgoing request
+// Attach the auth token and refresh token to every outgoing request
 zodClient.interceptors.request.use(async (config) => {
     try {
         const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
+        const refreshToken = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
+        
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
+        if (refreshToken) {
+            config.headers['x-refresh-token'] = refreshToken;
+        }
     } catch (err: any) {
-        console.log('[zodClient] Could not read auth token', err);
+        console.log('[zodClient] Could not read auth tokens', err);
     }
     return config;
 });
 
 /**
- * Response interceptor: validates the response body against the registered
- * Zod schema for the called endpoint. Throws a clear error if the shape
- * diverges from what the schema declares.
+ * Response interceptor: 
+ * 1. Captures new tokens from backend (X-New-Access-Token, X-New-Refresh-Token)
+ * 2. Validates the response body against registered Zod schema
  */
-zodClient.interceptors.response.use((response) => {
-    const url = response.config.url ?? '';
-    const schema = findSchema(url);
+zodClient.interceptors.response.use(
+    async (response) => {
+        // Capture new tokens if backend refreshed them
+        try {
+            const newAccessToken = response.headers['x-new-access-token'];
+            const newRefreshToken = response.headers['x-new-refresh-token'];
 
-    if (schema) {
-        const result = schema.safeParse(response.data);
-
-        if (!result.success) {
-            console.error('[zodClient] Invalid API response for', url, result.error);
-            throw new Error('Invalid API response structure');
+            if (newAccessToken) {
+                await AsyncStorage.setItem(AUTH_TOKEN_KEY, newAccessToken);
+            }
+            if (newRefreshToken) {
+                await AsyncStorage.setItem(REFRESH_TOKEN_KEY, newRefreshToken);
+            }
+        } catch (err: any) {
+            console.log('[zodClient] Could not save new tokens', err);
         }
 
-        response.data = result.data;
-    }
+        // Validate response against Zod schema
+        const url = response.config.url ?? '';
+        const schema = findSchema(url);
 
-    return response;
-});
+        if (schema) {
+            const result = schema.safeParse(response.data);
+
+            if (!result.success) {
+                console.error('[zodClient] Invalid API response for', url, result.error);
+                throw new Error('Invalid API response structure');
+            }
+
+            response.data = result.data;
+        }
+
+        return response;
+    },
+    (error) => {
+        // Propagate errors
+        return Promise.reject(error);
+    }
+);

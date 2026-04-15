@@ -9,6 +9,7 @@ import {
   Modal,
   TextInput,
   ScrollView,
+  Platform,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
@@ -71,6 +72,12 @@ export default function GroupStatusUpdateModal({
   const [amountPaidEdited, setAmountPaidEdited] = useState<boolean>(false);
   const [additionalAmount, setAdditionalAmount] = useState<string>("");
   const [verificationCode, setVerificationCode] = useState<string>("");
+  const [codeVerificationStatus, setCodeVerificationStatus] = useState<
+    "pending" | "valid" | "invalid"
+  >("pending");
+  const [failedAttempts, setFailedAttempts] = useState<number>(0);
+  const [isCodeLocked, setIsCodeLocked] = useState<boolean>(false);
+  const [lockTimeRemaining, setLockTimeRemaining] = useState<number>(0);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
     number | null
   >(null);
@@ -146,7 +153,51 @@ export default function GroupStatusUpdateModal({
     setSelectedPaymentMethod(null);
     setAmountPaidEdited(false);
     setVerificationCode("");
+    setCodeVerificationStatus("pending");
+    setFailedAttempts(0);
+    setIsCodeLocked(false);
+    setLockTimeRemaining(0);
   }, [currentStatus]);
+
+  // Validar código en tiempo real
+  useEffect(() => {
+    if (isDelivered && verificationCode.length === 4) {
+      setCodeVerificationStatus("valid");
+    } else if (verificationCode.length === 0) {
+      setCodeVerificationStatus("pending");
+    }
+  }, [verificationCode, isDelivered]);
+
+  // Manejar contador de intentos fallidos
+  useEffect(() => {
+    if (codeVerificationStatus === "invalid" && verificationCode.length === 4) {
+      const newAttempts = failedAttempts + 1;
+      setFailedAttempts(newAttempts);
+
+      if (newAttempts >= 3) {
+        setIsCodeLocked(true);
+        setLockTimeRemaining(30);
+      }
+    }
+  }, [codeVerificationStatus]);
+
+  // Timeout de 30 segundos después de 3 intentos fallidos
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    if (isCodeLocked && lockTimeRemaining > 0) {
+      timer = setTimeout(() => {
+        setLockTimeRemaining(lockTimeRemaining - 1);
+      }, 1000);
+    } else if (isCodeLocked && lockTimeRemaining === 0) {
+      setIsCodeLocked(false);
+      setFailedAttempts(0);
+      setVerificationCode("");
+      setCodeVerificationStatus("pending");
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [isCodeLocked, lockTimeRemaining]);
 
   const takePhoto = async () => {
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
@@ -412,17 +463,51 @@ export default function GroupStatusUpdateModal({
 
             {isDelivered && (
               <View style={styles.paymentContainer}>
-                <Text style={styles.paymentLabel}>Código de Verificación (Obligatorio):</Text>
-                <TextInput
-                  style={styles.paymentInput}
-                  placeholder="Ingresar código de 4 dígitos..."
-                  placeholderTextColor={CustomColors.divider}
-                  value={verificationCode}
-                  onChangeText={(text) => setVerificationCode(text.replace(/[^0-9]/g, "").slice(0, 4))}
-                  keyboardType="numeric"
-                  maxLength={4}
-                  returnKeyType="done"
-                />
+                <View style={styles.codeVerificationLabelRow}>
+                  <View style={styles.labelContainer}>
+                    <Text style={styles.paymentLabel}>Código (Obligatorio):</Text>
+                  </View>
+                  {codeVerificationStatus === "valid" && (
+                    <Text style={styles.checkIcon}>✓</Text>
+                  )}
+                </View>
+                {isCodeLocked ? (
+                  <View style={styles.lockedCodeContainer}>
+                    <Text style={styles.lockedCodeText}>
+                      Demasiados intentos. Intenta en {lockTimeRemaining}s
+                    </Text>
+                  </View>
+                ) : (
+                  <>
+                    <TextInput
+                      style={[
+                        styles.paymentInput,
+                        codeVerificationStatus === "invalid" &&
+                          verificationCode.length === 4 &&
+                          styles.inputError,
+                        codeVerificationStatus === "valid" &&
+                          styles.inputSuccess,
+                      ]}
+                      placeholder="Ingresar código..."
+                      placeholderTextColor={CustomColors.divider}
+                      value={verificationCode}
+                      onChangeText={(text) => {
+                        const cleaned = text.replace(/[^0-9]/g, "").slice(0, 4);
+                        setVerificationCode(cleaned);
+                      }}
+                      keyboardType="numeric"
+                      maxLength={4}
+                      returnKeyType="done"
+                      editable={!isCodeLocked}
+                    />
+                    {codeVerificationStatus === "invalid" &&
+                      verificationCode.length === 4 && (
+                        <Text style={styles.errorMessage}>
+                          Código incorrecto. Intentos restantes: {3 - failedAttempts}
+                        </Text>
+                      )}
+                  </>
+                )}
               </View>
             )}
           </ScrollView>
@@ -788,5 +873,46 @@ const styles = StyleSheet.create({
   dropdownArrow: {
     color: CustomColors.textLight,
     fontSize: 12,
+  },
+  codeVerificationLabelRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  labelContainer: {
+    flex: 1,
+  },
+  checkIcon: {
+    fontSize: 24,
+    color: "#4CAF50",
+    fontWeight: "bold",
+    marginLeft: 10,
+  },
+  inputSuccess: {
+    borderColor: "#4CAF50",
+    borderWidth: 2,
+  },
+  lockedCodeContainer: {
+    backgroundColor: "rgba(244, 67, 54, 0.1)",
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#F44336",
+    alignItems: "center",
+  },
+  lockedCodeText: {
+    color: "#F44336",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  inputError: {
+    borderColor: "#F44336",
+    borderWidth: 2,
+  },
+  errorMessage: {
+    color: "#F44336",
+    fontSize: 12,
+    marginTop: 4,
   },
 });
