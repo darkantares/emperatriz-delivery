@@ -191,7 +191,7 @@ export default function StatusUpdateModal({
 
       if (newAttempts >= 3) {
         setIsCodeLocked(true);
-        setLockTimeRemaining(30);
+        setLockTimeRemaining(15);
       }
     }
   }, [codeVerificationStatus]);
@@ -537,6 +537,10 @@ export default function StatusUpdateModal({
                 {codeVerificationStatus === "valid" && (
                   <Text style={styles.checkIcon}>✓</Text>
                 )}
+                {codeVerificationStatus === "invalid" &&
+                  verificationCode.length === 4 && (
+                    <Text style={styles.errorIcon}>✕</Text>
+                  )}
               </View>
               {isCodeLocked ? (
                 <View style={styles.lockedCodeContainer}>
@@ -968,6 +972,12 @@ const styles = StyleSheet.create({
   checkIcon: {
     fontSize: 24,
     color: "#4CAF50",
+    fontWeight: "bold",
+    marginLeft: 10,
+  },
+  errorIcon: {
+    fontSize: 24,
+    color: "#F44336",
     fontWeight: "bold",
     marginLeft: 10,
   },

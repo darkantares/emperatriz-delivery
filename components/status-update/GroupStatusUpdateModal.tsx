@@ -58,7 +58,7 @@ export default function GroupStatusUpdateModal({
   currentStatus,
   totalAmount,
 }: GroupStatusUpdateModalProps) {
-  const { fetchDeliveries } = useDelivery();
+  const { fetchDeliveries, deliveries } = useDelivery();
 
   const isPickupType = assignmentType === AssignmentType.PICKUP;
 
@@ -141,7 +141,8 @@ export default function GroupStatusUpdateModal({
     (!requiresGalleryImage || imageUri) &&
     (!requiresPaymentInfo ||
       (amountPaid.trim() !== "" && selectedPaymentMethod)) &&
-    (!requiresVerificationCode || verificationCode.trim().length === 4);
+    (!requiresVerificationCode ||
+      (verificationCode.trim().length === 4 && codeVerificationStatus === "valid"));
 
   useEffect(() => {
     setSelectedStatus(null);
@@ -159,14 +160,22 @@ export default function GroupStatusUpdateModal({
     setLockTimeRemaining(0);
   }, [currentStatus]);
 
-  // Validar código en tiempo real
+  const assignmentVerificationCode = deliveries
+    .find((delivery) => ids.includes(delivery.id))
+    ?.relatedOrder?.deliveryVerificationCode;
+
+  // Validar código en tiempo real contra el del assignment
   useEffect(() => {
     if (isDelivered && verificationCode.length === 4) {
-      setCodeVerificationStatus("valid");
+      if (verificationCode === assignmentVerificationCode) {
+        setCodeVerificationStatus("valid");
+      } else {
+        setCodeVerificationStatus("invalid");
+      }
     } else if (verificationCode.length === 0) {
       setCodeVerificationStatus("pending");
     }
-  }, [verificationCode, isDelivered]);
+  }, [verificationCode, isDelivered, assignmentVerificationCode]);
 
   // Manejar contador de intentos fallidos
   useEffect(() => {
@@ -176,7 +185,7 @@ export default function GroupStatusUpdateModal({
 
       if (newAttempts >= 3) {
         setIsCodeLocked(true);
-        setLockTimeRemaining(30);
+        setLockTimeRemaining(15);
       }
     }
   }, [codeVerificationStatus]);
@@ -466,10 +475,17 @@ export default function GroupStatusUpdateModal({
                 <View style={styles.codeVerificationLabelRow}>
                   <View style={styles.labelContainer}>
                     <Text style={styles.paymentLabel}>Código (Obligatorio):</Text>
+                    {__DEV__ && assignmentVerificationCode ? (
+                      <Text style={styles.devCodeHint}>{assignmentVerificationCode}</Text>
+                    ) : null}
                   </View>
                   {codeVerificationStatus === "valid" && (
                     <Text style={styles.checkIcon}>✓</Text>
                   )}
+                  {codeVerificationStatus === "invalid" &&
+                    verificationCode.length === 4 && (
+                      <Text style={styles.errorIcon}>✕</Text>
+                    )}
                 </View>
                 {isCodeLocked ? (
                   <View style={styles.lockedCodeContainer}>
@@ -889,6 +905,12 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginLeft: 10,
   },
+  errorIcon: {
+    fontSize: 24,
+    color: "#F44336",
+    fontWeight: "bold",
+    marginLeft: 10,
+  },
   inputSuccess: {
     borderColor: "#4CAF50",
     borderWidth: 2,
@@ -914,5 +936,11 @@ const styles = StyleSheet.create({
     color: "#F44336",
     fontSize: 12,
     marginTop: 4,
+  },
+  devCodeHint: {
+    fontSize: 12,
+    color: "#FFB800",
+    fontWeight: "bold",
+    marginTop: 2,
   },
 });
