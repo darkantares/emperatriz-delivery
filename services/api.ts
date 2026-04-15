@@ -61,16 +61,23 @@ const defaultOptions = {
 // Función para añadir token de autorización a las opciones (usa tokens centralizados)
 const getAuthOptions = async (options: Record<string, any> = {}): Promise<RequestInit> => {
     try {
-        const { accessToken } = await getStoredTokens();
+        const { accessToken, refreshToken } = await getStoredTokens();
         if (!accessToken) {
             return options;
         }
+        const headers: Record<string, string> = {
+            ...(options.headers || {}),
+            Authorization: `Bearer ${accessToken}`,
+        };
+        
+        // Agregar el refresh token si existe (lo requiere el middleware de token refresh del backend)
+        if (refreshToken) {
+            headers['x-refresh-token'] = refreshToken;
+        }
+        
         return {
             ...options,
-            headers: {
-                ...(options.headers || {}),
-                Authorization: `Bearer ${accessToken}`,
-            },
+            headers,
         };
     } catch (error:any) {
         console.log('Error al obtener token de autenticación:', error);

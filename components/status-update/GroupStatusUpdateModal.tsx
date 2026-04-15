@@ -363,6 +363,11 @@ export default function GroupStatusUpdateModal({
       }
 
       await fetchDeliveries();
+      setVerificationCode("");
+      setCodeVerificationStatus("pending");
+      setFailedAttempts(0);
+      setIsCodeLocked(false);
+      setLockTimeRemaining(0);
       onSuccess?.(selectedStatus);
       onClose();
     } catch (error:any) {
@@ -381,16 +386,11 @@ export default function GroupStatusUpdateModal({
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Actualizar Estado del Grupo</Text>
-            <Text style={styles.deliveryTitle}>{groupTitle}</Text>
+            <Text style={styles.modalTitle}>Actualizar Estado</Text>
             <Text style={styles.deliveryTitle}>
-              {ids.length} asignación{ids.length !== 1 ? "es" : ""}
+              {groupTitle} · asignación{ids.length !== 1 ? "es" : ""} {ids.length} 
+              {!isPickupType ? ` · Total: RD$ ${totalAmount}` : ""}
             </Text>
-            {!isPickupType && (
-              <Text style={styles.deliveryTitle}>
-                Total: RD$ {totalAmount}
-              </Text>
-            )}
             <Text style={styles.currentStatus}>
               Estado actual:{" "}
               <Text

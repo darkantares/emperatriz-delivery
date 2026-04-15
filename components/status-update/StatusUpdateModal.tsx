@@ -415,6 +415,11 @@ export default function StatusUpdateModal({
         await updateDeliveryStatusUnified(params);
 
         await fetchDeliveries();
+        setVerificationCode("");
+        setCodeVerificationStatus("pending");
+        setFailedAttempts(0);
+        setIsCodeLocked(false);
+        setLockTimeRemaining(0);
         onSuccess?.(selectedStatus);
         onClose();
       } catch (error:any) {
