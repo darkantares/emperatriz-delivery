@@ -27,6 +27,7 @@ export interface IUpdateDeliveryStatusData {
   additionalAmount?: number;
   paymentMethodId?: number;
   gpsReadings?: IGpsReading[];
+  verificationCode?: string;
 }
 
 export interface IDeliveryAssignmentSummaryEntity extends IGlobalEntity {
@@ -91,14 +92,7 @@ export interface OrderEntity extends IGlobalEntity {
   observations?: string
   statusObservations?: string
   orderDetails: OrderDetailEntity[]
-  // type: OnlineStoreAssignmentType
-  // provincia: Provincia
-  // municipio: Municipio
-  // sector: Sector
-  // seller: AuthUserEntity
-  // orderStatus: DeliveryStatusEntity
-  // client: ClientEntity
-  // enterprise: EnterpriseEntity
+  deliveryVerificationCode?: string
 }
 
 export interface OrderDetailEntity {

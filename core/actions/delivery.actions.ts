@@ -151,6 +151,7 @@ export const updateDeliveryStatusUnified = (
     paymentMethodId,
     additionalAmount,
     gpsReadings,
+    verificationCode,
   } = updateData;
 
   if (imageUris && imageUris.length > 0) {
@@ -165,6 +166,8 @@ export const updateDeliveryStatusUnified = (
       formData.append("additionalAmount", additionalAmount.toString());
     if (gpsReadings?.length)
       formData.append("gpsReadings", JSON.stringify(gpsReadings));
+    if (verificationCode)
+      formData.append("verificationCode", verificationCode);
 
     imageUris.forEach((imageUri, index) => {
       formData.append("images", {
@@ -187,6 +190,7 @@ export const updateDeliveryStatusUnified = (
   if (additionalAmount !== undefined)
     payload.additionalAmount = additionalAmount;
   if (gpsReadings?.length) payload.gpsReadings = gpsReadings;
+  if (verificationCode) payload.verificationCode = verificationCode;
 
   return apiAction.patch<IDeliveryAssignmentEntity>(
     `${BackendUrls.DeliveryAssignments}/${id}/status-unified`,
@@ -203,6 +207,7 @@ export const updateDeliveryStatusBatch = (
   additionalAmount?: number,
   gpsReadings?: IGpsReading[],
   imageUris?: string[],
+  verificationCode?: string,
 ): Promise<IDeliveryAssignmentEntity[]> => {
     console.log('updateDeliveryStatusBatch called with: ', {
       ids,
@@ -227,6 +232,8 @@ export const updateDeliveryStatusBatch = (
       formData.append("additionalAmount", additionalAmount.toString());
     if (gpsReadings?.length)
       formData.append("gpsReadings", JSON.stringify(gpsReadings));
+    if (verificationCode)
+      formData.append("verificationCode", verificationCode);
 
     imageUris.forEach((imageUri, index) => {
       formData.append("images", {
@@ -249,6 +256,7 @@ export const updateDeliveryStatusBatch = (
   if (additionalAmount !== undefined)
     payload.additionalAmount = additionalAmount;
   if (gpsReadings?.length) payload.gpsReadings = gpsReadings;
+  if (verificationCode) payload.verificationCode = verificationCode;
 
   return apiAction.patch<IDeliveryAssignmentEntity[]>(
     `${BackendUrls.DeliveryAssignments}/batch/status-unified`,

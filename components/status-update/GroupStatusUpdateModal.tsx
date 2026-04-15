@@ -70,6 +70,7 @@ export default function GroupStatusUpdateModal({
   const [amountPaid, setAmountPaid] = useState<string>("");
   const [amountPaidEdited, setAmountPaidEdited] = useState<boolean>(false);
   const [additionalAmount, setAdditionalAmount] = useState<string>("");
+  const [verificationCode, setVerificationCode] = useState<string>("");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
     number | null
   >(null);
@@ -89,6 +90,7 @@ export default function GroupStatusUpdateModal({
     selectedStatus &&
     statusesRequiringNote.includes(selectedStatus as IDeliveryStatus);
   const requiresPaymentInfo = isDelivered && !isPickupType;
+  const requiresVerificationCode = isDelivered;
 
   const selectedPaymentTitle: string | null = selectedPaymentMethod
     ? (paymentMethods
@@ -131,7 +133,8 @@ export default function GroupStatusUpdateModal({
     (!requiresCameraPhoto || photoUri) &&
     (!requiresGalleryImage || imageUri) &&
     (!requiresPaymentInfo ||
-      (amountPaid.trim() !== "" && selectedPaymentMethod));
+      (amountPaid.trim() !== "" && selectedPaymentMethod)) &&
+    (!requiresVerificationCode || verificationCode.trim().length === 4);
 
   useEffect(() => {
     setSelectedStatus(null);
@@ -142,6 +145,7 @@ export default function GroupStatusUpdateModal({
     setAdditionalAmount("");
     setSelectedPaymentMethod(null);
     setAmountPaidEdited(false);
+    setVerificationCode("");
   }, [currentStatus]);
 
   const takePhoto = async () => {
@@ -201,6 +205,14 @@ export default function GroupStatusUpdateModal({
       Alert.alert("Método de pago requerido", "Debes seleccionar un método de pago.", [{ text: "OK" }]);
       return;
     }
+    if (requiresVerificationCode && verificationCode.trim().length !== 4) {
+      Alert.alert(
+        "Código requerido",
+        "Debes ingresar el código de verificación de 4 dígitos para confirmar la entrega.",
+        [{ text: "OK" }],
+      );
+      return;
+    }
     if (requiresCameraPhoto && !photoUri) {
       Alert.alert("Evidencia requerida", "Debes tomar una foto con la cámara.", [{ text: "OK" }]);
       return;
@@ -257,6 +269,9 @@ export default function GroupStatusUpdateModal({
           ? parseFloat(additionalAmount)
           : undefined;
       const commonImageUris = evidenceUris.length > 0 ? evidenceUris : undefined;
+      const commonVerificationCode = requiresVerificationCode && verificationCode.trim()
+        ? verificationCode.trim()
+        : undefined;
 
       if (ids.length === 1) {
         console.log('there is 1 id, calling updateDeliveryStatusUnified')
@@ -269,6 +284,7 @@ export default function GroupStatusUpdateModal({
           additionalAmount: commonAdditionalAmount,
           gpsReadings,
           imageUris: commonImageUris,
+          verificationCode: commonVerificationCode,
         });
       } else {
         console.log('there isnt ids');        
@@ -282,6 +298,7 @@ export default function GroupStatusUpdateModal({
           commonAdditionalAmount,
           gpsReadings,
           commonImageUris,
+          commonVerificationCode,
         );
       }
 
@@ -389,6 +406,22 @@ export default function GroupStatusUpdateModal({
                   value={additionalAmount}
                   onChangeText={setAdditionalAmount}
                   keyboardType="numeric"
+                />
+              </View>
+            )}
+
+            {isDelivered && (
+              <View style={styles.paymentContainer}>
+                <Text style={styles.paymentLabel}>Código de Verificación (Obligatorio):</Text>
+                <TextInput
+                  style={styles.paymentInput}
+                  placeholder="Ingresar código de 4 dígitos..."
+                  placeholderTextColor={CustomColors.divider}
+                  value={verificationCode}
+                  onChangeText={(text) => setVerificationCode(text.replace(/[^0-9]/g, "").slice(0, 4))}
+                  keyboardType="numeric"
+                  maxLength={4}
+                  returnKeyType="done"
                 />
               </View>
             )}

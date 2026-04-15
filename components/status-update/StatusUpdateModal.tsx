@@ -68,6 +68,7 @@ export default function StatusUpdateModal({
   const [amountPaid, setAmountPaid] = useState<string>("");
   const [amountPaidEdited, setAmountPaidEdited] = useState<boolean>(false);
   const [additionalAmount, setAdditionalAmount] = useState<string>("");
+  const [verificationCode, setVerificationCode] = useState<string>("");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
     number | null
   >(null);
@@ -94,6 +95,7 @@ export default function StatusUpdateModal({
     statusesRequiringNote.includes(selectedStatus as IDeliveryStatus);
 
   const requiresPaymentInfo = isDelivered && !isPickupType;
+  const requiresVerificationCode = isDelivered;
 
   const selectedPaymentTitle: string | null = selectedPaymentMethod
     ? (paymentMethods
@@ -143,7 +145,8 @@ export default function StatusUpdateModal({
     (!requiresCameraPhoto || photoUri) &&
     (!requiresGalleryImage || imageUri) &&
     (!requiresPaymentInfo ||
-      (amountPaid.trim() !== "" && selectedPaymentMethod));
+      (amountPaid.trim() !== "" && selectedPaymentMethod)) &&
+    (!requiresVerificationCode || verificationCode.trim().length === 4);
 
   useEffect(() => {
     setSelectedStatus(null);
@@ -154,6 +157,7 @@ export default function StatusUpdateModal({
     setAdditionalAmount("");
     setSelectedPaymentMethod(null);
     setAmountPaidEdited(false);
+    setVerificationCode("");
   }, [currentStatus]);
 
   const takePhoto = async () => {
@@ -264,6 +268,15 @@ export default function StatusUpdateModal({
         }
       }
 
+      if (requiresVerificationCode && verificationCode.trim().length !== 4) {
+        Alert.alert(
+          "Código requerido",
+          "Debes ingresar el código de verificación de 4 dígitos para confirmar la entrega.",
+          [{ text: "OK" }],
+        );
+        return;
+      }
+
       const statusId = getStatusIdFromTitle(selectedStatus);
       if (!statusId) {
         Alert.alert(
@@ -337,6 +350,9 @@ export default function StatusUpdateModal({
               ? selectedPaymentMethod
               : undefined,
           gpsReadings,
+          verificationCode: requiresVerificationCode && verificationCode.trim()
+            ? verificationCode.trim()
+            : undefined,
         }
 
         
@@ -451,6 +467,22 @@ export default function StatusUpdateModal({
                 value={additionalAmount}
                 onChangeText={setAdditionalAmount}
                 keyboardType="numeric"
+              />
+            </View>
+          )}
+
+          {isDelivered && (
+            <View style={styles.paymentContainer}>
+              <Text style={styles.paymentLabel}>Código de Verificación (Obligatorio):</Text>
+              <TextInput
+                style={styles.paymentInput}
+                placeholder="Ingresar código de 4 dígitos..."
+                placeholderTextColor={CustomColors.divider}
+                value={verificationCode}
+                onChangeText={(text) => setVerificationCode(text.replace(/[^0-9]/g, "").slice(0, 4))}
+                keyboardType="numeric"
+                maxLength={4}
+                returnKeyType="done"
               />
             </View>
           )}
