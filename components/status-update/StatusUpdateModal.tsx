@@ -167,8 +167,8 @@ export default function StatusUpdateModal({
     setLockTimeRemaining(0);
   }, [currentStatus]);
 
-  // Obtener código de verificación del assignment
-  const assignmentVerificationCode = currentDelivery?.relatedOrder?.deliveryVerificationCode;
+  // Obtener código de verificación del assignment directamente
+  const assignmentVerificationCode = currentDelivery?.deliveryVerificationCode;
 
   // Validar código en tiempo real contra el del assignment
   useEffect(() => {

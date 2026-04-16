@@ -25,6 +25,7 @@ export interface DeliveryItemAdapter {
   deliveryCost: number;
   amountToBeCharged: number;
   enterprise: string;
+  deliveryVerificationCode?: string;
 }
 
 // Interfaz para representar un grupo de entregas
@@ -59,6 +60,7 @@ export function adaptDeliveriesToAdapter(deliveries: IDeliveryAssignmentEntity[]
       amountToBeCharged: Number((delivery as any).amountToBeCharged ?? (delivery as any).cost ?? 0),
       relatedOrder: delivery.relatedOrder,
       enterprise: delivery.enterprise.title,
+      deliveryVerificationCode: delivery.deliveryVerificationCode,
     }));    
   } catch (error:any) {
     console.log('Error al adaptar entregas:', error);

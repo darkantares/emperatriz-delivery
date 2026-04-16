@@ -162,7 +162,7 @@ export default function GroupStatusUpdateModal({
 
   const assignmentVerificationCode = deliveries
     .find((delivery) => ids.includes(delivery.id))
-    ?.relatedOrder?.deliveryVerificationCode;
+    ?.deliveryVerificationCode;
 
   // Validar código en tiempo real contra el del assignment
   useEffect(() => {

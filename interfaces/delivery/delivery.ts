@@ -78,6 +78,7 @@ export interface IDeliveryAssignmentEntity extends IGlobalEntity {
   relatedOrder?: OrderEntity;
   driver: IDeliveryPerson;
   isGroup: boolean;
+  deliveryVerificationCode?: string;
   origin?: ISector;
   destiny?: ISector;
   enterprise:IEnterpriseEntity;
@@ -92,7 +93,6 @@ export interface OrderEntity extends IGlobalEntity {
   observations?: string
   statusObservations?: string
   orderDetails: OrderDetailEntity[]
-  deliveryVerificationCode?: string
 }
 
 export interface OrderDetailEntity {
