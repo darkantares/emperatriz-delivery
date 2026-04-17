@@ -1,11 +1,12 @@
 import { io, Socket } from 'socket.io-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getBaseUrl } from './api';
+import { getBaseUrl, API_URL } from './api';
 // Importar el servicio de notificaciones
 import { queueNotification, NotificationType } from './notificationService';
 import { IEnterpriseEntity, IUserEntity } from '@/interfaces/auth';
 import { IDeliveryAssignmentEntity } from '@/interfaces/delivery/delivery';
 import { adaptDeliveriesToAdapter } from '@/interfaces/delivery/deliveryAdapters';
+import { getStoredTokens, storeTokens } from './auth-fetch';
 
 const SOCKET_URL = getBaseUrl();
 
@@ -68,9 +69,11 @@ class SocketService {
     try {
       console.log("Iniciando conexión Socket.IO...");
 
-      const token = await AsyncStorage.getItem('auth_token');
-      if (!token) {
-        console.log("No se pudo iniciar Socket.IO: token no disponible");
+      // Ensure we have a fresh valid token before connecting to avoid
+      // the connect→immediate-disconnect cycle caused by expired tokens.
+      const freshToken = await this.ensureFreshToken();
+      if (!freshToken) {
+        console.log("No se pudo iniciar Socket.IO: token no disponible o inválido");
         return false;
       }
 
@@ -78,9 +81,17 @@ class SocketService {
         this.socket.disconnect();
       }
 
+      // Use a callback for `auth` so that every reconnect attempt (including
+      // automatic ones) reads the latest token from storage. This way, once
+      // an HTTP request refreshes the token, the next socket reconnect will
+      // succeed without any manual intervention.
       this.socket = io(SOCKET_URL, {
         ...this.options,
-        auth: { token },
+        auth: (cb: (data: { token: string }) => void) => {
+          AsyncStorage.getItem('auth_token').then((token) => {
+            cb({ token: token || '' });
+          });
+        },
         transports: ['websocket'],
       });
 
@@ -127,6 +138,103 @@ class SocketService {
     }
   }
 
+  /**
+   * Checks whether the stored JWT access token is expired.
+   * Uses manual base64 payload decode (no external dependencies).
+   */
+  private isTokenExpired(token: string): boolean {
+    try {
+      const payloadB64 = token.split('.')[1];
+      if (!payloadB64) return true;
+      const normalized = payloadB64.replace(/-/g, '+').replace(/_/g, '/');
+      // atob is available in Expo SDK 50+ (React Native 0.73+)
+      const payload = JSON.parse(atob(normalized));
+      if (!payload.exp) return false;
+      // Add a 30-second buffer so we refresh slightly before actual expiry
+      return payload.exp * 1000 < Date.now() + 30_000;
+    } catch {
+      return true;
+    }
+  }
+
+  /**
+   * Returns a valid access token. If the stored token is expired and a
+   * refresh token is available, it sends a request to the backend that
+   * triggers the TokenRefreshMiddleware, which refreshes both tokens and
+   * returns them via X-New-Access-Token / X-New-Refresh-Token headers.
+   */
+  private async ensureFreshToken(): Promise<string | null> {
+    try {
+      const { accessToken, refreshToken } = await getStoredTokens();
+
+      if (!accessToken && !refreshToken) return null;
+
+      // Token is still valid — use it directly
+      if (accessToken && !this.isTokenExpired(accessToken)) {
+        return accessToken;
+      }
+
+      // Token expired or missing — try to refresh via the backend middleware
+      if (refreshToken) {
+        console.log('[SocketService] Token expirado, intentando refresh antes de conectar...');
+        const expiredToken = accessToken || '';
+        const newToken = await this.refreshViaBackend(expiredToken, refreshToken);
+        if (newToken) {
+          console.log('[SocketService] Token refrescado, conectando con token nuevo');
+          return newToken;
+        }
+        console.log('[SocketService] Refresh falló, no se puede conectar');
+      }
+
+      return null;
+    } catch (error) {
+      console.log('[SocketService] Error en ensureFreshToken:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Calls the backend whoami endpoint with the expired access token +
+   * refresh token. The TokenRefreshMiddleware on the backend detects the
+   * expired access token, refreshes it, and returns the new tokens in
+   * X-New-Access-Token / X-New-Refresh-Token response headers.
+   */
+  private async refreshViaBackend(expiredToken: string, refreshToken: string): Promise<string | null> {
+    try {
+      const response = await fetch(`${API_URL}/auth/whoami`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${expiredToken}`,
+          'x-refresh-token': refreshToken,
+        },
+      });
+
+      // The interceptor on the backend sets these headers after a successful refresh
+      const newAccessToken =
+        response.headers.get('X-New-Access-Token') ||
+        response.headers.get('x-new-access-token');
+      const newRefreshToken =
+        response.headers.get('X-New-Refresh-Token') ||
+        response.headers.get('x-new-refresh-token');
+
+      if (newAccessToken) {
+        await storeTokens(newAccessToken, newRefreshToken || refreshToken);
+        return newAccessToken;
+      }
+
+      // whoami succeeded without returning new headers (token was still valid)
+      if (response.ok) {
+        const { accessToken } = await getStoredTokens();
+        return accessToken;
+      }
+
+      return null;
+    } catch (error) {
+      console.log('[SocketService] Error al llamar whoami para refresh:', error);
+      return null;
+    }
+  }
 
   private setupEventListeners() {
     if (!this.socket) return;

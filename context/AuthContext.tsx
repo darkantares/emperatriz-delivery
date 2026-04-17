@@ -42,28 +42,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(true);
       try {
         const isAuth = await authService.isAuthenticated();
-        setIsAuthenticated(isAuth);
 
         if (isAuth) {
-          // Sincronizar usuario con backend en cada carga/recarga
+          // Sincronizar usuario con backend en cada carga/recarga.
+          // fetchWhoami sends both the (possibly expired) access token and the
+          // refresh token; the backend TokenRefreshMiddleware transparently
+          // refreshes the access token when it is expired.
           const whoami = await authService.fetchWhoami();
 
           if (whoami.success && whoami.data) {
+            setIsAuthenticated(true);
             setUser(whoami.data.user);
             // If whoami didn't include carrier (backend relation missing), fall back to stored value
             const resolvedCarrier = whoami.data.carrier ?? (await authService.getAuthData()).carrier ?? null;
             setCarrier(resolvedCarrier);
             setRoles(whoami.data.roles || []);
           } else {
-            // Fallback a storage local si whoami falla temporalmente
-            const authData = await authService.getAuthData();
-
-            if (authData.user) {
-              setUser(authData.user);
-              setCarrier(authData.carrier || null);
-              setRoles(authData.roles || []);
-            }
+            // whoami failed — auth tokens are likely fully expired / invalid.
+            // Do NOT keep the user logged-in; clear state and force re-login.
+            console.log('[AuthContext] whoami falló, cerrando sesión:', whoami.error);
+            await authService.logout();
+            setIsAuthenticated(false);
+            setUser(null);
+            setCarrier(null);
+            setRoles(null);
           }
+        } else {
+          setIsAuthenticated(false);
         }
       } catch (error:any) {
         console.log('Error checking authentication:', error);
