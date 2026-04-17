@@ -36,6 +36,7 @@ export enum SocketEventType {
   CONNECT = 'connect',
   DISCONNECT = 'disconnect',
   CONNECT_ERROR = 'connect_error',
+  HEARTBEAT = 'websocket-heartbeat',
   DRIVER_ASSIGNED = 'driver-assigned',
   DELIVERY_UPDATED = 'delivery-updated',
   DELIVERY_STATUS_CHANGED = 'delivery-status-changed',
@@ -313,6 +314,10 @@ class SocketService {
       this.notifyListeners(SocketEventType.DELIVERY_ASSIGNMENT_UPDATED, adaptDeliveriesToAdapter([data])[0]);
     });
 
+    this.socket.on(SocketEventType.HEARTBEAT, (data: any) => {
+      console.log('[SocketService] Heartbeat recibido:', data);
+      this.notifyListeners(SocketEventType.HEARTBEAT, data);
+    });
    
   }
 
