@@ -50,6 +50,7 @@ class SocketService {
   private listeners: Map<string, Set<Function>> = new Map();
   private connectionListeners: Set<Function> = new Set();
   private _connected: boolean = false;
+  private proactiveRefreshTimer: ReturnType<typeof setInterval> | null = null;
 
   private options = {
     reconnection: true,
@@ -70,12 +71,12 @@ class SocketService {
     try {
       console.log("Iniciando conexión Socket.IO...");
 
-      // Ensure we have a fresh valid token before connecting to avoid
-      // the connect→immediate-disconnect cycle caused by expired tokens.
+      // Intentar obtener un token fresco antes de conectar.
+      // Si no hay token, creamos el socket de todas formas para que
+      // la reconexión automática funcione cuando el token esté disponible.
       const freshToken = await this.ensureFreshToken();
       if (!freshToken) {
-        console.log("No se pudo iniciar Socket.IO: token no disponible o inválido");
-        return false;
+        console.log("[SocketService] Sin token disponible. El socket se creará pero no conectará hasta tener token.");
       }
 
       if (this.socket) {
@@ -100,18 +101,27 @@ class SocketService {
         console.log('Socket.IO conectado');
         this._connected = true;
         this.notifyConnectionListeners();
+        this.startProactiveRefresh();
       });
 
       this.socket.on(SocketEventType.DISCONNECT, () => {
         console.log('Socket.IO desconectado');
         this._connected = false;
         this.notifyConnectionListeners();
+        this.stopProactiveRefresh();
       });
 
-      this.socket.on(SocketEventType.CONNECT_ERROR, (error) => {
+      this.socket.on(SocketEventType.CONNECT_ERROR, async (error) => {
         console.log('Error de conexión Socket.IO:', error);
         this._connected = false;
         this.notifyConnectionListeners();
+        // Si el error es de autenticación, refrescar el token proactivamente
+        // para que el siguiente intento de reconexión automática use un token válido.
+        const msg: string = (error as any)?.message || '';
+        if (msg.includes('Unauthorized') || msg.includes('jwt') || msg.includes('token') || msg.includes('auth')) {
+          console.log('[SocketService] Error de auth detectado, refrescando token...');
+          await this.ensureFreshToken();
+        }
       });
 
       this.socket.onAny((event) => {
@@ -129,8 +139,12 @@ class SocketService {
 
       this.setupEventListeners();
 
-      this.socket.connect();
-      return true;
+      // Solo conectar si tenemos token. Si no, el socket queda listo
+      // para conectarse cuando se llame connect() de nuevo (ej. post-login).
+      if (freshToken) {
+        this.socket.connect();
+      }
+      return !!freshToken;
     } catch (error:any) {
       console.log("Error al conectar Socket.IO:", error);
       this._connected = false;
@@ -322,11 +336,38 @@ class SocketService {
   }
 
   disconnect() {
+    this.stopProactiveRefresh();
     if (this.socket) {
       console.log("Desconectando Socket.IO...");
       this.socket.disconnect();
       this._connected = false;
       this.notifyConnectionListeners();
+    }
+  }
+
+  // ---------- Refresco proactivo de token ----------
+
+  /**
+   * Inicia un intervalo de 60 s que comprueba si el token está por vencer
+   * y lo refresca proactivamente, sin necesitar una petición HTTP del usuario.
+   * El token refrescado se guarda en AsyncStorage y el callback de auth
+   * del socket lo leerá automáticamente en el siguiente intento de reconexión.
+   */
+  private startProactiveRefresh(): void {
+    this.stopProactiveRefresh();
+    this.proactiveRefreshTimer = setInterval(async () => {
+      const { accessToken } = await getStoredTokens();
+      if (accessToken && this.isTokenExpired(accessToken)) {
+        console.log('[SocketService] Token expirando, refrescando proactivamente...');
+        await this.ensureFreshToken();
+      }
+    }, 60_000);
+  }
+
+  private stopProactiveRefresh(): void {
+    if (this.proactiveRefreshTimer !== null) {
+      clearInterval(this.proactiveRefreshTimer);
+      this.proactiveRefreshTimer = null;
     }
   }
 

@@ -27,8 +27,6 @@ import StatsCharts from "@/components/ganancias/StatsCharts";
 import { DeliveryItemList } from "@/components/delivery-items/DeliveryItemList";
 import { useGanancias } from "@/core/hooks/useGanancias";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-
 const TABS = ["Entregas", "Ganancias", "Pagos", "Estadísticas"] as const;
 type Tab = (typeof TABS)[number];
 
@@ -160,6 +158,18 @@ function TabOneScreenContent() {
     currentStatus: string;
     totalAmount: number;
   } | null>(null);
+  const [isSocketConnected, setIsSocketConnected] = useState<boolean>(socketService.isConnected());
+
+  useEffect(() => {
+    const handleConnectionChange = (connected: boolean) => {
+      setIsSocketConnected(connected);
+    };
+
+    socketService.onConnectionChange(handleConnectionChange);
+    return () => {
+      socketService.offConnectionChange(handleConnectionChange);
+    };
+  }, []);
 
   const handleDeliveryItemPress = (delivery: DeliveryItemAdapter) => {
     setGroupStatusModalParams({
@@ -225,7 +235,15 @@ function TabOneScreenContent() {
           {/* Header */}
           <RNView style={styles.header}>
             <RNView style={styles.headerCenter}>
-              <Text style={styles.headerTitle}>{headerTitle}</Text>
+              <RNView style={styles.headerTitleRow}>
+                <Text style={styles.headerTitle}>{headerTitle}</Text>
+                <RNView
+                  style={[
+                    styles.headerStatusDot,
+                    { backgroundColor: isSocketConnected ? '#22c55e' : '#ef4444' },
+                  ]}
+                />
+              </RNView>
               {/* <RNView style={styles.liveRow}>
                 <RNView style={styles.liveDot} />
                 <Text style={styles.liveText}>En tiempo real</Text>
@@ -377,6 +395,19 @@ const styles = StyleSheet.create({
     // backgroundColor: CustomColors.backgroundDarkest,
     // borderTopWidth: 1,
     // borderTopColor: CustomColors.divider,
+  },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerStatusDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginLeft: 8,
+    borderWidth: 1,
+    borderColor: '#ffffff33',
   },
   startRoutesButton: {
     backgroundColor: CustomColors.primary,

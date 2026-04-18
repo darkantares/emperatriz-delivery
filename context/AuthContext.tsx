@@ -173,6 +173,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCarrier(result.data.carrier || null);
       setRoles(result.data.roles || []);
 
+      // Conectar WebSocket inmediatamente después del login
+      socketService.connect();
+
       return { success: true };
     } catch (error:any) {
       console.log('Login error:', error);
@@ -185,6 +188,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
+    socketService.disconnect();
     await authService.logout();
     setIsAuthenticated(false);
     setUser(null);

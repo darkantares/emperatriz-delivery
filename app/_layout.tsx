@@ -56,12 +56,8 @@ export default function RootLayout() {
   }, [loaded]);
 
   useEffect(() => {
-    // Oculta los botones de Android
     NavigationBar.setVisibilityAsync('hidden').catch(() => {
-      // Silently ignore if activity is no longer available
     });
-
-    // Los muestra solo si el usuario desliza desde abajo
 
   }, []);
 
@@ -105,12 +101,12 @@ function ProtectedRouteGuard({ children }: { children: React.ReactNode }) {
   }, [segments, isAuthenticated, isLoading, navigationState?.key]);
 
   useEffect(() => {
-      // Oculta los botones de Android
-      NavigationBar.setVisibilityAsync('hidden').catch(() => {
-        // Silently ignore if activity is no longer available
-      });
+    // Oculta los botones de Android
+    NavigationBar.setVisibilityAsync('hidden').catch(() => {
+      // Silently ignore if activity is no longer available
+    });
   }, []);
-  
+
   useEffect(() => {
     if (isLoading) return;
     if (!isAuthenticated) return;
@@ -123,7 +119,7 @@ function ProtectedRouteGuard({ children }: { children: React.ReactNode }) {
           await fetchDeliveries(true);
         }
         lastOnline.current = isOnline;
-      } catch {}
+      } catch { }
     }, 15000);
     return () => {
       if (intervalRef.current) {
@@ -149,7 +145,7 @@ function RootLayoutNav() {
     // Setup deep link listeners for handling shared locations
     console.log('[App] Setting up deep link listeners');
     const cleanup = setupDeepLinkListeners();
-    
+
     // Cleanup on unmount
     return cleanup;
   }, []);
@@ -161,17 +157,17 @@ function RootLayoutNav() {
           <DeliveryProvider>
             <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
               <ProtectedRouteGuard>
-                <Stack screenOptions={{ 
-                  headerStyle: { 
+                <Stack screenOptions={{
+                  headerStyle: {
                     backgroundColor: CustomColors.backgroundDark
                   },
                   headerTintColor: CustomColors.textLight
                 }}>
                   <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                   <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-                  <Stack.Screen name="login" options={{ headerShown: false }} />            
+                  <Stack.Screen name="login" options={{ headerShown: false }} />
                 </Stack>
-                
+
                 <NotificationHandler />
               </ProtectedRouteGuard>
             </ThemeProvider>
