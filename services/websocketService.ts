@@ -50,6 +50,7 @@ class SocketService {
   private listeners: Map<string, Set<Function>> = new Map();
   private connectionListeners: Set<Function> = new Set();
   private _connected: boolean = false;
+  private _connecting: boolean = false;
   private proactiveRefreshTimer: ReturnType<typeof setInterval> | null = null;
 
   private options = {
@@ -70,37 +71,38 @@ class SocketService {
   async connect() {
     try {
       // Si ya está conectado, no hacer nada
-      if (this.socket && this._connected) {
+      if (this._connected) {
         console.log('[SocketService] Ya conectado, ignorando connect()');
         return true;
       }
 
-      console.log("Iniciando conexión Socket.IO...");
+      // Bloquear llamadas concurrentes durante el proceso de conexión
+      if (this._connecting) {
+        console.log('[SocketService] Conexión ya en progreso, ignorando connect()');
+        return false;
+      }
+      this._connecting = true;
+
+      console.log('[SocketService] Iniciando conexión Socket.IO...');
 
       // Obtener token fresco
       const freshToken = await this.ensureFreshToken();
       if (!freshToken) {
-        console.log("[SocketService] Sin token disponible. No se puede conectar.");
+        console.log('[SocketService] Sin token disponible. No se puede conectar.');
+        this._connecting = false;
         return false;
       }
 
-      // Si el socket ya existe pero está desconectado, reutilizarlo
-      // (evita destruir y recrear, lo que causaría una segunda conexión en el backend)
-      if (this.socket && !this._connected) {
-        console.log('[SocketService] Reutilizando socket existente, reconectando...');
-        this.socket.connect();
-        return true;
-      }
-
-      // Crear socket nuevo (primera vez)
+      // Destruir socket anterior si existe para evitar listeners duplicados y estado inconsistente
       if (this.socket) {
+        console.log('[SocketService] Destruyendo socket anterior para crear uno limpio...');
+        this.socket.removeAllListeners();
         this.socket.disconnect();
+        this.socket = null;
       }
 
       // Use a callback for `auth` so that every reconnect attempt (including
-      // automatic ones) reads the latest token from storage. This way, once
-      // an HTTP request refreshes the token, the next socket reconnect will
-      // succeed without any manual intervention.
+      // automatic ones) reads the latest token from storage.
       this.socket = io(SOCKET_URL, {
         ...this.options,
         auth: (cb: (data: { token: string }) => void) => {
@@ -112,25 +114,41 @@ class SocketService {
       });
 
       this.socket.on(SocketEventType.CONNECT, () => {
-        console.log('Socket.IO conectado');
+        console.log('[SocketService] Socket.IO conectado:', this.socket?.id);
         this._connected = true;
+        this._connecting = false;
         this.notifyConnectionListeners();
         this.startProactiveRefresh();
       });
 
       this.socket.on(SocketEventType.DISCONNECT, (reason: string) => {
-        console.log('Socket.IO desconectado. Razón:', reason);
+        console.log('[SocketService] Socket.IO desconectado. Razón:', reason);
         this._connected = false;
+        this._connecting = false;
         this.notifyConnectionListeners();
         this.stopProactiveRefresh();
+        // Socket.IO v4 NO reconecta automáticamente tras 'io server disconnect'.
+        // Esto ocurre cuando el backend kickea el socket (checkUserConnection detecta
+        // un socket previo del mismo usuario y lo reemplaza). Reconectar manualmente
+        // con token fresco para que la nueva conexión sea la definitiva.
+        if (reason === 'io server disconnect') {
+          console.log('[SocketService] Kicked por el servidor. Reconectando con token fresco en 1.5s...');
+          setTimeout(async () => {
+            const { accessToken } = await getStoredTokens();
+            if (accessToken) {
+              await this.connect();
+            } else {
+              console.log('[SocketService] Sin token al reconectar, abortando.');
+            }
+          }, 1500);
+        }
       });
 
       this.socket.on(SocketEventType.CONNECT_ERROR, async (error) => {
-        console.log('Error de conexión Socket.IO:', error);
+        console.log('[SocketService] Error de conexión Socket.IO:', (error as any)?.message || error);
         this._connected = false;
+        this._connecting = false;
         this.notifyConnectionListeners();
-        // Si el error es de autenticación, refrescar el token proactivamente
-        // para que el siguiente intento de reconexión automática use un token válido.
         const msg: string = (error as any)?.message || '';
         if (msg.includes('Unauthorized') || msg.includes('jwt') || msg.includes('token') || msg.includes('auth')) {
           console.log('[SocketService] Error de auth detectado, refrescando token...');
@@ -146,19 +164,17 @@ class SocketService {
           event === SocketEventType.DELIVERY_REORDERED ||
           event === SocketEventType.DRIVERS_GROUP_ASSIGNED
         ) {
-          console.log('Evento recibido:', event);
           queueNotificationSound();
         }
       });
 
       this.setupEventListeners();
-
-      // Conectar con el token fresco
       this.socket.connect();
       return true;
     } catch (error:any) {
-      console.log("Error al conectar Socket.IO:", error);
+      console.log('[SocketService] Error al conectar Socket.IO:', error);
       this._connected = false;
+      this._connecting = false;
       this.notifyConnectionListeners();
       return false;
     }
@@ -348,8 +364,9 @@ class SocketService {
 
   disconnect() {
     this.stopProactiveRefresh();
+    this._connecting = false;
     if (this.socket) {
-      console.log("Desconectando Socket.IO...");
+      console.log('[SocketService] Desconectando Socket.IO...');
       this.socket.disconnect();
       this._connected = false;
       this.notifyConnectionListeners();

@@ -160,6 +160,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     try {
+      console.log('[AuthContext] login() iniciado');
       const result = await authService.login(email, password);
       
       if (!result.success || !result.data) {
@@ -177,7 +178,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setRoles(result.data.roles || []);
 
       // Conectar WebSocket inmediatamente después del login
-      await socketService.connect();
+      console.log('[AuthContext] Llamando socketService.connect() desde login()...');
+      const connected = await socketService.connect();
+      console.log('[AuthContext] socketService.connect() retornó:', connected);
 
       return { success: true };
     } catch (error:any) {

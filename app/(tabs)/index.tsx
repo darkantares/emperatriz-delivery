@@ -199,7 +199,9 @@ function TabOneScreenContent() {
   }, [handleDeliveryAssigned, handleDriversGroupAssigned, handleDeliveryReordered, handleDeliveryUpdated]);
 
   useEffect(() => {
-    socketService.connect();
+    // No llamar socketService.connect() aquí — la conexión es gestionada por AuthContext.
+    // Llamarlo aquí creaba una segunda conexión concurrente con la de login(),
+    // lo que provocaba que el backend kickeara el primer socket (io server disconnect).
 
     const onDriverAssigned = (data: any) => handlersRef.current.onDriverAssigned(data);
     const onDeliveryReordered = (data: any) => handlersRef.current.onDeliveryReordered(data);
