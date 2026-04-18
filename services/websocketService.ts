@@ -69,16 +69,30 @@ class SocketService {
 
   async connect() {
     try {
-      console.log("Iniciando conexión Socket.IO...");
-
-      // Intentar obtener un token fresco antes de conectar.
-      // Si no hay token, creamos el socket de todas formas para que
-      // la reconexión automática funcione cuando el token esté disponible.
-      const freshToken = await this.ensureFreshToken();
-      if (!freshToken) {
-        console.log("[SocketService] Sin token disponible. El socket se creará pero no conectará hasta tener token.");
+      // Si ya está conectado, no hacer nada
+      if (this.socket && this._connected) {
+        console.log('[SocketService] Ya conectado, ignorando connect()');
+        return true;
       }
 
+      console.log("Iniciando conexión Socket.IO...");
+
+      // Obtener token fresco
+      const freshToken = await this.ensureFreshToken();
+      if (!freshToken) {
+        console.log("[SocketService] Sin token disponible. No se puede conectar.");
+        return false;
+      }
+
+      // Si el socket ya existe pero está desconectado, reutilizarlo
+      // (evita destruir y recrear, lo que causaría una segunda conexión en el backend)
+      if (this.socket && !this._connected) {
+        console.log('[SocketService] Reutilizando socket existente, reconectando...');
+        this.socket.connect();
+        return true;
+      }
+
+      // Crear socket nuevo (primera vez)
       if (this.socket) {
         this.socket.disconnect();
       }
@@ -104,8 +118,8 @@ class SocketService {
         this.startProactiveRefresh();
       });
 
-      this.socket.on(SocketEventType.DISCONNECT, () => {
-        console.log('Socket.IO desconectado');
+      this.socket.on(SocketEventType.DISCONNECT, (reason: string) => {
+        console.log('Socket.IO desconectado. Razón:', reason);
         this._connected = false;
         this.notifyConnectionListeners();
         this.stopProactiveRefresh();
@@ -139,12 +153,9 @@ class SocketService {
 
       this.setupEventListeners();
 
-      // Solo conectar si tenemos token. Si no, el socket queda listo
-      // para conectarse cuando se llame connect() de nuevo (ej. post-login).
-      if (freshToken) {
-        this.socket.connect();
-      }
-      return !!freshToken;
+      // Conectar con el token fresco
+      this.socket.connect();
+      return true;
     } catch (error:any) {
       console.log("Error al conectar Socket.IO:", error);
       this._connected = false;

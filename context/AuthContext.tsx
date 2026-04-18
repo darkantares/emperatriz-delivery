@@ -57,6 +57,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const resolvedCarrier = whoami.data.carrier ?? (await authService.getAuthData()).carrier ?? null;
             setCarrier(resolvedCarrier);
             setRoles(whoami.data.roles || []);
+
+            // Conectar WebSocket al inicio si el usuario ya estaba autenticado
+            await socketService.connect();
           } else {
             // whoami failed — auth tokens are likely fully expired / invalid.
             // Do NOT keep the user logged-in; clear state and force re-login.
@@ -174,7 +177,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setRoles(result.data.roles || []);
 
       // Conectar WebSocket inmediatamente después del login
-      socketService.connect();
+      await socketService.connect();
 
       return { success: true };
     } catch (error:any) {
