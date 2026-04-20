@@ -105,9 +105,9 @@ class SocketService {
       // automatic ones) reads the latest token from storage.
       this.socket = io(SOCKET_URL, {
         ...this.options,
-        auth: (cb: (data: { token: string }) => void) => {
+        auth: (cb: (data: { token: string; clientType: string }) => void) => {
           AsyncStorage.getItem('auth_token').then((token) => {
-            cb({ token: token || '' });
+            cb({ token: token || '', clientType: 'delivery' });
           });
         },
         transports: ['websocket'],
