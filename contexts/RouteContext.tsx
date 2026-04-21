@@ -45,7 +45,7 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
   // Función auxiliar para preparar deliveries y coordenadas
   const prepareRouteData = (allDeliveries: DeliveryItemAdapter[]) => {
     const pendingDeliveries = allDeliveries.filter(delivery => {
-      console.log('delivery: ', delivery);
+      console.log('delivery: ', delivery.id, 'status: ', delivery.deliveryStatus.title, 'nominatim: ', delivery.additionalDataNominatim);
       
       const isPending = delivery.deliveryStatus.title !== IDeliveryStatus.DELIVERED &&
                        delivery.deliveryStatus.title !== IDeliveryStatus.CANCELLED &&
@@ -168,6 +168,7 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
       });
       throw new Error(errorMessage);
     } finally {
+      console.log('[RouteContext] Fin proceso optimizacion ruta');      
       setIsOptimizing(false);
     }
   };

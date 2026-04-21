@@ -4,18 +4,17 @@ import {
   StyleSheet,
   ActivityIndicator,
   TouchableOpacity,
-  Switch,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Location from "expo-location";
 import WebView from "react-native-webview";
-import { Text } from "@/components/Themed";
 import { CustomColors } from "@/constants/CustomColors";
 import { DeliveryItemAdapter } from "@/interfaces/delivery/deliveryAdapters";
 import { IDeliveryStatus } from "@/interfaces/delivery/deliveryStatus";
 import { AssignmentType } from "@/utils/enum";
 import { useRouteContext } from "@/contexts/RouteContext";
 import { socketService, SocketEventType } from "@/services/websocketService";
+import { Text } from "@/components/Themed";
 import RouteInfoPanel from "@/components/RouteInfoPanel";
 import AssignmentDetailsModal from "@/components/AssignmentDetailsModal";
 import GroupStatusUpdateModal from "@/components/status-update/GroupStatusUpdateModal";
