@@ -90,15 +90,19 @@ function ProtectedRouteGuard({ children }: { children: React.ReactNode }) {
     if (isLoading || !navigationState?.key) return;
 
     const isLoginScreen = segments[0] === 'login';
+    const isVerifyScreen = segments[0] === 'verify-email';
 
-    if (!isAuthenticated && !isLoginScreen) {
-      // Si el usuario no está autenticado y no está en la pantalla de login, redirigir al login
+    if (!isAuthenticated && !isLoginScreen && !isVerifyScreen) {
+      // No autenticado → login
       router.replace('/login');
-    } else if (isAuthenticated && isLoginScreen) {
-      // Si el usuario está autenticado y está en la pantalla de login, redirigir a la app
+    } else if (isAuthenticated && !user?.isEmailVerified && !isVerifyScreen) {
+      // Autenticado pero sin verificar email → pantalla de verificación
+      router.replace('/verify-email');
+    } else if (isAuthenticated && user?.isEmailVerified && (isLoginScreen || isVerifyScreen)) {
+      // Autenticado y verificado → app
       router.replace('/(tabs)');
     }
-  }, [segments, isAuthenticated, isLoading, navigationState?.key]);
+  }, [segments, isAuthenticated, isLoading, navigationState?.key, user?.isEmailVerified]);
 
   useEffect(() => {
     // Oculta los botones de Android

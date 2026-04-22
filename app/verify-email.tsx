@@ -7,7 +7,6 @@ import {
     KeyboardAvoidingView,
     Platform,
     Alert,
-    ScrollView,
 } from 'react-native';
 import { Text, View } from '@/components/Themed';
 import { CustomColors } from '@/constants/CustomColors';
@@ -15,7 +14,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { authService } from '@/services/authService';
 import { FontAwesome } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, Stack } from 'expo-router';
 
 interface VerifyEmailProps {
     email?: string;
@@ -77,7 +76,7 @@ export default function VerifyEmailScreen() {
                             text: 'Continuar',
                             onPress: () => {
                                 setCode('');
-                                router.replace('/(tabs)/');
+                                router.replace('/(tabs)');
                             }
                         }
                     ]
@@ -120,16 +119,17 @@ export default function VerifyEmailScreen() {
 
     return (
         <SafeAreaView style={styles.safeArea}>
+            <Stack.Screen options={{ headerShown: false }} />
             <StatusBar style="light" />
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={styles.container}
             >
-                <ScrollView contentContainerStyle={styles.scrollView}>
+                <View style={styles.inner}>
                     <View style={styles.header}>
                         <FontAwesome
                             name="envelope-open"
-                            size={60}
+                            size={40}
                             color={CustomColors.primary}
                             style={styles.icon}
                         />
@@ -216,7 +216,7 @@ export default function VerifyEmailScreen() {
                             El código expira en 15 minutos. Si excedes los intentos permitidos, deberás solicitar un nuevo código.
                         </Text>
                     </View>
-                </ScrollView>
+                </View>
             </KeyboardAvoidingView>
         </SafeAreaView>
     );
@@ -225,26 +225,27 @@ export default function VerifyEmailScreen() {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: CustomColors.background,
+        backgroundColor: CustomColors.backgroundDarkest,
     },
     container: {
         flex: 1,
     },
-    scrollView: {
-        flexGrow: 1,
+    inner: {
+        flex: 1,
         padding: 20,
+        justifyContent: 'space-between',
     },
     header: {
         alignItems: 'center',
-        marginVertical: 30,
+        marginVertical: 12,
     },
     icon: {
-        marginBottom: 20,
+        marginBottom: 10,
     },
     title: {
-        fontSize: 24,
+        fontSize: 20,
         fontWeight: 'bold',
-        color: CustomColors.text,
+        color: CustomColors.textLight,
         marginBottom: 10,
         textAlign: 'center',
     },
@@ -261,15 +262,15 @@ const styles = StyleSheet.create({
         marginTop: 8,
     },
     formContainer: {
-        marginVertical: 20,
+        marginVertical: 0,
     },
     inputContainer: {
-        marginBottom: 24,
+        marginBottom: 12,
     },
     label: {
         fontSize: 14,
         fontWeight: '600',
-        color: CustomColors.text,
+        color: CustomColors.textLight,
         marginBottom: 12,
     },
     input: {
@@ -277,10 +278,10 @@ const styles = StyleSheet.create({
         borderColor: CustomColors.border,
         borderRadius: 8,
         paddingHorizontal: 16,
-        paddingVertical: 14,
-        fontSize: 32,
+        paddingVertical: 10,
+        fontSize: 28,
         fontWeight: 'bold',
-        color: CustomColors.text,
+        color: CustomColors.textLight,
         backgroundColor: CustomColors.inputBackground,
         marginBottom: 8,
     },
@@ -292,9 +293,9 @@ const styles = StyleSheet.create({
     verifyButton: {
         backgroundColor: CustomColors.primary,
         borderRadius: 8,
-        paddingVertical: 14,
+        paddingVertical: 12,
         alignItems: 'center',
-        marginBottom: 16,
+        marginBottom: 10,
     },
     disabledButton: {
         opacity: 0.5,
@@ -308,7 +309,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 20,
+        marginBottom: 10,
         paddingHorizontal: 16,
     },
     resendText: {
@@ -325,11 +326,11 @@ const styles = StyleSheet.create({
         opacity: 0.5,
     },
     changeEmailButton: {
-        paddingVertical: 12,
+        paddingVertical: 8,
         alignItems: 'center',
         borderTopWidth: 1,
         borderTopColor: CustomColors.border,
-        marginTop: 20,
+        marginTop: 8,
     },
     changeEmailText: {
         fontSize: 14,
@@ -338,12 +339,12 @@ const styles = StyleSheet.create({
     },
     infoBox: {
         flexDirection: 'row',
-        backgroundColor: CustomColors.infoBackground,
+        backgroundColor: CustomColors.backgroundMedium,
         borderLeftWidth: 4,
         borderLeftColor: CustomColors.primary,
-        padding: 14,
+        padding: 12,
         borderRadius: 6,
-        marginTop: 20,
+        marginBottom: 8,
     },
     infoIcon: {
         marginRight: 12,
@@ -352,7 +353,7 @@ const styles = StyleSheet.create({
     infoText: {
         flex: 1,
         fontSize: 12,
-        color: CustomColors.text,
+        color: CustomColors.textLight,
         lineHeight: 18,
     },
 });
