@@ -24,6 +24,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { API_URL, checkApiConnectivity } from '@/services/api';
 import { FontAwesome } from '@expo/vector-icons';
 import { authService } from '@/services/authService';
+import { router } from 'expo-router';
 
 export default function LoginScreen() {
     const [email, setEmail] = useState('');
@@ -112,6 +113,15 @@ export default function LoginScreen() {
                 Alert.alert('Error de inicio de sesión', errorMessage);
             } else {
                 console.log('Inicio de sesión exitoso');
+                // Verificar si el usuario necesita verificar su email
+                const authData = await authService.getAuthData();
+                if (authData.user && !authData.user.isEmailVerified) {
+                    // Redirigir a pantalla de verificación de email
+                    router.replace('/verify-email');
+                } else {
+                    // Usuario ya verificado, ir a la aplicación principal
+                    router.replace('/(tabs)/');
+                }
             }
         } catch (error: any) {
             const errorMessage = error instanceof Error ? error.message : 'Error desconocido';

@@ -176,6 +176,62 @@ export const authService = {
                 error: 'Error al sincronizar la informacion del usuario',
             };
         }
+    },
+
+    verifyEmailCode: async (email: string, code: string): Promise<{
+        success: boolean;
+        error?: string;
+        details?: any;
+    }> => {
+        try {
+            const response = await api.post('auth/verify-email', { email, code });
+
+            if (response.error) {
+                return {
+                    success: false,
+                    error: response.error || 'Error al verificar el código',
+                    details: response.details
+                };
+            }
+
+            return {
+                success: true,
+            };
+        } catch (error:any) {
+            console.log('Error verifying email code:', error);
+            return {
+                success: false,
+                error: 'Error en la conexión al verificar el código'
+            };
+        }
+    },
+
+    resendVerificationCode: async (email: string): Promise<{
+        success: boolean;
+        error?: string;
+        details?: any;
+    }> => {
+        try {
+            const response = await api.post('auth/resend-verification-code', { email });
+
+            if (response.error) {
+                return {
+                    success: false,
+                    error: response.error || 'Error al reenviar el código',
+                    details: response.details
+                };
+            }
+
+            return {
+                success: true,
+            };
+        } catch (error:any) {
+            console.log('Error resending verification code:', error);
+            return {
+                success: false,
+                error: 'Error en la conexión al reenviar el código'
+            };
+        }
     }
 };
 

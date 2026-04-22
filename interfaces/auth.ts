@@ -25,6 +25,7 @@ export interface IUserEntity extends IGlobalEntity {
   carrier?: DeliveryPersonEntity | null;
   enterprise: IEnterpriseEntity;
   userRoles?: IRolesAllowedEntity[];
+  isEmailVerified?: boolean;
 }
 
 export interface DeliveryPersonEntity {
