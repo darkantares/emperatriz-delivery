@@ -16,10 +16,6 @@ import { authService } from '@/services/authService';
 import { FontAwesome } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
 
-interface VerifyEmailProps {
-    email?: string;
-}
-
 export default function VerifyEmailScreen() {
     const [email, setEmail] = useState('');
     const [code, setCode] = useState('');
