@@ -3,6 +3,15 @@
     "name": "tiendas dominicanas delivery",
     "slug": "emperatriz-delivery",
     "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "enabled": true,
+      "url": "https://u.expo.dev/d9114a6d-b3be-4b76-b734-ce5aefdc980c",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "tiendasdominicanasdelivery",

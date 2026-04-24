@@ -21,6 +21,8 @@ import { api, checkApiConnectivity } from '@/services/api';
 import { setupDeepLinkListeners } from '@/utils/deepLinkHandler';
 import { useBatteryOptimizationCheck } from '@/core/hooks/useBatteryOptimizationCheck';
 import { useFCMPushNotifications } from '@/core/hooks/useFCMPushNotifications';
+import { useOTAUpdates } from '@/core/hooks/useOTAUpdates';
+import ForceUpdateScreen from '@/components/ForceUpdateScreen';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -61,8 +63,14 @@ export default function RootLayout() {
 
   }, []);
 
+  const { isForceUpdateRequired, status: updateStatus, retry } = useOTAUpdates();
+
   if (!loaded) {
     return null;
+  }
+
+  if (isForceUpdateRequired) {
+    return <ForceUpdateScreen status={updateStatus} onRetry={retry} />;
   }
 
   return showBootLoader ? (
