@@ -120,7 +120,7 @@ export default function LoginScreen() {
                     router.replace('/verify-email');
                 } else {
                     // Usuario ya verificado, ir a la aplicación principal
-                    router.replace('/(tabs)/');
+                    router.replace('/(tabs)');
                 }
             }
         } catch (error: any) {
@@ -149,7 +149,7 @@ export default function LoginScreen() {
                             style={styles.logo}
                             resizeMode="contain"
                         />
-                        <Text style={styles.title}>Tiendas Dominicanas</Text>
+                        <Text style={styles.title}>Tiendas Dominicanas Mensajeria</Text>
                         <Text style={styles.apiUrl}>
                             {__DEV__ ? (
                                 <>
