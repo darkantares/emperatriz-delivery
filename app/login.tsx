@@ -118,6 +118,9 @@ export default function LoginScreen() {
                 if (authData.user && !authData.user.isEmailVerified) {
                     // Redirigir a pantalla de verificación de email
                     router.replace('/verify-email');
+                } else if (authData.user && authData.user.mustChangePassword) {
+                    // Debe cambiar su contraseña inicial
+                    router.replace('/change-initial-password');
                 } else {
                     // Usuario ya verificado, ir a la aplicación principal
                     router.replace('/(tabs)');

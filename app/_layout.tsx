@@ -99,18 +99,22 @@ function ProtectedRouteGuard({ children }: { children: React.ReactNode }) {
 
     const isLoginScreen = segments[0] === 'login';
     const isVerifyScreen = segments[0] === 'verify-email';
+    const isChangePasswordScreen = segments[0] === 'change-initial-password';
 
-    if (!isAuthenticated && !isLoginScreen && !isVerifyScreen) {
+    if (!isAuthenticated && !isLoginScreen && !isVerifyScreen && !isChangePasswordScreen) {
       // No autenticado → login
       router.replace('/login');
     } else if (isAuthenticated && !user?.isEmailVerified && !isVerifyScreen) {
       // Autenticado pero sin verificar email → pantalla de verificación
       router.replace('/verify-email');
-    } else if (isAuthenticated && user?.isEmailVerified && (isLoginScreen || isVerifyScreen)) {
+    } else if (isAuthenticated && user?.isEmailVerified && user?.mustChangePassword && !isChangePasswordScreen) {
+      // Email verificado pero debe cambiar contraseña inicial
+      router.replace('/change-initial-password');
+    } else if (isAuthenticated && user?.isEmailVerified && !user?.mustChangePassword && (isLoginScreen || isVerifyScreen || isChangePasswordScreen)) {
       // Autenticado y verificado → app
       router.replace('/(tabs)');
     }
-  }, [segments, isAuthenticated, isLoading, navigationState?.key, user?.isEmailVerified]);
+  }, [segments, isAuthenticated, isLoading, navigationState?.key, user?.isEmailVerified, user?.mustChangePassword]);
 
   useEffect(() => {
     // Oculta los botones de Android

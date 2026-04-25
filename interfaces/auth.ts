@@ -26,6 +26,7 @@ export interface IUserEntity extends IGlobalEntity {
   enterprise: IEnterpriseEntity;
   userRoles?: IRolesAllowedEntity[];
   isEmailVerified?: boolean;
+  mustChangePassword?: boolean;
 }
 
 export interface DeliveryPersonEntity {

@@ -232,6 +232,30 @@ export const authService = {
                 error: 'Error en la conexión al reenviar el código'
             };
         }
+    },
+
+    changeInitialPassword: async (currentPassword: string, newPassword: string, confirmNewPassword: string): Promise<{
+        success: boolean;
+        error?: string;
+    }> => {
+        try {
+            const response = await api.patch('auth/change-initial-password', { currentPassword, newPassword, confirmNewPassword });
+
+            if (response.error) {
+                return {
+                    success: false,
+                    error: response.error || 'Error al cambiar la contraseña'
+                };
+            }
+
+            return { success: true };
+        } catch (error: any) {
+            console.log('Error changing initial password:', error);
+            return {
+                success: false,
+                error: 'Error en la conexión al cambiar la contraseña'
+            };
+        }
     }
 };
 

@@ -64,6 +64,8 @@ export default function VerifyEmailScreen() {
             const result = await authService.verifyEmailCode(email, code);
 
             if (result.success) {
+                const authData = await authService.getAuthData();
+                const mustChangePassword = authData.user?.mustChangePassword ?? false;
                 Alert.alert(
                     'Éxito',
                     'Tu correo ha sido verificado correctamente',
@@ -72,7 +74,11 @@ export default function VerifyEmailScreen() {
                             text: 'Continuar',
                             onPress: () => {
                                 setCode('');
-                                router.replace('/(tabs)');
+                                if (mustChangePassword) {
+                                    router.replace('/change-initial-password');
+                                } else {
+                                    router.replace('/(tabs)');
+                                }
                             }
                         }
                     ]
