@@ -15,8 +15,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { authService } from '@/services/authService';
 import { FontAwesome } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
+import { useAuth } from '@/context/AuthContext';
 
 export default function VerifyEmailScreen() {
+    const { refreshUser } = useAuth();
     const [email, setEmail] = useState('');
     const [code, setCode] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -64,24 +66,13 @@ export default function VerifyEmailScreen() {
             const result = await authService.verifyEmailCode(email, code);
 
             if (result.success) {
-                const authData = await authService.getAuthData();
-                const mustChangePassword = authData.user?.mustChangePassword ?? false;
+                // Refresh AuthContext so the route guard sees isEmailVerified=true
+                // and auto-redirects to change-initial-password or (tabs).
+                await refreshUser();
                 Alert.alert(
                     'Éxito',
                     'Tu correo ha sido verificado correctamente',
-                    [
-                        {
-                            text: 'Continuar',
-                            onPress: () => {
-                                setCode('');
-                                if (mustChangePassword) {
-                                    router.replace('/change-initial-password');
-                                } else {
-                                    router.replace('/(tabs)');
-                                }
-                            }
-                        }
-                    ]
+                    [{ text: 'Continuar', onPress: () => setCode('') }]
                 );
             } else {
                 Alert.alert('Error de verificación', result.error || 'Código inválido');

@@ -16,8 +16,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import { authService } from '@/services/authService';
 import { router, Stack } from 'expo-router';
+import { useAuth } from '@/context/AuthContext';
 
 export default function ChangeInitialPasswordScreen() {
+    const { refreshUser } = useAuth();
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmNewPassword, setConfirmNewPassword] = useState('');
@@ -54,6 +56,7 @@ export default function ChangeInitialPasswordScreen() {
         try {
             const result = await authService.changeInitialPassword(currentPassword, newPassword, confirmNewPassword);
             if (result.success) {
+                await refreshUser();
                 Alert.alert(
                     'Contraseña cambiada',
                     'Tu contraseña ha sido actualizada correctamente.',
@@ -70,25 +73,30 @@ export default function ChangeInitialPasswordScreen() {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={styles.safeArea}>
             <Stack.Screen options={{ headerShown: false }} />
-            <StatusBar style="dark" />
+            <StatusBar style="light" />
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={styles.keyboardView}
+                style={styles.container}
             >
-                <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-                    <View style={styles.card}>
-                        <View style={styles.iconContainer}>
-                            <FontAwesome name="lock" size={40} color={CustomColors.primary} />
-                        </View>
+                <ScrollView contentContainerStyle={styles.inner} keyboardShouldPersistTaps="handled">
+                    <View style={styles.header}>
+                        <FontAwesome
+                            name="lock"
+                            size={40}
+                            color={CustomColors.primary}
+                            style={styles.icon}
+                        />
                         <Text style={styles.title}>Cambio de contraseña requerido</Text>
                         <Text style={styles.subtitle}>
                             Por seguridad, debes cambiar tu contraseña inicial antes de continuar.
                         </Text>
+                    </View>
 
+                    <View style={styles.formContainer}>
                         {/* Clave inicial */}
-                        <View style={styles.inputGroup}>
+                        <View style={styles.inputContainer}>
                             <Text style={styles.label}>Clave inicial (actual)</Text>
                             <View style={styles.inputRow}>
                                 <TextInput
@@ -97,17 +105,18 @@ export default function ChangeInitialPasswordScreen() {
                                     onChangeText={setCurrentPassword}
                                     secureTextEntry={!showCurrent}
                                     placeholder="Ingresa tu clave actual"
-                                    placeholderTextColor="#aaa"
+                                    placeholderTextColor={CustomColors.neutralLight}
                                     autoCapitalize="none"
+                                    editable={!isLoading}
                                 />
                                 <TouchableOpacity onPress={() => setShowCurrent(!showCurrent)} style={styles.eyeBtn}>
-                                    <FontAwesome name={showCurrent ? 'eye' : 'eye-slash'} size={18} color="#888" />
+                                    <FontAwesome name={showCurrent ? 'eye' : 'eye-slash'} size={18} color={CustomColors.neutralLight} />
                                 </TouchableOpacity>
                             </View>
                         </View>
 
                         {/* Nueva contraseña */}
-                        <View style={styles.inputGroup}>
+                        <View style={styles.inputContainer}>
                             <Text style={styles.label}>Nueva contraseña</Text>
                             <View style={styles.inputRow}>
                                 <TextInput
@@ -116,17 +125,18 @@ export default function ChangeInitialPasswordScreen() {
                                     onChangeText={setNewPassword}
                                     secureTextEntry={!showNew}
                                     placeholder="Mínimo 6 caracteres, mayúscula y número"
-                                    placeholderTextColor="#aaa"
+                                    placeholderTextColor={CustomColors.neutralLight}
                                     autoCapitalize="none"
+                                    editable={!isLoading}
                                 />
                                 <TouchableOpacity onPress={() => setShowNew(!showNew)} style={styles.eyeBtn}>
-                                    <FontAwesome name={showNew ? 'eye' : 'eye-slash'} size={18} color="#888" />
+                                    <FontAwesome name={showNew ? 'eye' : 'eye-slash'} size={18} color={CustomColors.neutralLight} />
                                 </TouchableOpacity>
                             </View>
                         </View>
 
                         {/* Confirmar nueva contraseña */}
-                        <View style={styles.inputGroup}>
+                        <View style={styles.inputContainer}>
                             <Text style={styles.label}>Confirmar nueva contraseña</Text>
                             <View style={styles.inputRow}>
                                 <TextInput
@@ -135,11 +145,12 @@ export default function ChangeInitialPasswordScreen() {
                                     onChangeText={setConfirmNewPassword}
                                     secureTextEntry={!showConfirm}
                                     placeholder="Repite tu nueva contraseña"
-                                    placeholderTextColor="#aaa"
+                                    placeholderTextColor={CustomColors.neutralLight}
                                     autoCapitalize="none"
+                                    editable={!isLoading}
                                 />
                                 <TouchableOpacity onPress={() => setShowConfirm(!showConfirm)} style={styles.eyeBtn}>
-                                    <FontAwesome name={showConfirm ? 'eye' : 'eye-slash'} size={18} color="#888" />
+                                    <FontAwesome name={showConfirm ? 'eye' : 'eye-slash'} size={18} color={CustomColors.neutralLight} />
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -150,11 +161,23 @@ export default function ChangeInitialPasswordScreen() {
                             disabled={isLoading}
                         >
                             {isLoading ? (
-                                <ActivityIndicator color="#fff" />
+                                <ActivityIndicator color="#fff" size="small" />
                             ) : (
                                 <Text style={styles.buttonText}>Cambiar contraseña</Text>
                             )}
                         </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.infoBox}>
+                        <FontAwesome
+                            name="info-circle"
+                            size={18}
+                            color={CustomColors.primary}
+                            style={styles.infoIcon}
+                        />
+                        <Text style={styles.infoText}>
+                            Elige una contraseña segura con al menos una mayúscula, una minúscula y un número. No podrás reutilizar tu contraseña inicial.
+                        </Text>
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
@@ -163,41 +186,102 @@ export default function ChangeInitialPasswordScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f5f6fa' },
-    keyboardView: { flex: 1 },
-    scrollContent: { flexGrow: 1, justifyContent: 'center', padding: 20 },
-    card: {
-        backgroundColor: '#fff',
-        borderRadius: 16,
-        padding: 28,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 4,
+    safeArea: {
+        flex: 1,
+        backgroundColor: CustomColors.backgroundDarkest,
     },
-    iconContainer: { alignItems: 'center', marginBottom: 16 },
-    title: { fontSize: 20, fontWeight: '700', textAlign: 'center', marginBottom: 8, color: '#1a1a2e' },
-    subtitle: { fontSize: 14, textAlign: 'center', color: '#666', marginBottom: 24, lineHeight: 20 },
-    inputGroup: { marginBottom: 16 },
-    label: { fontSize: 13, fontWeight: '600', color: '#444', marginBottom: 6 },
+    container: {
+        flex: 1,
+    },
+    inner: {
+        flexGrow: 1,
+        padding: 20,
+        justifyContent: 'space-between',
+    },
+    header: {
+        alignItems: 'center',
+        marginVertical: 12,
+    },
+    icon: {
+        marginBottom: 10,
+    },
+    title: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: CustomColors.textLight,
+        marginBottom: 10,
+        textAlign: 'center',
+    },
+    subtitle: {
+        fontSize: 14,
+        color: CustomColors.neutralLight,
+        marginBottom: 8,
+        textAlign: 'center',
+        lineHeight: 20,
+    },
+    formContainer: {
+        marginVertical: 0,
+    },
+    inputContainer: {
+        marginBottom: 16,
+    },
+    label: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: CustomColors.textLight,
+        marginBottom: 8,
+    },
     inputRow: {
         flexDirection: 'row',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: '#ddd',
+        borderColor: CustomColors.border,
         borderRadius: 8,
-        backgroundColor: '#fafafa',
+        backgroundColor: CustomColors.inputBackground,
     },
-    input: { flex: 1, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: '#333' },
-    eyeBtn: { padding: 12 },
+    input: {
+        flex: 1,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        fontSize: 15,
+        color: CustomColors.textLight,
+    },
+    eyeBtn: {
+        padding: 12,
+    },
     button: {
         backgroundColor: CustomColors.primary,
         borderRadius: 8,
-        paddingVertical: 14,
+        paddingVertical: 12,
         alignItems: 'center',
         marginTop: 8,
+        marginBottom: 10,
     },
-    buttonDisabled: { opacity: 0.6 },
-    buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+    buttonDisabled: {
+        opacity: 0.5,
+    },
+    buttonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    infoBox: {
+        flexDirection: 'row',
+        backgroundColor: CustomColors.backgroundMedium,
+        borderLeftWidth: 4,
+        borderLeftColor: CustomColors.primary,
+        padding: 12,
+        borderRadius: 6,
+        marginBottom: 8,
+    },
+    infoIcon: {
+        marginRight: 12,
+        marginTop: 2,
+    },
+    infoText: {
+        flex: 1,
+        fontSize: 12,
+        color: CustomColors.textLight,
+        lineHeight: 18,
+    },
 });

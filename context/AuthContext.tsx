@@ -16,6 +16,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => Promise<void>;
   hasPermission: (role: string) => boolean;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -202,6 +203,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setRoles(null);
   };
 
+  const refreshUser = async () => {
+    const whoami = await authService.fetchWhoami();
+    if (whoami.success && whoami.data) {
+      setUser(whoami.data.user);
+      setCarrier(whoami.data.carrier ?? null);
+      setRoles(whoami.data.roles || []);
+    }
+  };
+
   useEffect(() => {
     // when the API signals authentication failure (401 + no refresh or refresh rejected)
     // we show a toast and then clear state so UI can redirect to login
@@ -235,6 +245,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         logout,
         hasPermission,
+        refreshUser,
       }}
     >
       {children}
