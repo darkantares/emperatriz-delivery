@@ -256,6 +256,54 @@ export const authService = {
                 error: 'Error en la conexión al cambiar la contraseña'
             };
         }
-    }
+    },
+
+    sendForgotPassword: async (email: string): Promise<{
+        success: boolean;
+        error?: string;
+    }> => {
+        try {
+            const response = await api.post('auth/forgot-password', { email });
+
+            if (response.error) {
+                return {
+                    success: false,
+                    error: response.error || 'Error al enviar el correo de recuperación'
+                };
+            }
+
+            return { success: true };
+        } catch (error: any) {
+            console.log('Error sending forgot password:', error);
+            return {
+                success: false,
+                error: 'Error en la conexión al enviar el correo'
+            };
+        }
+    },
+
+    resetPassword: async (token: string, password: string, confirmPassword: string): Promise<{
+        success: boolean;
+        error?: string;
+    }> => {
+        try {
+            const response = await api.patch('auth/reset-password', { token, password, confirmPassword });
+
+            if (response.error) {
+                return {
+                    success: false,
+                    error: response.error || 'Error al restablecer la contraseña'
+                };
+            }
+
+            return { success: true };
+        } catch (error: any) {
+            console.log('Error resetting password:', error);
+            return {
+                success: false,
+                error: 'Error en la conexión al restablecer la contraseña'
+            };
+        }
+    },
 };
 
