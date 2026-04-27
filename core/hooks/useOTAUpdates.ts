@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { checkAndApplyUpdate, checkMinimumVersionRequired } from '@/services/otaUpdates.service';
 import Constants from 'expo-constants';
+import { API_URL } from '@/services/api';
 
 type UpdateStatus = 'idle' | 'checking' | 'downloading' | 'updated' | 'error';
 
@@ -11,13 +12,10 @@ interface OTAUpdatesState {
   retry: () => void;
 }
 
-/**
- * Fetches the minimum required version from the backend.
- * Replace this mock with a real API call when the endpoint is ready.
- */
 async function fetchMinVersionRequired(): Promise<string> {
-  // TODO: replace with real endpoint e.g. GET /api/config/min-version
-  return '1.0.0';
+  const res = await fetch(`${API_URL}/app-version`);
+  const data = await res.json();
+  return data.minVersion;
 }
 
 export function useOTAUpdates(): OTAUpdatesState {
@@ -35,7 +33,7 @@ export function useOTAUpdates(): OTAUpdatesState {
       setStatus('checking');
 
       const currentVersion: string =
-        (Constants.expoConfig?.version ?? Constants.manifest?.version ?? '1.0.0') as string;
+        (Constants.expoConfig?.version ?? '1.0.0') as string;
       const minVersion = await fetchMinVersionRequired();
 
       if (checkMinimumVersionRequired(currentVersion, minVersion)) {

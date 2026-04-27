@@ -31,6 +31,7 @@ export default function LoginScreen() {
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [appVersion, setAppVersion] = useState('');
     const [apiStatus, setApiStatus] = useState<{ connected: boolean, message: string }>({
         connected: true,
         message: ''
@@ -51,6 +52,11 @@ export default function LoginScreen() {
         };
 
         checkConnection();
+
+        fetch(`${API_URL}/app-version`)
+            .then((res) => res.json())
+            .then((data) => setAppVersion(data.version))
+            .catch(() => {});
     }, []);
 
     const checkServerConnection = async () => {
@@ -231,12 +237,15 @@ export default function LoginScreen() {
                                 <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
                             )}
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.forgotPassword} onPress={() => router.push('/forgot-password')}>
+                        <TouchableOpacity style={styles.forgotPassword} onPress={() => router.push('/forgot-password' as any)}>
                             <Text style={styles.forgotPasswordText}>¿Olvidaste tu contraseña?</Text>
                         </TouchableOpacity>
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
+            {appVersion ? (
+                <Text style={styles.versionText}>v{appVersion}</Text>
+            ) : null}
         </SafeAreaView>
     );
 }
@@ -361,5 +370,13 @@ const styles = StyleSheet.create({
     forgotPasswordText: {
         color: CustomColors.secondary,
         fontSize: 14,
+    },
+    versionText: {
+        position: 'absolute',
+        bottom: 16,
+        right: 16,
+        color: CustomColors.neutralLight,
+        fontSize: 11,
+        opacity: 0.5,
     },
 });
