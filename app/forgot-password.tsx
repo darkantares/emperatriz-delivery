@@ -17,16 +17,8 @@ import { FontAwesome } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
 import { authService } from '@/services/authService';
 
-type Step = 'request' | 'reset';
-
 export default function ForgotPasswordScreen() {
-    const [step, setStep] = useState<Step>('request');
     const [email, setEmail] = useState('');
-    const [token, setToken] = useState('');
-    const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-    const [showPassword, setShowPassword] = useState(false);
-    const [showConfirm, setShowConfirm] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
     const handleSendEmail = async () => {
@@ -43,43 +35,11 @@ export default function ForgotPasswordScreen() {
             }
             Alert.alert(
                 'Correo enviado',
-                'Si el correo existe recibirás un enlace para restablecer tu contraseña. Copia el token del enlace y pégalo en el siguiente paso.',
+                'Si el correo existe recibirás un enlace para restablecer tu contraseña.',
+                [{ text: 'Entendido', onPress: () => router.back() }],
             );
-            setStep('reset');
         } catch (error: any) {
             Alert.alert('Error', error?.message || 'No se pudo procesar la solicitud');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleResetPassword = async () => {
-        if (!token.trim()) {
-            Alert.alert('Error', 'Por favor ingresa el token recibido por correo');
-            return;
-        }
-        if (password.length < 8) {
-            Alert.alert('Error', 'La contraseña debe tener al menos 8 caracteres');
-            return;
-        }
-        if (password !== confirmPassword) {
-            Alert.alert('Error', 'Las contraseñas no coinciden');
-            return;
-        }
-        setIsLoading(true);
-        try {
-            const result = await authService.resetPassword(token.trim(), password, confirmPassword);
-            if (!result.success) {
-                Alert.alert('Error', result.error || 'No se pudo restablecer la contraseña');
-                return;
-            }
-            Alert.alert(
-                '¡Éxito!',
-                'Tu contraseña fue restablecida correctamente.',
-                [{ text: 'Iniciar sesión', onPress: () => router.replace('/login') }]
-            );
-        } catch (error: any) {
-            Alert.alert('Error', error?.message || 'No se pudo restablecer la contraseña');
         } finally {
             setIsLoading(false);
         }
@@ -100,130 +60,36 @@ export default function ForgotPasswordScreen() {
                             <FontAwesome name="arrow-left" size={20} color={CustomColors.textLight} />
                         </TouchableOpacity>
                         <FontAwesome name="lock" size={50} color={CustomColors.secondary} style={styles.icon} />
-                        <Text style={styles.title}>
-                            {step === 'request' ? 'Recuperar contraseña' : 'Nueva contraseña'}
-                        </Text>
-                        <Text style={styles.subtitle}>
-                            {step === 'request'
-                                ? 'Ingresa tu correo para recibir un enlace de recuperación'
-                                : 'Ingresa el token recibido y tu nueva contraseña'}
-                        </Text>
+                        <Text style={styles.title}>Recuperar contraseña</Text>
+                        <Text style={styles.subtitle}>Ingresa tu correo para recibir un enlace de recuperación</Text>
                     </View>
 
                     {/* Form */}
                     <View style={styles.formContainer}>
-                        {step === 'request' ? (
-                            <>
-                                <View style={styles.inputContainer}>
-                                    <Text style={styles.label}>Correo electrónico</Text>
-                                    <TextInput
-                                        style={styles.input}
-                                        placeholder="Ingresa tu correo"
-                                        placeholderTextColor={CustomColors.neutralLight}
-                                        value={email}
-                                        onChangeText={setEmail}
-                                        autoCapitalize="none"
-                                        keyboardType="email-address"
-                                        editable={!isLoading}
-                                    />
-                                </View>
+                        <View style={styles.inputContainer}>
+                            <Text style={styles.label}>Correo electrónico</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Ingresa tu correo"
+                                placeholderTextColor={CustomColors.neutralLight}
+                                value={email}
+                                onChangeText={setEmail}
+                                autoCapitalize="none"
+                                keyboardType="email-address"
+                                editable={!isLoading}
+                            />
+                        </View>
 
-                                <TouchableOpacity
-                                    style={styles.primaryButton}
-                                    onPress={handleSendEmail}
-                                    disabled={isLoading}
-                                >
-                                    {isLoading
-                                        ? <ActivityIndicator color={CustomColors.textLight} />
-                                        : <Text style={styles.primaryButtonText}>Enviar enlace</Text>
-                                    }
-                                </TouchableOpacity>
-
-                                <TouchableOpacity style={styles.linkButton} onPress={() => setStep('reset')}>
-                                    <Text style={styles.linkText}>Ya tengo un token</Text>
-                                </TouchableOpacity>
-                            </>
-                        ) : (
-                            <>
-                                <View style={styles.inputContainer}>
-                                    <Text style={styles.label}>Token del correo</Text>
-                                    <TextInput
-                                        style={styles.input}
-                                        placeholder="Pega el token aquí"
-                                        placeholderTextColor={CustomColors.neutralLight}
-                                        value={token}
-                                        onChangeText={setToken}
-                                        autoCapitalize="none"
-                                        editable={!isLoading}
-                                    />
-                                </View>
-
-                                <View style={styles.inputContainer}>
-                                    <Text style={styles.label}>Nueva contraseña</Text>
-                                    <View style={styles.passwordContainer}>
-                                        <TextInput
-                                            style={styles.passwordInput}
-                                            placeholder="Mínimo 8 caracteres"
-                                            placeholderTextColor={CustomColors.neutralLight}
-                                            value={password}
-                                            onChangeText={setPassword}
-                                            secureTextEntry={!showPassword}
-                                            editable={!isLoading}
-                                        />
-                                        <TouchableOpacity
-                                            style={styles.eyeIcon}
-                                            onPress={() => setShowPassword(!showPassword)}
-                                        >
-                                            <FontAwesome
-                                                name={showPassword ? 'eye' : 'eye-slash'}
-                                                size={20}
-                                                color={CustomColors.neutralLight}
-                                            />
-                                        </TouchableOpacity>
-                                    </View>
-                                </View>
-
-                                <View style={styles.inputContainer}>
-                                    <Text style={styles.label}>Confirmar contraseña</Text>
-                                    <View style={styles.passwordContainer}>
-                                        <TextInput
-                                            style={styles.passwordInput}
-                                            placeholder="Repite la contraseña"
-                                            placeholderTextColor={CustomColors.neutralLight}
-                                            value={confirmPassword}
-                                            onChangeText={setConfirmPassword}
-                                            secureTextEntry={!showConfirm}
-                                            editable={!isLoading}
-                                        />
-                                        <TouchableOpacity
-                                            style={styles.eyeIcon}
-                                            onPress={() => setShowConfirm(!showConfirm)}
-                                        >
-                                            <FontAwesome
-                                                name={showConfirm ? 'eye' : 'eye-slash'}
-                                                size={20}
-                                                color={CustomColors.neutralLight}
-                                            />
-                                        </TouchableOpacity>
-                                    </View>
-                                </View>
-
-                                <TouchableOpacity
-                                    style={styles.primaryButton}
-                                    onPress={handleResetPassword}
-                                    disabled={isLoading}
-                                >
-                                    {isLoading
-                                        ? <ActivityIndicator color={CustomColors.textLight} />
-                                        : <Text style={styles.primaryButtonText}>Restablecer contraseña</Text>
-                                    }
-                                </TouchableOpacity>
-
-                                <TouchableOpacity style={styles.linkButton} onPress={() => setStep('request')}>
-                                    <Text style={styles.linkText}>← Volver</Text>
-                                </TouchableOpacity>
-                            </>
-                        )}
+                        <TouchableOpacity
+                            style={styles.primaryButton}
+                            onPress={handleSendEmail}
+                            disabled={isLoading}
+                        >
+                            {isLoading
+                                ? <ActivityIndicator color={CustomColors.textLight} />
+                                : <Text style={styles.primaryButtonText}>Enviar enlace</Text>
+                            }
+                        </TouchableOpacity>
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
@@ -328,14 +194,5 @@ const styles = StyleSheet.create({
         color: CustomColors.textLight,
         fontSize: 16,
         fontWeight: 'bold',
-    },
-    linkButton: {
-        alignItems: 'center',
-        padding: 8,
-    },
-    linkText: {
-        color: CustomColors.neutralLight,
-        fontSize: 14,
-        textDecorationLine: 'underline',
     },
 });
