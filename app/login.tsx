@@ -53,7 +53,7 @@ export default function LoginScreen() {
 
         checkConnection();
 
-        fetch(`${API_URL}/app-version`)
+        fetch(`${API_URL}/app-version/delivery`)
             .then((res) => res.json())
             .then((data) => setAppVersion(data.version))
             .catch(() => {});
