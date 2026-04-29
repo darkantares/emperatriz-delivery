@@ -7,9 +7,10 @@ import {
   Linking,
   Alert,
   Text,
+  ScrollView,
+  Image,
 } from "react-native";
 import { DeliveryItemAdapter } from "@/interfaces/delivery/deliveryAdapters";
-import { IDeliveryStatus } from "@/interfaces/delivery/deliveryStatus";
 import { AssignmentType } from "@/utils/enum";
 import { CustomColors } from "@/constants/CustomColors";
 import { Capitalize } from "@/utils/capitalize";
@@ -44,7 +45,7 @@ export default function AssignmentDetailsModal({
 
   const fullAddress = `${provincia}${provincia ? ', ' : ''}${municipio}${municipio ? ', ' : ''}${sector}${sector ? ', ' : ''}${direccion}`.trim();
   const siteType = assignment.type === AssignmentType.PICKUP ? 'RECOGIDA' : 'ENTREGA';
-
+  
   return (
     <Modal
       visible={visible}
@@ -91,6 +92,45 @@ export default function AssignmentDetailsModal({
                 <Text style={styles.actionText}>Llamar</Text>
               </TouchableOpacity>
             </View>
+
+            {assignment.relatedOrder?.orderDetails &&
+              assignment.relatedOrder.orderDetails.length > 0 && (
+                <View style={styles.productsSection}>
+                  <Text style={styles.productsSectionTitle}>Productos</Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.productsScrollContent}
+                  >
+                    {assignment.relatedOrder.orderDetails.map((detail, idx) => {
+                      const imageUrl = detail.product?.files?.[0]?.url;
+                      console.log(detail.product);
+                      
+                      return (
+                        <View key={idx} style={styles.productItem}>
+                          {imageUrl ? (
+                            <Image
+                              source={{ uri: imageUrl }}
+                              style={styles.productImage}
+                              resizeMode="cover"
+                              defaultSource={require("@/assets/images/icon.png")}
+                            />
+                          ) : (
+                            <View style={[styles.productImage, styles.productImagePlaceholder]}>
+                              <Text style={styles.productPlaceholderText}>📦</Text>
+                            </View>
+                          )}
+                          {detail.productTitle ? (
+                            <Text style={styles.productTitle} numberOfLines={2}>
+                              {detail.productTitle}
+                            </Text>
+                          ) : null}
+                        </View>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              )}
           </View>
         </View>
       </View>
@@ -181,5 +221,47 @@ const styles = StyleSheet.create({
     color: CustomColors.textLight,
     fontWeight: "700",
   },
-
+  productsSection: {
+    borderTopWidth: 1,
+    borderTopColor: CustomColors.border,
+    paddingTop: 10,
+  },
+  productsSectionTitle: {
+    color: CustomColors.neutralLight,
+    fontSize: 13,
+    fontWeight: "600",
+    marginBottom: 8,
+    paddingHorizontal: 2,
+  },
+  productsScrollContent: {
+    gap: 10,
+    paddingHorizontal: 2,
+    paddingBottom: 4,
+  },
+  productItem: {
+    alignItems: "center",
+    width: 72,
+  },
+  productImage: {
+    width: 72,
+    height: 72,
+    borderRadius: 10,
+    backgroundColor: CustomColors.backgroundMedium,
+    overflow: "hidden",
+  },
+  productImagePlaceholder: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  productPlaceholderText: {
+    fontSize: 28,
+  },
+  productTitle: {
+    color: CustomColors.textLight,
+    fontSize: 10,
+    fontWeight: "500",
+    textAlign: "center",
+    marginTop: 4,
+    width: 72,
+  },
 });

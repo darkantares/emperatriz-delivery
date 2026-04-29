@@ -81,9 +81,33 @@ const LEAFLET_MAP_HTML = `<!DOCTYPE html>
       }
     }
 
-    function makeWpIcon(wp, isTarget, orderNum) {
+    function makeStarIcon(wp) {
       var color = wp.type === 'PICKUP' ? '#2E7D32' : '#C62828';
-      var w = isTarget ? 36 : 28;
+      var w = 52, h = 52, cx = 26, cy = 26, outerR = 23, innerR = 9;
+      var pts = [];
+      for (var i = 0; i < 10; i++) {
+        var angle = (i * Math.PI / 5) - Math.PI / 2;
+        var r = (i % 2 === 0) ? outerR : innerR;
+        pts.push((cx + r * Math.cos(angle)).toFixed(2) + ',' + (cy + r * Math.sin(angle)).toFixed(2));
+      }
+      var glowId = 'glow_' + Math.floor(Math.random() * 99999);
+      var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '">'
+        + '<defs><filter id="' + glowId + '" x="-40%" y="-40%" width="180%" height="180%">'
+        + '<feGaussianBlur stdDeviation="3" result="blur"/>'
+        + '<feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>'
+        + '</filter></defs>'
+        + '<polygon points="' + pts.join(' ') + '" fill="' + color + '" stroke="white" stroke-width="2.5" filter="url(#' + glowId + ')"/>'
+        + '</svg>';
+      var html = '<div style="position:relative;display:inline-block;">' + svg;
+      if (wp.count > 1) html += '<div class="wp-badge">' + wp.count + '</div>';
+      html += '</div>';
+      return L.divIcon({ html: html, className: '', iconSize: [w, h], iconAnchor: [cx, cy] });
+    }
+
+    function makeWpIcon(wp, isTarget, orderNum) {
+      if (isTarget) return makeStarIcon(wp);
+      var color = wp.type === 'PICKUP' ? '#2E7D32' : '#C62828';
+      var w = 28;
       var h = Math.round(w * 1.4);
       var r = Math.round(w * 0.3);
       var cx = w / 2, cy = w / 2;
@@ -369,12 +393,23 @@ export default function TripMapScreen() {
     return groups;
   };
 
-  // Get actual courier GPS position on mount so the icon starts at the right place
+  // Get actual courier GPS position on mount so the icon starts at the right place.
+  // getLastKnownPositionAsync resolves instantly (no waiting for a GPS fix) giving
+  // an immediate position, then getCurrentPositionAsync provides the accurate fix.
   useEffect(() => {
     (async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== "granted") return;
+        // Immediate: use last cached GPS reading (no delay)
+        const lastKnown = await Location.getLastKnownPositionAsync();
+        if (lastKnown) {
+          setCurrentPosition({
+            latitude: lastKnown.coords.latitude,
+            longitude: lastKnown.coords.longitude,
+          });
+        }
+        // Then refine with a fresh accurate fix
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
         });
@@ -892,21 +927,20 @@ export default function TripMapScreen() {
           onMessage={handleWebViewMessage}
         />
 
-        {currentPosition && (
-          <TouchableOpacity
-            style={styles.centerButton}
-            onPress={() =>
-              sendToMap({
-                type: 'SET_VIEW',
-                latitude: currentPosition.latitude,
-                longitude: currentPosition.longitude,
-                zoom: 16,
-              })
-            }
-          >
-            <Text style={styles.centerButtonText}>📍</Text>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity
+          style={[styles.centerButton, !currentPosition && { opacity: 0.4 }]}
+          onPress={() => {
+            if (!currentPosition) return;
+            sendToMap({
+              type: 'SET_VIEW',
+              latitude: currentPosition.latitude,
+              longitude: currentPosition.longitude,
+              zoom: 16,
+            });
+          }}
+        >
+          <Text style={styles.centerButtonText}>📍</Text>
+        </TouchableOpacity>
 
         {__DEV__ && routeCoordinates.length > 0 && (
           <TouchableOpacity
