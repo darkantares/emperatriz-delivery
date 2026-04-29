@@ -42,7 +42,8 @@ export enum SocketEventType {
   DELIVERY_STATUS_CHANGED = 'delivery-status-changed',
   DELIVERY_REORDERED = 'delivery-reordered',
   DELIVERY_ASSIGNMENT_UPDATED = 'delivery-assignment-updated',
-  DRIVERS_GROUP_ASSIGNED = 'drivers-group-assigned'
+  DRIVERS_GROUP_ASSIGNED = 'drivers-group-assigned',
+  REQUEST_LOCATION_REFRESH = 'courier.location.refresh',
 }
 
 class SocketService {

@@ -45,7 +45,7 @@ export default function AssignmentDetailsModal({
 
   const fullAddress = `${provincia}${provincia ? ', ' : ''}${municipio}${municipio ? ', ' : ''}${sector}${sector ? ', ' : ''}${direccion}`.trim();
   const siteType = assignment.type === AssignmentType.PICKUP ? 'RECOGIDA' : 'ENTREGA';
-  
+      
   return (
     <Modal
       visible={visible}
@@ -94,9 +94,9 @@ export default function AssignmentDetailsModal({
             </View>
 
             {assignment.relatedOrder?.orderDetails &&
-              assignment.relatedOrder.orderDetails.some(
-                (detail) => detail.product?.files?.length > 0,
-              ) && (
+              assignment.relatedOrder.orderDetails.filter(
+                (detail) => detail.type === 'PRODUCT'
+              ).length > 0 && (
                 <View style={styles.productsSection}>
                   <Text style={styles.productsSectionTitle}>Productos</Text>
                   <ScrollView
@@ -105,9 +105,11 @@ export default function AssignmentDetailsModal({
                     contentContainerStyle={styles.productsScrollContent}
                   >
                     {assignment.relatedOrder.orderDetails
-                      .filter((detail) => detail.product?.files?.length > 0)
+                      .filter((detail) => detail.type === 'PRODUCT')
                       .map((detail, idx) => {
                         const imageUrl = detail.product?.files?.[0]?.url;
+                        console.log('DETAIL:', detail.product);
+                        
                         return (
                           <View key={idx} style={styles.productItem}>
                             {imageUrl ? (
@@ -117,7 +119,11 @@ export default function AssignmentDetailsModal({
                                 resizeMode="cover"
                                 defaultSource={require("@/assets/images/icon.png")}
                               />
-                            ) : null}
+                            ) : (
+                              <View style={[styles.productImage, styles.productImagePlaceholder]}>
+                                <Text style={styles.productPlaceholderText}>📦</Text>
+                              </View>
+                            )}
                             {detail.productTitle ? (
                               <Text style={styles.productTitle} numberOfLines={2}>
                                 {detail.productTitle}

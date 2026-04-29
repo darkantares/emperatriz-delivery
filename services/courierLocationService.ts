@@ -77,6 +77,15 @@ class CourierLocationTrackingService {
     socketService.on('courier.location.error', (error: any) => {
       // console.error('[LocationTracking] ❌ Error recibido del backend:', error);
     });
+
+    // Escuchar solicitudes de refresco de ubicación del backend (para asignación automática)
+    socketService.on('courier.location.refresh', async (_payload: any) => {
+      console.log('[LocationTracking] 🔄 Solicitud de refresco de ubicación recibida del backend');
+      const location = await this.getCurrentLocation();
+      if (location) {
+        this.sendLocationToBackend(location);
+      }
+    });
   }
 
   /**

@@ -109,8 +109,8 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
         lng: currentLocation.coords.longitude,
       });
 
-      console.log('[RouteContext] Ruta optimizada recibida del backend:', optimizedRoute);
-      console.log('allDeliveries: ', allDeliveries);
+      console.log('[RouteContext] Ruta optimizada recibida del backend');
+      console.log('allDeliveries: ', allDeliveries.length);
 
       // Paso 2: Preparar deliveries filtrados
       console.log('[RouteContext] Preparando datos de entregas para mostrar en el mapa...');

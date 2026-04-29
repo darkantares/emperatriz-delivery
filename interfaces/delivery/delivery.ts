@@ -102,6 +102,7 @@ export interface OrderDetailEntity {
   unitPrice: number;
   additionalAmount?: number;
   productTitle: string;
+  type: 'PRODUCT' | 'DELIVERY' | 'PICKUP';
   product: ProductEntity;
   order: OrderEntity;
 }
