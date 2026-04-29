@@ -12,7 +12,7 @@ export interface ProductEntity extends IGlobalEntity {
   description: string;
   attributes: any;
   features_products?: string[];
-  files?: FilesProductEntity[];
+  files: FilesProductEntity[];
   quantity?: number | null;
   quantityNoTransaction?: number | null;
   tags?: string[];

@@ -94,7 +94,9 @@ export default function AssignmentDetailsModal({
             </View>
 
             {assignment.relatedOrder?.orderDetails &&
-              assignment.relatedOrder.orderDetails.length > 0 && (
+              assignment.relatedOrder.orderDetails.some(
+                (detail) => detail.product?.files?.length > 0,
+              ) && (
                 <View style={styles.productsSection}>
                   <Text style={styles.productsSectionTitle}>Productos</Text>
                   <ScrollView
@@ -102,32 +104,28 @@ export default function AssignmentDetailsModal({
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={styles.productsScrollContent}
                   >
-                    {assignment.relatedOrder.orderDetails.map((detail, idx) => {
-                      const imageUrl = detail.product?.files?.[0]?.url;
-                      console.log(detail.product);
-                      
-                      return (
-                        <View key={idx} style={styles.productItem}>
-                          {imageUrl ? (
-                            <Image
-                              source={{ uri: imageUrl }}
-                              style={styles.productImage}
-                              resizeMode="cover"
-                              defaultSource={require("@/assets/images/icon.png")}
-                            />
-                          ) : (
-                            <View style={[styles.productImage, styles.productImagePlaceholder]}>
-                              <Text style={styles.productPlaceholderText}>📦</Text>
-                            </View>
-                          )}
-                          {detail.productTitle ? (
-                            <Text style={styles.productTitle} numberOfLines={2}>
-                              {detail.productTitle}
-                            </Text>
-                          ) : null}
-                        </View>
-                      );
-                    })}
+                    {assignment.relatedOrder.orderDetails
+                      .filter((detail) => detail.product?.files?.length > 0)
+                      .map((detail, idx) => {
+                        const imageUrl = detail.product?.files?.[0]?.url;
+                        return (
+                          <View key={idx} style={styles.productItem}>
+                            {imageUrl ? (
+                              <Image
+                                source={{ uri: imageUrl }}
+                                style={styles.productImage}
+                                resizeMode="cover"
+                                defaultSource={require("@/assets/images/icon.png")}
+                              />
+                            ) : null}
+                            {detail.productTitle ? (
+                              <Text style={styles.productTitle} numberOfLines={2}>
+                                {detail.productTitle}
+                              </Text>
+                            ) : null}
+                          </View>
+                        );
+                      })}
                   </ScrollView>
                 </View>
               )}
