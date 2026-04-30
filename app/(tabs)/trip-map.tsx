@@ -71,7 +71,7 @@ const LEAFLET_MAP_HTML = `<!DOCTYPE html>
       attribution: ''
     }).addTo(map);
 
-    var routeLine = null, traveledLine = null, courierMarker = null;
+    var segmentLines = [], traveledLine = null, courierMarker = null;
     var wpMarkers = [], wpData = [];
     var courierVisible = true, wpVisible = true;
 
@@ -126,15 +126,24 @@ const LEAFLET_MAP_HTML = `<!DOCTYPE html>
       return L.divIcon({ html: html, className: '', iconSize: [w, h], iconAnchor: [w / 2, h] });
     }
 
-    function initRoute(coords, waypoints, targetIdx) {
-      if (routeLine) map.removeLayer(routeLine);
+    function initRoute(segmentCoords, waypoints, targetIdx) {
+      segmentLines.forEach(function(l) { map.removeLayer(l); });
+      segmentLines = [];
       if (traveledLine) { map.removeLayer(traveledLine); traveledLine = null; }
       wpMarkers.forEach(function(m) { map.removeLayer(m); });
       wpMarkers = []; wpData = waypoints;
 
-      if (coords.length > 0) {
-        routeLine = L.polyline(coords, { color: '#00BFFF', weight: 5 }).addTo(map);
-        map.fitBounds(routeLine.getBounds(), { padding: [40, 40] });
+      if (segmentCoords.length > 0) {
+        var allCoords = [];
+        segmentCoords.forEach(function(seg, i) {
+          var color = (i === targetIdx) ? '#00BFFF' : '#A0A0A0';
+          var line = L.polyline(seg, { color: color, weight: 5, opacity: (i === targetIdx) ? 1 : 0.6 }).addTo(map);
+          segmentLines.push(line);
+          allCoords = allCoords.concat(seg);
+        });
+        if (allCoords.length > 0) {
+          map.fitBounds(L.polyline(allCoords).getBounds(), { padding: [40, 40] });
+        }
       }
 
       waypoints.forEach(function(wp, i) {
@@ -167,6 +176,9 @@ const LEAFLET_MAP_HTML = `<!DOCTYPE html>
     }
 
     function updateTarget(idx) {
+      segmentLines.forEach(function(l, i) {
+        l.setStyle({ color: (i === idx) ? '#00BFFF' : '#A0A0A0', opacity: (i === idx) ? 1 : 0.6 });
+      });
       wpMarkers.forEach(function(m, i) {
         m.setIcon(makeWpIcon(wpData[i], i === idx, i + 1));
         m.setZIndexOffset(i === idx ? 1000 : 0);
@@ -194,7 +206,7 @@ const LEAFLET_MAP_HTML = `<!DOCTYPE html>
       try {
         var msg = JSON.parse(raw);
         switch (msg.type) {
-          case 'INIT_ROUTE':      initRoute(msg.routeCoordinates, msg.waypoints, msg.targetGroupIndex); break;
+          case 'INIT_ROUTE':      initRoute(msg.segmentCoordinates, msg.waypoints, msg.targetGroupIndex); break;
           case 'UPDATE_POSITION': updatePosition(msg.latitude, msg.longitude); break;
           case 'UPDATE_TRAVELED': updateTraveled(msg.traveledCoords); break;
           case 'UPDATE_TARGET':   updateTarget(msg.groupIndex); break;
@@ -607,9 +619,34 @@ export default function TripMapScreen() {
       isLastInRoute: g.isLastInRoute,
       deliveryId: g.deliveries[0]?.id,
     }));
+
+    // Split flat routeCoordinates into one segment per waypoint (leg of the journey)
+    const segmentCoordinates: number[][][] = [];
+    let lastIdx = 0;
+    groupedWaypoints.forEach((group) => {
+      let minDist = Infinity;
+      let nearestIdx = lastIdx;
+      for (let i = lastIdx; i < routeCoordinates.length; i++) {
+        const dLat = routeCoordinates[i].latitude - group.coordinate.latitude;
+        const dLng = routeCoordinates[i].longitude - group.coordinate.longitude;
+        const d = dLat * dLat + dLng * dLng;
+        if (d < minDist) { minDist = d; nearestIdx = i; }
+      }
+      segmentCoordinates.push(
+        routeCoordinates.slice(lastIdx, nearestIdx + 1).map((c) => [c.latitude, c.longitude])
+      );
+      lastIdx = nearestIdx;
+    });
+    // Append any trailing coords to the last segment
+    if (segmentCoordinates.length > 0 && lastIdx < routeCoordinates.length - 1) {
+      routeCoordinates.slice(lastIdx + 1).forEach((c) =>
+        segmentCoordinates[segmentCoordinates.length - 1].push([c.latitude, c.longitude])
+      );
+    }
+
     sendToMap({
       type: "INIT_ROUTE",
-      routeCoordinates: routeCoordinates.map((c) => [c.latitude, c.longitude]),
+      segmentCoordinates,
       waypoints,
       targetGroupIndex: currentTargetGroupIndex,
     });

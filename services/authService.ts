@@ -31,7 +31,6 @@ export const authService = {
 
             // Backend returns an OkResult serialized as { value: LoginResponse }
             const loginData = (response.data as unknown as { value: LoginResponse }).value;
-            console.log('LoginData: ', loginData);
             
             if (!loginData) {
                 console.log('Error parsing login response data structure from API:', response);
