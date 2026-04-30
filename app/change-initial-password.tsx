@@ -17,6 +17,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import { authService } from '@/services/authService';
 import { router, Stack } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
+import { clearRecoveryState } from '@/utils/passwordRecovery';
 
 export default function ChangeInitialPasswordScreen() {
     const { refreshUser } = useAuth();
@@ -57,6 +58,7 @@ export default function ChangeInitialPasswordScreen() {
             const result = await authService.changeInitialPassword(currentPassword, newPassword, confirmNewPassword);
             if (result.success) {
                 await refreshUser();
+                await clearRecoveryState();
                 Alert.alert(
                     'Contraseña cambiada',
                     'Tu contraseña ha sido actualizada correctamente.',

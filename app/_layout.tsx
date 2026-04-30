@@ -23,6 +23,7 @@ import { useBatteryOptimizationCheck } from '@/core/hooks/useBatteryOptimization
 import { useFCMPushNotifications } from '@/core/hooks/useFCMPushNotifications';
 import { useOTAUpdates } from '@/core/hooks/useOTAUpdates';
 import ForceUpdateScreen from '@/components/ForceUpdateScreen';
+import { getRecoveryState } from '@/utils/passwordRecovery';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -100,10 +101,17 @@ function ProtectedRouteGuard({ children }: { children: React.ReactNode }) {
     const isLoginScreen = segments[0] === 'login';
     const isVerifyScreen = segments[0] === 'verify-email';
     const isChangePasswordScreen = segments[0] === 'change-initial-password';
+    const isForgotPasswordScreen = segments[0] === 'forgot-password';
 
-    if (!isAuthenticated && !isLoginScreen && !isVerifyScreen && !isChangePasswordScreen) {
-      // No autenticado → login
-      router.replace('/login');
+    if (!isAuthenticated && !isLoginScreen && !isVerifyScreen && !isChangePasswordScreen && !isForgotPasswordScreen) {
+      // No autenticado → login (o forgot-password si hay recuperación activa)
+      getRecoveryState().then((recovery) => {
+        if (recovery?.active) {
+          router.replace('/forgot-password');
+        } else {
+          router.replace('/login');
+        }
+      });
     } else if (isAuthenticated && !user?.isEmailVerified && !isVerifyScreen) {
       // Autenticado pero sin verificar email → pantalla de verificación
       router.replace('/verify-email');
@@ -182,6 +190,7 @@ function RootLayoutNav() {
                   <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                   <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
                   <Stack.Screen name="login" options={{ headerShown: false }} />
+                  <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
                 </Stack>
 
                 <NotificationHandler />

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     StyleSheet,
     TextInput,
@@ -16,10 +16,26 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
 import { authService } from '@/services/authService';
+import {
+    getRecoveryState,
+    saveRecoveryState,
+    clearRecoveryState,
+} from '@/utils/passwordRecovery';
 
 export default function ForgotPasswordScreen() {
     const [email, setEmail] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [step, setStep] = useState<'request' | 'login_with_temp'>('request');
+    const [recoveryEmail, setRecoveryEmail] = useState<string | null>(null);
+
+    useEffect(() => {
+        getRecoveryState().then((state) => {
+            if (state?.active && state.step === 'login_with_temp') {
+                setStep('login_with_temp');
+                setRecoveryEmail(state.email);
+            }
+        });
+    }, []);
 
     const handleSendEmail = async () => {
         if (!email.trim()) {
@@ -33,17 +49,65 @@ export default function ForgotPasswordScreen() {
                 Alert.alert('Error', result.error || 'No se pudo procesar la solicitud');
                 return;
             }
-            Alert.alert(
-                'Correo enviado',
-                'Si el correo existe recibirás un enlace para restablecer tu contraseña.',
-                [{ text: 'Entendido', onPress: () => router.back() }],
-            );
+            await saveRecoveryState({
+                active: true,
+                email: email.trim().toLowerCase(),
+                startedAt: Date.now(),
+                step: 'login_with_temp',
+            });
+            setRecoveryEmail(email.trim().toLowerCase());
+            setStep('login_with_temp');
         } catch (error: any) {
             Alert.alert('Error', error?.message || 'No se pudo procesar la solicitud');
         } finally {
             setIsLoading(false);
         }
     };
+
+    const handleCancel = async () => {
+        await clearRecoveryState();
+        router.replace('/login');
+    };
+
+    const handleGoToLogin = () => {
+        router.replace('/login');
+    };
+
+    if (step === 'login_with_temp') {
+        return (
+            <SafeAreaView style={styles.safeArea}>
+                <Stack.Screen options={{ headerShown: false }} />
+                <StatusBar style="light" />
+                <ScrollView contentContainerStyle={styles.scrollView} keyboardShouldPersistTaps="handled">
+                    <View style={styles.header}>
+                        <FontAwesome name="envelope" size={50} color={CustomColors.secondary} style={styles.icon} />
+                        <Text style={styles.title}>Revisa tu correo</Text>
+                        <Text style={[styles.subtitle, { textAlign: 'center' }]}>
+                            Enviamos una contraseña temporal a:
+                        </Text>
+                        <Text style={styles.emailHighlight}>{recoveryEmail}</Text>
+                        <Text style={[styles.subtitle, { marginTop: 16, textAlign: 'center' }]}>
+                            Abre tu correo, copia la contraseña temporal e inicia sesión con ella.{"\n"}Al ingresar se te pedirá que la cambies.
+                        </Text>
+                    </View>
+                    <View style={styles.formContainer}>
+                        <TouchableOpacity
+                            style={styles.primaryButton}
+                            onPress={handleGoToLogin}
+                        >
+                            <Text style={styles.primaryButtonText}>Ir al inicio de sesión</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.cancelButton}
+                            onPress={handleCancel}
+                        >
+                            <Text style={styles.cancelButtonText}>Cancelar recuperación</Text>
+                        </TouchableOpacity>
+                    </View>
+                </ScrollView>
+            </SafeAreaView>
+        );
+    }
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -61,7 +125,7 @@ export default function ForgotPasswordScreen() {
                         </TouchableOpacity>
                         <FontAwesome name="lock" size={50} color={CustomColors.secondary} style={styles.icon} />
                         <Text style={styles.title}>Recuperar contraseña</Text>
-                        <Text style={styles.subtitle}>Ingresa tu correo para recibir un enlace de recuperación</Text>
+                        <Text style={styles.subtitle}>Ingresa tu correo y te enviaremos una contraseña temporal</Text>
                     </View>
 
                     {/* Form */}
@@ -87,7 +151,7 @@ export default function ForgotPasswordScreen() {
                         >
                             {isLoading
                                 ? <ActivityIndicator color={CustomColors.textLight} />
-                                : <Text style={styles.primaryButtonText}>Enviar enlace</Text>
+                                : <Text style={styles.primaryButtonText}>Enviar contraseña temporal</Text>
                             }
                         </TouchableOpacity>
                     </View>
@@ -194,5 +258,25 @@ const styles = StyleSheet.create({
         color: CustomColors.textLight,
         fontSize: 16,
         fontWeight: 'bold',
+    },
+    cancelButton: {
+        borderRadius: 8,
+        height: 50,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: CustomColors.neutralLight,
+    },
+    cancelButtonText: {
+        color: CustomColors.neutralLight,
+        fontSize: 16,
+    },
+    emailHighlight: {
+        fontSize: 15,
+        fontWeight: 'bold',
+        color: CustomColors.secondary,
+        textAlign: 'center',
+        marginTop: 6,
     },
 });
