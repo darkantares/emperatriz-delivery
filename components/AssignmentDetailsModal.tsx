@@ -126,7 +126,7 @@ export default function AssignmentDetailsModal({
                             )}
                             {detail.productTitle ? (
                               <Text style={styles.productTitle} numberOfLines={2}>
-                                {detail.productTitle}
+                                {Capitalize(detail.productTitle)}
                               </Text>
                             ) : null}
                           </View>
