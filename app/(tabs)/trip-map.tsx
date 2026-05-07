@@ -91,16 +91,18 @@ const LEAFLET_MAP_HTML = `<!DOCTYPE html>
         pts.push((cx + r * Math.cos(angle)).toFixed(2) + ',' + (cy + r * Math.sin(angle)).toFixed(2));
       }
       var glowId = 'glow_' + Math.floor(Math.random() * 99999);
+      var fontSize = wp.count > 9 ? 11 : 13;
       var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '">'
         + '<defs><filter id="' + glowId + '" x="-40%" y="-40%" width="180%" height="180%">'
         + '<feGaussianBlur stdDeviation="3" result="blur"/>'
         + '<feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>'
         + '</filter></defs>'
-        + '<polygon points="' + pts.join(' ') + '" fill="' + color + '" stroke="white" stroke-width="2.5" filter="url(#' + glowId + ')"/>'
-        + '</svg>';
-      var html = '<div style="position:relative;display:inline-block;">' + svg;
-      if (wp.count > 1) html += '<div class="wp-badge">' + wp.count + '</div>';
-      html += '</div>';
+        + '<polygon points="' + pts.join(' ') + '" fill="' + color + '" stroke="white" stroke-width="2.5" filter="url(#' + glowId + ')"/>';
+      if (wp.count > 1) {
+        svg += '<text x="' + cx + '" y="' + (cy + Math.round(fontSize * 0.38)) + '" text-anchor="middle" fill="white" font-size="' + fontSize + '" font-weight="bold" font-family="Arial,sans-serif">' + wp.count + '</text>';
+      }
+      svg += '</svg>';
+      var html = '<div style="position:relative;display:inline-block;">' + svg + '</div>';
       return L.divIcon({ html: html, className: '', iconSize: [w, h], iconAnchor: [cx, cy] });
     }
 
