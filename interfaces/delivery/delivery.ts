@@ -28,6 +28,7 @@ export interface IUpdateDeliveryStatusData {
   paymentMethodId?: number;
   gpsReadings?: IGpsReading[];
   verificationCode?: string;
+  scheduledAt?: string;
 }
 
 export interface IDeliveryAssignmentSummaryEntity extends IGlobalEntity {

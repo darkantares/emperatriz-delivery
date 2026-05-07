@@ -49,7 +49,8 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
       
       const isPending = delivery.deliveryStatus.title !== IDeliveryStatus.DELIVERED &&
                        delivery.deliveryStatus.title !== IDeliveryStatus.CANCELLED &&
-                       delivery.deliveryStatus.title !== IDeliveryStatus.RETURNED;
+                       delivery.deliveryStatus.title !== IDeliveryStatus.RETURNED &&
+                       delivery.deliveryStatus.title !== IDeliveryStatus.SCHEDULED;
 
       const hasCoordinates = delivery.additionalDataNominatim?.lat &&
                             delivery.additionalDataNominatim?.lon;

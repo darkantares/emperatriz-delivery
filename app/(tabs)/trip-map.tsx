@@ -306,11 +306,13 @@ export default function TripMapScreen() {
     socketService.on(SocketEventType.DRIVER_ASSIGNED, handleNewAssignment);
     socketService.on(SocketEventType.DRIVERS_GROUP_ASSIGNED, handleNewAssignment);
     socketService.on(SocketEventType.DELIVERY_REORDERED, handleNewAssignment);
+    socketService.on(SocketEventType.DELIVERY_STATUS_UPDATED, handleNewAssignment);
 
     return () => {
       socketService.off(SocketEventType.DRIVER_ASSIGNED, handleNewAssignment);
       socketService.off(SocketEventType.DRIVERS_GROUP_ASSIGNED, handleNewAssignment);
       socketService.off(SocketEventType.DELIVERY_REORDERED, handleNewAssignment);
+      socketService.off(SocketEventType.DELIVERY_STATUS_UPDATED, handleNewAssignment);
     };
   }, []);
 
@@ -596,6 +598,7 @@ export default function TripMapScreen() {
       IDeliveryStatus.DELIVERED,
       IDeliveryStatus.CANCELLED,
       IDeliveryStatus.RETURNED,
+      IDeliveryStatus.SCHEDULED,
     ];
     if (!terminalStatuses.includes(newStatus)) return;
     setCompletedDeliveryIds((prev) => {

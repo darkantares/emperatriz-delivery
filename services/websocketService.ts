@@ -42,6 +42,7 @@ export enum SocketEventType {
   DELIVERY_STATUS_CHANGED = 'delivery-status-changed',
   DELIVERY_REORDERED = 'delivery-reordered',
   DELIVERY_ASSIGNMENT_UPDATED = 'delivery-assignment-updated',
+  DELIVERY_STATUS_UPDATED = 'delivery-status-updated',
   DRIVERS_GROUP_ASSIGNED = 'drivers-group-assigned',
   REQUEST_LOCATION_REFRESH = 'courier.location.refresh',
 }
@@ -349,6 +350,11 @@ class SocketService {
       );
 
       this.notifyListeners(SocketEventType.DELIVERY_STATUS_CHANGED, adaptDeliveriesToAdapter([data])[0]);
+    });
+
+    this.socket.on(SocketEventType.DELIVERY_STATUS_UPDATED, ({data}: SocketParam<IDeliveryAssignmentEntity>) => {
+      console.log('Evento recibido - Estado de entrega actualizado (delivery-status-updated)');
+      this.notifyListeners(SocketEventType.DELIVERY_STATUS_UPDATED, adaptDeliveriesToAdapter([data])[0]);
     });
 
     this.socket.on(SocketEventType.DELIVERY_ASSIGNMENT_UPDATED, ({data}: SocketParam<IDeliveryAssignmentEntity>) => {

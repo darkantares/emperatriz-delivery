@@ -35,6 +35,111 @@ import { usePaymentMethods } from "@/core/hooks/usePaymentMethods";
 import { useStatusData } from "@/core/hooks/useStatusData";
 import { Capitalize } from "@/utils/capitalize";
 
+/** Generates 30-minute interval time slots starting from the next 30-min mark */
+function generateScheduleSlots(): Date[] {
+  const slots: Date[] = [];
+  const now = new Date();
+  const start = new Date(now);
+  start.setSeconds(0, 0);
+  if (start.getMinutes() < 30) {
+    start.setMinutes(30);
+  } else {
+    start.setMinutes(0);
+    start.setHours(start.getHours() + 1);
+  }
+  for (let i = 0; i < 48; i++) {
+    const slot = new Date(start.getTime() + i * 30 * 60 * 1000);
+    slots.push(slot);
+  }
+  return slots;
+}
+
+interface ScheduledTimePickerProps {
+  visible: boolean;
+  onClose: () => void;
+  onSelect: (date: Date) => void;
+}
+
+function ScheduledTimePicker({ visible, onClose, onSelect }: ScheduledTimePickerProps) {
+  const slots = generateScheduleSlots();
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent>
+      <View style={pickerStyles.overlay}>
+        <View style={pickerStyles.container}>
+          <Text style={pickerStyles.title}>Selecciona hora programada</Text>
+          <ScrollView style={pickerStyles.list}>
+            {slots.map((slot, index) => (
+              <TouchableOpacity
+                key={index}
+                style={pickerStyles.item}
+                onPress={() => onSelect(slot)}
+              >
+                <Text style={pickerStyles.itemText}>
+                  {slot.toLocaleString('es-DO', { dateStyle: 'short', timeStyle: 'short' })}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          <TouchableOpacity style={pickerStyles.cancelBtn} onPress={onClose}>
+            <Text style={pickerStyles.cancelText}>Cancelar</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const pickerStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'flex-end',
+  },
+  container: {
+    backgroundColor: CustomColors.backgroundDark,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingBottom: 30,
+    maxHeight: '60%',
+  },
+  title: {
+    color: CustomColors.textLight,
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: CustomColors.divider,
+  },
+  list: {
+    flex: 1,
+  },
+  item: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: CustomColors.divider,
+  },
+  itemText: {
+    color: CustomColors.textLight,
+    fontSize: 16,
+  },
+  cancelBtn: {
+    marginHorizontal: 20,
+    marginTop: 12,
+    backgroundColor: CustomColors.backgroundDarkest,
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  cancelText: {
+    color: CustomColors.textLight,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+});
+
 export interface GroupStatusUpdateModalProps {
   visible: boolean;
   onClose: () => void;
@@ -81,6 +186,8 @@ export default function GroupStatusUpdateModal({
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
     number | null
   >(null);
+  const [scheduledAt, setScheduledAt] = useState<Date | null>(null);
+  const [showSchedulePicker, setShowSchedulePicker] = useState<boolean>(false);
   const { paymentMethods } = usePaymentMethods();
   const [showPaymentMethodPicker, setShowPaymentMethodPicker] =
     useState<boolean>(false);
@@ -93,6 +200,7 @@ export default function GroupStatusUpdateModal({
   ];
 
   const isDelivered = selectedStatus === IDeliveryStatus.DELIVERED;
+  const isScheduled = selectedStatus === IDeliveryStatus.SCHEDULED;
   const requiresNote =
     selectedStatus &&
     statusesRequiringNote.includes(selectedStatus as IDeliveryStatus);
@@ -142,7 +250,8 @@ export default function GroupStatusUpdateModal({
     (!requiresPaymentInfo ||
       (amountPaid.trim() !== "" && selectedPaymentMethod)) &&
     (!requiresVerificationCode ||
-      (verificationCode.trim().length === 4 && codeVerificationStatus === "valid"));
+      (verificationCode.trim().length === 4 && codeVerificationStatus === "valid")) &&
+    (!isScheduled || scheduledAt !== null);
 
   useEffect(() => {
     setSelectedStatus(null);
@@ -158,6 +267,8 @@ export default function GroupStatusUpdateModal({
     setFailedAttempts(0);
     setIsCodeLocked(false);
     setLockTimeRemaining(0);
+    setScheduledAt(null);
+    setShowSchedulePicker(false);
   }, [currentStatus]);
 
   const assignmentVerificationCode = deliveries
@@ -243,6 +354,8 @@ export default function GroupStatusUpdateModal({
 
   const handleClose = () => {
     setLoading(false);
+    setScheduledAt(null);
+    setShowSchedulePicker(false);
     onClose();
   };
 
@@ -271,6 +384,10 @@ export default function GroupStatusUpdateModal({
         "Debes ingresar el código de verificación de 4 dígitos para confirmar la entrega.",
         [{ text: "OK" }],
       );
+      return;
+    }
+    if (isScheduled && !scheduledAt) {
+      Alert.alert("Hora requerida", "Debes seleccionar la hora programada.", [{ text: "OK" }]);
       return;
     }
     if (requiresCameraPhoto && !photoUri) {
@@ -332,6 +449,7 @@ export default function GroupStatusUpdateModal({
       const commonVerificationCode = requiresVerificationCode && verificationCode.trim()
         ? verificationCode.trim()
         : undefined;
+      const commonScheduledAt = isScheduled && scheduledAt ? scheduledAt.toISOString() : undefined;
 
       if (ids.length === 1) {
         console.log('there is 1 id, calling updateDeliveryStatusUnified')
@@ -345,6 +463,7 @@ export default function GroupStatusUpdateModal({
           gpsReadings,
           imageUris: commonImageUris,
           verificationCode: commonVerificationCode,
+          scheduledAt: commonScheduledAt,
         });
       } else {
         console.log('there isnt ids');        
@@ -359,6 +478,7 @@ export default function GroupStatusUpdateModal({
           gpsReadings,
           commonImageUris,
           commonVerificationCode,
+          commonScheduledAt,
         );
       }
 
@@ -415,6 +535,22 @@ export default function GroupStatusUpdateModal({
 
             {requiresNote && (
               <NoteInput value={note} onChange={setNote} styles={styles} />
+            )}
+
+            {isScheduled && (
+              <View style={styles.paymentContainer}>
+                <Text style={styles.paymentLabel}>Hora programada (obligatoria):</Text>
+                <TouchableOpacity
+                  style={styles.paymentInput}
+                  onPress={() => setShowSchedulePicker(true)}
+                >
+                  <Text style={{ color: scheduledAt ? CustomColors.textLight : CustomColors.divider }}>
+                    {scheduledAt
+                      ? scheduledAt.toLocaleString('es-DO', { dateStyle: 'short', timeStyle: 'short' })
+                      : 'Seleccionar hora...'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             )}
 
             {isDelivered && !isPickupType && (
@@ -554,6 +690,16 @@ export default function GroupStatusUpdateModal({
           </View>
         </View>
       </View>
+
+      {/* Time picker modal for SCHEDULED status */}
+      <ScheduledTimePicker
+        visible={showSchedulePicker}
+        onClose={() => setShowSchedulePicker(false)}
+        onSelect={(date) => {
+          setScheduledAt(date);
+          setShowSchedulePicker(false);
+        }}
+      />
     </Modal>
   );
 }

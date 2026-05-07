@@ -152,6 +152,7 @@ export const updateDeliveryStatusUnified = (
     additionalAmount,
     gpsReadings,
     verificationCode,
+    scheduledAt,
   } = updateData;
 
   if (imageUris && imageUris.length > 0) {
@@ -168,6 +169,7 @@ export const updateDeliveryStatusUnified = (
       formData.append("gpsReadings", JSON.stringify(gpsReadings));
     if (verificationCode)
       formData.append("verificationCode", verificationCode);
+    if (scheduledAt) formData.append("scheduledAt", scheduledAt);
 
     imageUris.forEach((imageUri, index) => {
       formData.append("images", {
@@ -191,6 +193,7 @@ export const updateDeliveryStatusUnified = (
     payload.additionalAmount = additionalAmount;
   if (gpsReadings?.length) payload.gpsReadings = gpsReadings;
   if (verificationCode) payload.verificationCode = verificationCode;
+  if (scheduledAt) payload.scheduledAt = scheduledAt;
 
   return apiAction.patch<IDeliveryAssignmentEntity>(
     `${BackendUrls.DeliveryAssignments}/${id}/status-unified`,
@@ -208,6 +211,7 @@ export const updateDeliveryStatusBatch = (
   gpsReadings?: IGpsReading[],
   imageUris?: string[],
   verificationCode?: string,
+  scheduledAt?: string,
 ): Promise<IDeliveryAssignmentEntity[]> => {
     console.log('updateDeliveryStatusBatch called with: ', {
       ids,
@@ -234,6 +238,7 @@ export const updateDeliveryStatusBatch = (
       formData.append("gpsReadings", JSON.stringify(gpsReadings));
     if (verificationCode)
       formData.append("verificationCode", verificationCode);
+    if (scheduledAt) formData.append("scheduledAt", scheduledAt);
 
     imageUris.forEach((imageUri, index) => {
       formData.append("images", {
@@ -257,6 +262,7 @@ export const updateDeliveryStatusBatch = (
     payload.additionalAmount = additionalAmount;
   if (gpsReadings?.length) payload.gpsReadings = gpsReadings;
   if (verificationCode) payload.verificationCode = verificationCode;
+  if (scheduledAt) payload.scheduledAt = scheduledAt;
 
   return apiAction.patch<IDeliveryAssignmentEntity[]>(
     `${BackendUrls.DeliveryAssignments}/batch/status-unified`,
