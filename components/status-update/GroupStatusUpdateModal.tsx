@@ -387,11 +387,24 @@ export default function GroupStatusUpdateModal({
       }
 
       await fetchDeliveries();
+      
+      // Reset all fields
+      setSelectedStatus(null);
+      setNote("");
+      setPhotoUri(null);
+      setImageUri(null);
+      setAmountPaid("");
+      setAmountPaidEdited(false);
+      setAdditionalAmount("");
+      setSelectedPaymentMethod(null);
       setVerificationCode("");
       setCodeVerificationStatus("pending");
       setFailedAttempts(0);
       setIsCodeLocked(false);
       setLockTimeRemaining(0);
+      setScheduledAt(null);
+      setShowSchedulePicker(false);
+      
       onSuccess?.(selectedStatus);
       onClose();
     } catch (error:any) {
