@@ -580,7 +580,7 @@ export default function TripMapScreen() {
     }
   };
 
-  const handleGroupCompleted = (ids: string[], newStatus: string) => {
+  const handleGroupCompleted = (ids: string[], newStatus: string, freshDeliveries: DeliveryItemAdapter[]) => {
     // Always track the latest status so the modal shows correct transitions on re-open
     setDeliveryStatusOverrides((prev) => {
       const next = new Map(prev);
@@ -592,6 +592,21 @@ export default function TripMapScreen() {
     if (newStatus === IDeliveryStatus.IN_PROGRESS) {
       console.log('[TripMapScreen] Iniciando viaje (estado: EN PROGRESO)');
       setIsTraveling(true);
+    }
+
+    // Update the route with the fresh active deliveries from the backend
+    const activeDeliveries = freshDeliveries.filter(
+      (d) =>
+        d.additionalDataNominatim?.lat &&
+        d.additionalDataNominatim?.lon,
+    );
+    setTripDeliveries(activeDeliveries);
+
+    // If no more active deliveries remain, close the map and go back
+    if (activeDeliveries.length === 0) {
+      console.log('[TripMapScreen] No quedan entregas activas, volviendo a la pantalla principal');
+      router.back();
+      return;
     }
 
     const terminalStatuses: string[] = [
@@ -1054,8 +1069,8 @@ export default function TripMapScreen() {
           <GroupStatusUpdateModal
             visible={groupStatusModalVisible}
             onClose={() => setGroupStatusModalVisible(false)}
-            onSuccess={(newStatus: string) =>
-              handleGroupCompleted(groupStatusModalParams.ids, newStatus)
+            onSuccess={(newStatus: string, freshDeliveries: DeliveryItemAdapter[]) =>
+              handleGroupCompleted(groupStatusModalParams.ids, newStatus, freshDeliveries)
             }
             ids={groupStatusModalParams.ids}
             assignmentType={groupStatusModalParams.assignmentType}

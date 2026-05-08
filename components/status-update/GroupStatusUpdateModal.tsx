@@ -21,10 +21,15 @@ import {
 } from "@/interfaces/delivery/deliveryStatus";
 import { CustomColors } from "@/constants/CustomColors";
 import {
+  getDeliveries,
   updateDeliveryStatusBatch,
   updateDeliveryStatusUnified,
 } from "@/core/actions/delivery.actions";
 import { useDelivery } from "@/context/DeliveryContext";
+import {
+  adaptDeliveriesToAdapter,
+  DeliveryItemAdapter,
+} from "@/interfaces/delivery/deliveryAdapters";
 import { AssignmentType } from "@/utils/enum";
 import { EvidenceSection } from "@/components/status-update/EvidenceSection";
 import { NoteInput } from "@/components/status-update/NoteInput";
@@ -47,7 +52,7 @@ function roundToHalfHour(hours: number, minutes: number): { hours: number; minut
 export interface GroupStatusUpdateModalProps {
   visible: boolean;
   onClose: () => void;
-  onSuccess?: (newStatus: string) => void;
+  onSuccess?: (newStatus: string, freshDeliveries: DeliveryItemAdapter[]) => void;
   /** Numeric string IDs of every assignment in this group */
   ids: string[];
   assignmentType: AssignmentType;
@@ -67,7 +72,7 @@ export default function GroupStatusUpdateModal({
   currentStatus,
   totalAmount,
 }: GroupStatusUpdateModalProps) {
-  const { fetchDeliveries, deliveries } = useDelivery();
+  const { deliveries, handleDriversGroupAssigned } = useDelivery();
 
   const isPickupType = assignmentType === AssignmentType.PICKUP;
 
@@ -355,8 +360,9 @@ export default function GroupStatusUpdateModal({
         : undefined;
       const commonScheduledAt = isScheduled && scheduledAt ? scheduledAt.toISOString() : undefined;
 
+      let freshDeliveries: DeliveryItemAdapter[];
+
       if (ids.length === 1) {
-        console.log('there is 1 id, calling updateDeliveryStatusUnified')
         await updateDeliveryStatusUnified({
           id: ids[0],
           status: statusId,
@@ -369,10 +375,11 @@ export default function GroupStatusUpdateModal({
           verificationCode: commonVerificationCode,
           scheduledAt: commonScheduledAt,
         });
+        // Fetch the updated active list after single update
+        freshDeliveries = await getDeliveries();
       } else {
-        console.log('there isnt ids');        
         const numericIds = ids.map((id) => Number(id));
-        await updateDeliveryStatusBatch(
+        const rawFresh = await updateDeliveryStatusBatch(
           numericIds,
           statusId,
           commonNote,
@@ -384,10 +391,13 @@ export default function GroupStatusUpdateModal({
           commonVerificationCode,
           commonScheduledAt,
         );
+        // Batch endpoint now returns the findByDriver result directly
+        freshDeliveries = adaptDeliveriesToAdapter(rawFresh);
       }
 
-      await fetchDeliveries();
-      
+      // Update the DeliveryContext with the fresh list
+      handleDriversGroupAssigned(freshDeliveries);
+
       // Reset all fields
       setSelectedStatus(null);
       setNote("");
@@ -404,8 +414,8 @@ export default function GroupStatusUpdateModal({
       setLockTimeRemaining(0);
       setScheduledAt(null);
       setShowSchedulePicker(false);
-      
-      onSuccess?.(selectedStatus);
+
+      onSuccess?.(selectedStatus, freshDeliveries);
       onClose();
     } catch (error:any) {
       Alert.alert(
