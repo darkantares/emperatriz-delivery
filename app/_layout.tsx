@@ -7,6 +7,27 @@ import { useEffect, useRef, useState } from 'react';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { View, Image, ActivityIndicator, StyleSheet } from 'react-native';
+import { Provider as PaperProvider, MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
+import { registerTranslation } from 'react-native-paper-dates';
+
+registerTranslation('es', {
+  save: 'Guardar',
+  selectSingle: 'Seleccionar',
+  selectMultiple: 'Seleccionar',
+  selectRange: 'Seleccionar rango',
+  notAccordingToDateFormat: (inputFormat) => `Formato: ${inputFormat}`,
+  mustBeHigherThan: (date) => `Debe ser mayor que ${date}`,
+  mustBeLowerThan: (date) => `Debe ser menor que ${date}`,
+  mustBeBetween: (startDate, endDate) => `Debe estar entre ${startDate} y ${endDate}`,
+  dateIsDisabled: 'Fecha no permitida',
+  previous: 'Anterior',
+  next: 'Siguiente',
+  typeInDate: 'Escribir fecha',
+  pickDateFromCalendar: 'Seleccionar del calendario',
+  close: 'Cerrar',
+  hour: 'Hora',
+  minute: 'Minuto',
+});
 
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { ActiveDeliveryProvider } from '@/context/ActiveDeliveryContext';
@@ -174,8 +195,11 @@ function RootLayoutNav() {
     return cleanup;
   }, []);
 
+  const paperTheme = colorScheme === 'dark' ? MD3DarkTheme : MD3LightTheme;
+
   return (
     <SafeAreaProvider>
+      <PaperProvider theme={paperTheme}>
       <AuthProvider>
         <ActiveDeliveryProvider>
           <DeliveryProvider>
@@ -199,6 +223,7 @@ function RootLayoutNav() {
           </DeliveryProvider>
         </ActiveDeliveryProvider>
       </AuthProvider>
+      </PaperProvider>
     </SafeAreaProvider>
   );
 }

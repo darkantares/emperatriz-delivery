@@ -9,8 +9,8 @@ import {
   Modal,
   TextInput,
   ScrollView,
-  Platform,
 } from "react-native";
+import { TimePickerModal } from "react-native-paper-dates";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { IGpsReading } from "@/interfaces/delivery/delivery";
@@ -35,110 +35,14 @@ import { usePaymentMethods } from "@/core/hooks/usePaymentMethods";
 import { useStatusData } from "@/core/hooks/useStatusData";
 import { Capitalize } from "@/utils/capitalize";
 
-/** Generates 30-minute interval time slots starting from the next 30-min mark */
-function generateScheduleSlots(): Date[] {
-  const slots: Date[] = [];
-  const now = new Date();
-  const start = new Date(now);
-  start.setSeconds(0, 0);
-  if (start.getMinutes() < 30) {
-    start.setMinutes(30);
-  } else {
-    start.setMinutes(0);
-    start.setHours(start.getHours() + 1);
+/** Rounds minutes to the nearest valid 30-minute interval (0 or 30). */
+function roundToHalfHour(hours: number, minutes: number): { hours: number; minutes: number } {
+  const rounded = Math.round(minutes / 30) * 30;
+  if (rounded === 60) {
+    return { hours: (hours + 1) % 24, minutes: 0 };
   }
-  for (let i = 0; i < 48; i++) {
-    const slot = new Date(start.getTime() + i * 30 * 60 * 1000);
-    slots.push(slot);
-  }
-  return slots;
+  return { hours, minutes: rounded };
 }
-
-interface ScheduledTimePickerProps {
-  visible: boolean;
-  onClose: () => void;
-  onSelect: (date: Date) => void;
-}
-
-function ScheduledTimePicker({ visible, onClose, onSelect }: ScheduledTimePickerProps) {
-  const slots = generateScheduleSlots();
-
-  return (
-    <Modal visible={visible} animationType="slide" transparent>
-      <View style={pickerStyles.overlay}>
-        <View style={pickerStyles.container}>
-          <Text style={pickerStyles.title}>Selecciona hora programada</Text>
-          <ScrollView style={pickerStyles.list}>
-            {slots.map((slot, index) => (
-              <TouchableOpacity
-                key={index}
-                style={pickerStyles.item}
-                onPress={() => onSelect(slot)}
-              >
-                <Text style={pickerStyles.itemText}>
-                  {slot.toLocaleString('es-DO', { dateStyle: 'short', timeStyle: 'short' })}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-          <TouchableOpacity style={pickerStyles.cancelBtn} onPress={onClose}>
-            <Text style={pickerStyles.cancelText}>Cancelar</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
-const pickerStyles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'flex-end',
-  },
-  container: {
-    backgroundColor: CustomColors.backgroundDark,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    paddingBottom: 30,
-    maxHeight: '60%',
-  },
-  title: {
-    color: CustomColors.textLight,
-    fontSize: 18,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: CustomColors.divider,
-  },
-  list: {
-    flex: 1,
-  },
-  item: {
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: CustomColors.divider,
-  },
-  itemText: {
-    color: CustomColors.textLight,
-    fontSize: 16,
-  },
-  cancelBtn: {
-    marginHorizontal: 20,
-    marginTop: 12,
-    backgroundColor: CustomColors.backgroundDarkest,
-    borderRadius: 8,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  cancelText: {
-    color: CustomColors.textLight,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-});
 
 export interface GroupStatusUpdateModalProps {
   visible: boolean;
@@ -508,7 +412,7 @@ export default function GroupStatusUpdateModal({
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Actualizar Estado</Text>
             <Text style={styles.deliveryTitle}>
-              {groupTitle} · asignación{ids.length !== 1 ? "es" : ""} {ids.length} 
+              {groupTitle}
               {!isPickupType ? ` · Total: RD$ ${totalAmount}` : ""}
             </Text>
             <Text style={styles.currentStatus}>
@@ -533,10 +437,6 @@ export default function GroupStatusUpdateModal({
               styles={styles}
             />
 
-            {requiresNote && (
-              <NoteInput value={note} onChange={setNote} styles={styles} />
-            )}
-
             {isScheduled && (
               <View style={styles.paymentContainer}>
                 <Text style={styles.paymentLabel}>Hora programada (obligatoria):</Text>
@@ -551,6 +451,10 @@ export default function GroupStatusUpdateModal({
                   </Text>
                 </TouchableOpacity>
               </View>
+            )}
+
+            {requiresNote && (
+              <NoteInput value={note} onChange={setNote} styles={styles} />
             )}
 
             {isDelivered && !isPickupType && (
@@ -692,13 +596,25 @@ export default function GroupStatusUpdateModal({
       </View>
 
       {/* Time picker modal for SCHEDULED status */}
-      <ScheduledTimePicker
+      <TimePickerModal
         visible={showSchedulePicker}
-        onClose={() => setShowSchedulePicker(false)}
-        onSelect={(date) => {
+        onDismiss={() => setShowSchedulePicker(false)}
+        onConfirm={({ hours, minutes }) => {
+          const rounded = roundToHalfHour(hours, minutes);
+          const date = new Date();
+          date.setHours(rounded.hours, rounded.minutes, 0, 0);
+          // If the rounded time has already passed today, schedule for tomorrow
+          if (date <= new Date()) {
+            date.setDate(date.getDate() + 1);
+          }
           setScheduledAt(date);
           setShowSchedulePicker(false);
         }}
+        hours={scheduledAt ? scheduledAt.getHours() : new Date().getHours()}
+        minutes={scheduledAt ? scheduledAt.getMinutes() : 0}
+        label="Hora programada"
+        locale="es"
+        use24HourClock
       />
     </Modal>
   );
@@ -749,7 +665,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   statusList: {
-    marginBottom: 20,
+    marginBottom: 10,
   },
   statusItem: {
     flexDirection: "row",

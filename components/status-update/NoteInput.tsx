@@ -23,7 +23,6 @@ export function NoteInput({ value, onChange, styles }: Props) {
         textAlignVertical="top"
         maxLength={500}
       />
-      <Text style={styles.characterCount}>{value.length}/500 caracteres</Text>
     </View>
   );
 }
