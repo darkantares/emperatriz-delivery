@@ -324,7 +324,14 @@ export default function TripMapScreen() {
   };
 
   const handleProgressGroup = (deliveries: DeliveryItemAdapter[]) => {
-    if (deliveries.length === 0) return;
+    if (!Array.isArray(deliveries) || deliveries.length === 0) {
+      console.log('[TripMapScreen] No se pueden progresar 0 entregas');
+      return;
+    }
+
+    const first = deliveries[0];
+    if (!first) return;
+    
     console.log('[TripMapScreen] Progresando grupo de entregas:', deliveries);
 
     const type = deliveries[0].type;
@@ -571,7 +578,7 @@ export default function TripMapScreen() {
         `[TripMapScreen] RECALCULANDO RUTA - Desviacion persistente por ${(timeSinceDeviation / 1000).toFixed(0)}s`,
       );
       recalculationPendingRef.current = true;
-      
+
       // Llamar al backend para recalcular la ruta desde la posicion actual
       // recalculateRoutesViaBackend() maneja la recepcion de nuevos datos
       // y automaticamente actualiza routeCoordinates, lo que dispara el useEffect
@@ -727,13 +734,8 @@ export default function TripMapScreen() {
     }
   }, [completedDeliveryIds, groupedWaypoints, currentTargetGroupIndex]);
 
-  // Regresar al tab principal cuando no quedan deliveries pendientes
-  useEffect(() => {
-    if (tripDeliveries.length === 0) return;
-    if (completedDeliveryIds.size >= tripDeliveries.length) {
-      router.replace("/");
-    }
-  }, [completedDeliveryIds, tripDeliveries, router]);
+  // Note: Removed automatic redirect to main tab on completion
+  // Routes now persist when navigating between tabs
 
   useEffect(() => {
     const shouldRun = __DEV__ ? isManualSimulation : isTraveling;
@@ -850,7 +852,7 @@ export default function TripMapScreen() {
     if (groupedWaypoints.length === 0 || __DEV__) return;
 
     console.log('[TripMapScreen] Iniciando tracking GPS continuo (ruta lista)');
-    
+
     (async () => {
       try {
         const subscription = await Location.watchPositionAsync(
@@ -904,7 +906,7 @@ export default function TripMapScreen() {
               if (routeCoordinatesRef.current.length > 0) {
                 const lastPoint =
                   routeCoordinatesRef.current[
-                    routeCoordinatesRef.current.length - 1
+                  routeCoordinatesRef.current.length - 1
                   ];
                 if (calculateDistance(actualPosition, lastPoint) < 20) {
                   console.log('[TripMapScreen] Destino alcanzado (GPS continuo)');
@@ -1015,23 +1017,27 @@ export default function TripMapScreen() {
 
         <View style={styles.controlsContainer}>
           {(() => {
+            console.log('[TripMapScreen] ', groupedWaypoints.length, ' grupos de waypoints, currentTargetGroupIndex:', currentTargetGroupIndex);
             const currentGroup = groupedWaypoints[currentTargetGroupIndex];
+
             const currentGroupStatus = currentGroup
               ? (deliveryStatusOverrides.get(currentGroup.deliveries[0]?.id) ??
                 currentGroup.deliveries[0]?.deliveryStatus.title)
               : null;
             const isInProgress =
               currentGroupStatus === IDeliveryStatus.IN_PROGRESS;
+            const hasAssignments = tripDeliveries.length > 0;
             return (
               <TouchableOpacity
                 style={[
                   styles.controlButton,
                   isInProgress ? styles.inProgressButton : styles.startButton,
+                  !hasAssignments && { opacity: 0.5 },
                 ]}
                 onPress={() =>
                   currentGroup && handleProgressGroup(currentGroup.deliveries)
                 }
-                disabled={!currentGroup}
+                disabled={!currentGroup || !hasAssignments}
               >
                 <Text style={styles.controlButtonText}>
                   {isInProgress ? "En Progreso..." : "🚗 Iniciar Viaje"}

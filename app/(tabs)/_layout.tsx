@@ -56,7 +56,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="trip-map"
         options={{
-          href: null,
+          title: 'Ruta',
+          tabBarIcon: ({ color }) => <TabBarIcon name="map" color={color} />,
           headerShown: false,
         }}
       />
