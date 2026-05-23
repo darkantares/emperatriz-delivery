@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import {
   View,
-  StyleSheet,
   ActivityIndicator,
   TouchableOpacity,
 } from "react-native";
@@ -19,6 +18,8 @@ import RouteInfoPanel from "@/components/RouteInfoPanel";
 import AssignmentDetailsModal from "@/components/AssignmentDetailsModal";
 import GroupStatusUpdateModal from "@/components/status-update/GroupStatusUpdateModal";
 import { useRouter } from "expo-router";
+import { LEAFLET_MAP_HTML } from "./trip-map-screen/leafletMapHtml";
+import { styles } from "./trip-map-screen/tripMapStyles";
 
 interface Coordinate {
   latitude: number;
@@ -40,191 +41,6 @@ interface WaypointGroup {
   isLastInRoute: boolean;
 }
 
-// ---------------------------------------------------------------------------
-// Leaflet HTML – rendered inside a WebView; no Google Maps SDK required
-// ---------------------------------------------------------------------------
-const LEAFLET_MAP_HTML = `<!DOCTYPE html>
-<html>
-<head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body, #map { width: 100%; height: 100%; background: #f0f2f5; }
-    .wp-badge {
-      position: absolute; top: -6px; right: -6px;
-      background: #DC143C; border-radius: 10px; min-width: 20px; height: 20px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 10px; color: white; font-weight: bold;
-      border: 2px solid white; padding: 0 3px;
-    }
-    .courier-wrap { font-size: 22px; line-height: 1; }
-  </style>
-</head>
-<body>
-  <div id="map"></div>
-  <script>
-    var map = L.map('map', { zoomControl: true, attributionControl: false }).setView([18.4861, -69.9312], 13);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      maxZoom: 19,
-      attribution: ''
-    }).addTo(map);
-
-    var segmentLines = [], traveledLine = null, courierMarker = null;
-    var wpMarkers = [], wpData = [];
-    var courierVisible = true, wpVisible = true;
-
-    function sendMsg(data) {
-      if (window.ReactNativeWebView) {
-        window.ReactNativeWebView.postMessage(JSON.stringify(data));
-      }
-    }
-
-    function makeStarIcon(wp) {
-      var color = wp.type === 'PICKUP' ? '#2E7D32' : '#C62828';
-      var w = 52, h = 52, cx = 26, cy = 26, outerR = 23, innerR = 9;
-      var pts = [];
-      for (var i = 0; i < 10; i++) {
-        var angle = (i * Math.PI / 5) - Math.PI / 2;
-        var r = (i % 2 === 0) ? outerR : innerR;
-        pts.push((cx + r * Math.cos(angle)).toFixed(2) + ',' + (cy + r * Math.sin(angle)).toFixed(2));
-      }
-      var glowId = 'glow_' + Math.floor(Math.random() * 99999);
-      var fontSize = wp.count > 9 ? 11 : 13;
-      var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '">'
-        + '<defs><filter id="' + glowId + '" x="-40%" y="-40%" width="180%" height="180%">'
-        + '<feGaussianBlur stdDeviation="3" result="blur"/>'
-        + '<feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>'
-        + '</filter></defs>'
-        + '<polygon points="' + pts.join(' ') + '" fill="' + color + '" stroke="white" stroke-width="2.5" filter="url(#' + glowId + ')"/>';
-      if (wp.count > 1) {
-        svg += '<text x="' + cx + '" y="' + (cy + Math.round(fontSize * 0.38)) + '" text-anchor="middle" fill="white" font-size="' + fontSize + '" font-weight="bold" font-family="Arial,sans-serif">' + wp.count + '</text>';
-      }
-      svg += '</svg>';
-      var html = '<div style="position:relative;display:inline-block;">' + svg + '</div>';
-      return L.divIcon({ html: html, className: '', iconSize: [w, h], iconAnchor: [cx, cy] });
-    }
-
-    function makeWpIcon(wp, isTarget, orderNum) {
-      if (isTarget) return makeStarIcon(wp);
-      var color = wp.type === 'PICKUP' ? '#2E7D32' : '#C62828';
-      var w = 28;
-      var h = Math.round(w * 1.4);
-      var r = Math.round(w * 0.3);
-      var cx = w / 2, cy = w / 2;
-      var fontSize = orderNum > 9 ? Math.round(r * 0.75) : Math.round(r * 0.95);
-      var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '">'
-        + '<path d="M' + cx + ' 0 C' + (cx - w/2) + ' 0 0 ' + (w/2) + ' 0 ' + cy
-        + ' C0 ' + (cy + w * 0.45) + ' ' + cx + ' ' + h + ' ' + cx + ' ' + h
-        + ' C' + cx + ' ' + h + ' ' + w + ' ' + (cy + w * 0.45) + ' ' + w + ' ' + cy
-        + ' C' + w + ' ' + (w/2) + ' ' + (cx + w/2) + ' 0 ' + cx + ' 0Z" fill="' + color + '"/>'
-        + '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="white"/>'
-        + '<text x="' + cx + '" y="' + (cy + Math.round(fontSize * 0.38)) + '" text-anchor="middle" fill="#000000" font-size="' + fontSize + '" font-weight="bold" font-family="Arial,sans-serif">' + orderNum + '</text>'
-        + '</svg>';
-      var html = '<div style="position:relative;display:inline-block;">' + svg;
-      if (wp.count > 1) html += '<div class="wp-badge">' + wp.count + '</div>';
-      html += '</div>';
-      return L.divIcon({ html: html, className: '', iconSize: [w, h], iconAnchor: [w / 2, h] });
-    }
-
-    function initRoute(segmentCoords, waypoints, targetIdx) {
-      segmentLines.forEach(function(l) { map.removeLayer(l); });
-      segmentLines = [];
-      if (traveledLine) { map.removeLayer(traveledLine); traveledLine = null; }
-      wpMarkers.forEach(function(m) { map.removeLayer(m); });
-      wpMarkers = []; wpData = waypoints;
-
-      if (segmentCoords.length > 0) {
-        var allCoords = [];
-        segmentCoords.forEach(function(seg, i) {
-          var color = (i === targetIdx) ? '#00BFFF' : '#A0A0A0';
-          var line = L.polyline(seg, { color: color, weight: 5, opacity: (i === targetIdx) ? 1 : 0.6 }).addTo(map);
-          segmentLines.push(line);
-          allCoords = allCoords.concat(seg);
-        });
-        if (allCoords.length > 0) {
-          map.fitBounds(L.polyline(allCoords).getBounds(), { padding: [40, 40] });
-        }
-      }
-
-      waypoints.forEach(function(wp, i) {
-        var m = L.marker([wp.latitude, wp.longitude], {
-          icon: makeWpIcon(wp, i === targetIdx, i + 1),
-          zIndexOffset: i === targetIdx ? 1000 : 0
-        });
-        m.on('click', function() { sendMsg({ type: 'MARKER_CLICK', groupIndex: i, deliveryId: wp.deliveryId }); });
-        if (wpVisible) m.addTo(map);
-        wpMarkers.push(m);
-      });
-    }
-
-    function updatePosition(lat, lng) {
-      var ll = [lat, lng];
-      if (!courierMarker) {
-        var icon = L.divIcon({ html: '<div class="courier-wrap">\uD83C\uDFCD\uFE0F</div>', className: '', iconSize: [30, 30], iconAnchor: [15, 15] });
-        courierMarker = L.marker(ll, { icon: icon, zIndexOffset: 0 });
-        if (courierVisible) courierMarker.addTo(map);
-      } else {
-        courierMarker.setLatLng(ll);
-      }
-    }
-
-    function updateTraveled(coords) {
-      if (traveledLine) map.removeLayer(traveledLine);
-      if (coords.length > 1) {
-        traveledLine = L.polyline(coords, { color: '#FFD700', weight: 5 }).addTo(map);
-      }
-    }
-
-    function updateTarget(idx) {
-      segmentLines.forEach(function(l, i) {
-        l.setStyle({ color: (i === idx) ? '#00BFFF' : '#A0A0A0', opacity: (i === idx) ? 1 : 0.6 });
-      });
-      wpMarkers.forEach(function(m, i) {
-        m.setIcon(makeWpIcon(wpData[i], i === idx, i + 1));
-        m.setZIndexOffset(i === idx ? 1000 : 0);
-      });
-    }
-
-    function setView(lat, lng, zoom) {
-      map.setView([lat, lng], zoom !== undefined ? zoom : map.getZoom());
-    }
-
-    function updateVisibility(showCourier, showWaypoints) {
-      courierVisible = showCourier;
-      wpVisible = showWaypoints;
-      if (courierMarker) {
-        if (showCourier && !map.hasLayer(courierMarker)) map.addLayer(courierMarker);
-        else if (!showCourier && map.hasLayer(courierMarker)) map.removeLayer(courierMarker);
-      }
-      wpMarkers.forEach(function(m) {
-        if (showWaypoints && !map.hasLayer(m)) map.addLayer(m);
-        else if (!showWaypoints && map.hasLayer(m)) map.removeLayer(m);
-      });
-    }
-
-    function handleMessage(raw) {
-      try {
-        var msg = JSON.parse(raw);
-        switch (msg.type) {
-          case 'INIT_ROUTE':      initRoute(msg.segmentCoordinates, msg.waypoints, msg.targetGroupIndex); break;
-          case 'UPDATE_POSITION': updatePosition(msg.latitude, msg.longitude); break;
-          case 'UPDATE_TRAVELED': updateTraveled(msg.traveledCoords); break;
-          case 'UPDATE_TARGET':   updateTarget(msg.groupIndex); break;
-          case 'SET_VIEW':        setView(msg.latitude, msg.longitude, msg.zoom); break;
-          case 'UPDATE_VISIBILITY': updateVisibility(msg.showCourier, msg.showWaypoints); break;
-        }
-      } catch(e) {}
-    }
-
-    document.addEventListener('message', function(e) { handleMessage(e.data); });
-    window.addEventListener('message', function(e) { handleMessage(e.data); });
-    sendMsg({ type: 'MAP_READY' });
-  </script>
-</body>
-</html>`;
-
 export default function TripMapScreen() {
   const router = useRouter();
   const { tripData, tripLoading, tripError, tripDeliveries, recalculateRoutesViaBackend, setTripDeliveries } =
@@ -245,8 +61,6 @@ export default function TripMapScreen() {
 
   const [assignmentModalVisible, setAssignmentModalVisible] = useState(false);
   const [selectedAssignment, setSelectedAssignment] = useState<DeliveryItemAdapter | null>(null);
-
-
   const [currentPosition, setCurrentPosition] = useState<Coordinate | null>(
     null,
   );
@@ -318,34 +132,56 @@ export default function TripMapScreen() {
 
   /** Send a typed message to the Leaflet map running inside the WebView. */
   const sendToMap = (data: object) => {
-    webViewRef.current?.injectJavaScript(
+    if (!webViewRef.current) {
+      console.log('[TripMapScreen][DEBUG] sendToMap: webViewRef.current es null');
+      return;
+    }
+    webViewRef.current.injectJavaScript(
       `handleMessage(${JSON.stringify(JSON.stringify(data))});true;`,
     );
   };
 
   const handleProgressGroup = (deliveries: DeliveryItemAdapter[]) => {
+    console.log('[TripMapScreen] handleProgressGroup llamado con deliveries:', deliveries);
+        
     if (!Array.isArray(deliveries) || deliveries.length === 0) {
       console.log('[TripMapScreen] No se pueden progresar 0 entregas');
       return;
     }
 
     const first = deliveries[0];
-    if (!first) return;
+    if (!first) {
+      console.log('[TripMapScreen][DEBUG] handleProgressGroup: deliveries[0] es undefined/null');
+      return;
+    }
     
     console.log('[TripMapScreen] Progresando grupo de entregas:', deliveries);
 
     const type = deliveries[0].type;
+    if (type == null) {
+      console.log('[TripMapScreen][DEBUG] handleProgressGroup: deliveries[0].type es undefined/null');
+    }
     const totalAmount = deliveries.reduce(
       (sum, d) => sum + (d.deliveryCost || 0) + (d.amountToBeCharged || 0),
       0,
     );
     const label = type === AssignmentType.PICKUP ? "Recogida" : "Entrega";
+    const client = deliveries[0].client;
+    if (client == null) {
+      console.log('[TripMapScreen][DEBUG] handleProgressGroup: deliveries[0].client es undefined/null');
+    }
     const groupTitle =
       deliveries.length === 1
-        ? `${label}: ${deliveries[0].client}`
+        ? `${label}: ${client}`
         : `${deliveries.length} ${label}s en este punto`;
     // Use the locally-tracked override if this group's status was updated during this session
     const firstId = deliveries[0].id;
+    if (firstId == null) {
+      console.log('[TripMapScreen][DEBUG] handleProgressGroup: deliveries[0].id es undefined/null');
+    }
+    if (!deliveries[0].deliveryStatus) {
+      console.log('[TripMapScreen][DEBUG] handleProgressGroup: deliveries[0].deliveryStatus es undefined/null');
+    }
     const currentStatus =
       deliveryStatusOverrides.get(firstId) ??
       deliveries[0].deliveryStatus.title;
@@ -361,13 +197,27 @@ export default function TripMapScreen() {
 
   const handleMarkerClick = (groupIndex: number) => {
     const group = groupedWaypoints[groupIndex];
-    if (!group) return;
+    if (!group) {
+      console.log('[TripMapScreen][DEBUG] handleMarkerClick: grupo no encontrado para index', groupIndex);
+      return;
+    }
+    if (!group.deliveries || group.deliveries.length === 0) {
+      console.log('[TripMapScreen][DEBUG] handleMarkerClick: group.deliveries vacío para index', groupIndex);
+      return;
+    }
 
     setSelectedAssignment(group.deliveries[0]);
     setAssignmentModalVisible(true);
   };
 
   const handleMarkerClickByDeliveryId = (deliveryId: string) => {
+    if (!deliveryId) {
+      console.log('[TripMapScreen][DEBUG] handleMarkerClickByDeliveryId: deliveryId es undefined/null');
+      return;
+    }
+    if (!tripDeliveries || tripDeliveries.length === 0) {
+      console.log('[TripMapScreen][DEBUG] handleMarkerClickByDeliveryId: tripDeliveries vacío, deliveryId:', deliveryId);
+    }
     const found = tripDeliveries.find((d) => d.id === deliveryId);
     if (found) {
       setSelectedAssignment(found);
@@ -375,11 +225,14 @@ export default function TripMapScreen() {
       return;
     }
 
+    console.log('[TripMapScreen][DEBUG] handleMarkerClickByDeliveryId: deliveryId no encontrado en tripDeliveries, buscando en groupedWaypoints:', deliveryId);
     // fallback to group index if deliveryId not found
     const group = groupedWaypoints.find((g) => g.deliveries.some((d) => d.id === deliveryId));
     if (group) {
       setSelectedAssignment(group.deliveries[0]);
       setAssignmentModalVisible(true);
+    } else {
+      console.log('[TripMapScreen][DEBUG] handleMarkerClickByDeliveryId: deliveryId no encontrado en groupedWaypoints:', deliveryId);
     }
   };
 
@@ -387,11 +240,33 @@ export default function TripMapScreen() {
     waypoints: WaypointWithDelivery[],
   ): WaypointGroup[] => {
     const groupsMap = new Map<string, WaypointGroup>();
+    let skippedNoDelivery = 0;
+    let skippedNoCoord = 0;
 
     waypoints.forEach((waypoint, waypointIndex) => {
+      if (!waypoint) {
+        console.log('[TripMapScreen][DEBUG] groupWaypointsByCoordinates: waypoint null en index', waypointIndex);
+        skippedNoDelivery++;
+        return;
+      }
+      if (!waypoint.coordinate) {
+        console.log('[TripMapScreen][DEBUG] groupWaypointsByCoordinates: waypoint.coordinate null en index', waypointIndex, 'deliveryId:', waypoint.delivery?.id);
+        skippedNoCoord++;
+        return;
+      }
+      if (waypoint.coordinate.latitude == null || waypoint.coordinate.longitude == null) {
+        console.log('[TripMapScreen][DEBUG] groupWaypointsByCoordinates: coordinate lat/lng null en index', waypointIndex, 'coordinate:', JSON.stringify(waypoint.coordinate));
+      }
+      if (!waypoint.delivery) {
+        skippedNoDelivery++;
+        return;
+      }
+      if (waypoint.delivery.type == null) {
+        console.log('[TripMapScreen][DEBUG] groupWaypointsByCoordinates: delivery.type null en index', waypointIndex, 'delivery:', JSON.stringify(waypoint.delivery));
+      }
       // Group by both coordinates AND assignment type so PICKUP and DELIVERY
       // at the same address are processed independently.
-      const key = `${waypoint.coordinate.latitude},${waypoint.coordinate.longitude},${waypoint.delivery?.type}`;
+      const key = `${waypoint.coordinate.latitude},${waypoint.coordinate.longitude},${waypoint.delivery.type}`;
 
       if (groupsMap.has(key)) {
         const existingGroup = groupsMap.get(key)!;
@@ -411,7 +286,7 @@ export default function TripMapScreen() {
 
     const groups = Array.from(groupsMap.values());
     console.log(
-      `[TripMapScreen] Agrupación completa: ${waypoints.length} waypoints -> ${groups.length} grupos`,
+      `[TripMapScreen] Agrupación completa: ${waypoints.length} waypoints -> ${groups.length} grupos (skipped: ${skippedNoDelivery} sin delivery, ${skippedNoCoord} sin coordenada)`,
     );
     return groups;
   };
@@ -423,54 +298,93 @@ export default function TripMapScreen() {
     (async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== "granted") return;
+        if (status !== "granted") {
+          console.log('[TripMapScreen][DEBUG] inicial: permiso de ubicación no concedido');
+          return;
+        }
         // Immediate: use last cached GPS reading (no delay)
         const lastKnown = await Location.getLastKnownPositionAsync();
-        if (lastKnown) {
-          setCurrentPosition({
-            latitude: lastKnown.coords.latitude,
-            longitude: lastKnown.coords.longitude,
-          });
+        if (lastKnown && lastKnown.coords) {
+          if (lastKnown.coords.latitude == null || lastKnown.coords.longitude == null) {
+            console.log('[TripMapScreen][DEBUG] inicial: lastKnown coords inválidas', JSON.stringify(lastKnown.coords));
+          } else {
+            setCurrentPosition({
+              latitude: lastKnown.coords.latitude,
+              longitude: lastKnown.coords.longitude,
+            });
+          }
+        } else {
+          console.log('[TripMapScreen][DEBUG] inicial: lastKnownPosition null');
         }
         // Then refine with a fresh accurate fix
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
         });
+        if (!location || !location.coords) {
+          console.log('[TripMapScreen][DEBUG] inicial: getCurrentPositionAsync devolvió location null', location);
+          return;
+        }
+        if (location.coords.latitude == null || location.coords.longitude == null) {
+          console.log('[TripMapScreen][DEBUG] inicial: current position coords inválidas', JSON.stringify(location.coords));
+        }
         setCurrentPosition({
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
         });
-      } catch {
-        // GPS unavailable; icon stays hidden until trip starts
+      } catch (err) {
+        console.log('[TripMapScreen][DEBUG] inicial: error obteniendo posición GPS', err);
       }
     })();
   }, []);
 
   useEffect(() => {
-    if (!tripData || !tripData.trips || tripData.trips.length === 0) return;
+    if (!tripData || !tripData.trips || tripData.trips.length === 0) {
+      console.log('[TripMapScreen][DEBUG] data useEffect: tripData.trips vacío o null, tripData:', tripData ? 'exists' : 'null');
+      return;
+    }
 
     try {
       const trip = tripData.trips[0];
+      if (!trip) {
+        console.log('[TripMapScreen][DEBUG] data useEffect: tripData.trips[0] es null');
+        return;
+      }
       console.log(
         "[TripMapScreen] Deliveries recibidos:",
-        tripDeliveries.length,
+        tripDeliveries?.length ?? 0,
       );
 
       if (tripData.waypoints && tripData.waypoints.length > 0) {
-        const waypointsData: WaypointWithDelivery[] = tripData.waypoints.map(
-          (wp: any) => {
-            const originalIndex = wp.waypoint_index;
-            const delivery = tripDeliveries[originalIndex];
+        const waypointsData: WaypointWithDelivery[] = tripData.waypoints
+          .map((wp: any, idx: number) => {
+            if (!wp) {
+              console.log('[TripMapScreen][DEBUG] data useEffect: wp null en waypoint index', idx);
+              return null;
+            }
+            if (!wp.location || wp.location.length < 2) {
+              console.log('[TripMapScreen][DEBUG] data useEffect: wp.location inválido en waypoint', idx, 'wp:', JSON.stringify(wp));
+              return null;
+            }
+            const delivery =
+              wp.assignmentId != null
+                ? tripDeliveries.find(
+                    (d) => d.id === String(wp.assignmentId),
+                  )
+                : tripDeliveries[wp.waypoint_index];
+            if (!delivery) {
+              console.log('[TripMapScreen][DEBUG] data useEffect: delivery no encontrado para waypoint', idx, 'assignmentId:', wp.assignmentId, 'waypoint_index:', wp.waypoint_index);
+              return null;
+            }
             return {
               coordinate: {
                 latitude: wp.location[1],
                 longitude: wp.location[0],
               },
               delivery,
-              index: originalIndex,
+              index: wp.waypoint_index,
             };
-          },
-        );
+          })
+          .filter(Boolean) as WaypointWithDelivery[];
 
         const grouped = groupWaypointsByCoordinates(waypointsData);
         setGroupedWaypoints(grouped);
@@ -483,19 +397,33 @@ export default function TripMapScreen() {
       }
 
       if (trip.geometry && trip.geometry.coordinates) {
-        const coords: Coordinate[] = trip.geometry.coordinates.map(
-          (coord: number[]) => ({
-            latitude: coord[1],
-            longitude: coord[0],
-          }),
-        );
+        const coords: Coordinate[] = trip.geometry.coordinates
+          .map((coord: number[], idx: number) => {
+            if (!coord || coord.length < 2 || coord[0] == null || coord[1] == null) {
+              console.log('[TripMapScreen][DEBUG] data useEffect: coord inválida en índice', idx, 'coord:', JSON.stringify(coord));
+              return null;
+            }
+            return {
+              latitude: coord[1],
+              longitude: coord[0],
+            };
+          })
+          .filter(Boolean) as Coordinate[];
         setRouteCoordinates(coords);
         console.log(
           "[TripMapScreen] Coordenadas de ruta extraídas:",
           coords.length,
         );
+      } else {
+        console.log('[TripMapScreen][DEBUG] data useEffect: trip.geometry o trip.geometry.coordinates es null');
       }
 
+      if (trip.distance == null) {
+        console.log('[TripMapScreen][DEBUG] data useEffect: trip.distance es null/undefined');
+      }
+      if (trip.duration == null) {
+        console.log('[TripMapScreen][DEBUG] data useEffect: trip.duration es null/undefined');
+      }
       setTotalDistance(trip.distance);
       setTotalDuration(trip.duration);
       setRemainingDistance(trip.distance);
@@ -510,6 +438,14 @@ export default function TripMapScreen() {
     coord1: Coordinate,
     coord2: Coordinate,
   ): number => {
+    if (!coord1 || coord1.latitude == null || coord1.longitude == null) {
+      console.log('[TripMapScreen][DEBUG] calculateDistance: coord1 inválida', JSON.stringify(coord1));
+      return Infinity;
+    }
+    if (!coord2 || coord2.latitude == null || coord2.longitude == null) {
+      console.log('[TripMapScreen][DEBUG] calculateDistance: coord2 inválida', JSON.stringify(coord2));
+      return Infinity;
+    }
     const R = 6371e3;
     const φ1 = (coord1.latitude * Math.PI) / 180;
     const φ2 = (coord2.latitude * Math.PI) / 180;
@@ -523,6 +459,10 @@ export default function TripMapScreen() {
   };
 
   const simulateDeviation = (coord: Coordinate): Coordinate => {
+    if (!coord) {
+      console.log('[TripMapScreen][DEBUG] simulateDeviation: coord null');
+      return coord;
+    }
     if (Math.random() > 0.9) {
       const deviationAmount = 0.0005;
       return {
@@ -539,6 +479,10 @@ export default function TripMapScreen() {
    * @param minDistance - Distancia minima al punto mas cercano de la ruta
    */
   const detectRouteDeviation = (actualPosition: Coordinate, minDistance: number): void => {
+    if (!actualPosition) {
+      console.log('[TripMapScreen][DEBUG] detectRouteDeviation: actualPosition null');
+      return;
+    }
     const now = Date.now();
     const hasDeviationThresholdExceeded = minDistance > deviationThresholdRef.current;
     const isDeviation = hasDeviationThresholdExceeded && !isDeviatingRef.current;
@@ -566,6 +510,10 @@ export default function TripMapScreen() {
    * @param currentPosition - Posicion actual del mensajero
    */
   const recalculateRouteOnDeviation = (currentPosition: Coordinate): void => {
+    if (!currentPosition) {
+      console.log('[TripMapScreen][DEBUG] recalculateRouteOnDeviation: currentPosition null');
+      return;
+    }
     const now = Date.now();
     const timeSinceDeviation = now - deviationDetectedTime;
     const shouldRecalculate =
@@ -588,6 +536,18 @@ export default function TripMapScreen() {
   };
 
   const handleGroupCompleted = (ids: string[], newStatus: string, freshDeliveries: DeliveryItemAdapter[]) => {
+    if (!Array.isArray(ids)) {
+      console.log('[TripMapScreen][DEBUG] handleGroupCompleted: ids no es array', ids);
+      return;
+    }
+    if (!newStatus) {
+      console.log('[TripMapScreen][DEBUG] handleGroupCompleted: newStatus es null/undefined');
+    }
+    if (!Array.isArray(freshDeliveries)) {
+      console.log('[TripMapScreen][DEBUG] handleGroupCompleted: freshDeliveries no es array', freshDeliveries);
+      return;
+    }
+
     // Always track the latest status so the modal shows correct transitions on re-open
     setDeliveryStatusOverrides((prev) => {
       const next = new Map(prev);
@@ -602,15 +562,15 @@ export default function TripMapScreen() {
     }
 
     // Update the route with the fresh active deliveries from the backend
-    const activeDeliveries = freshDeliveries.filter(
-      (d) =>
-        d.additionalDataNominatim?.lat &&
-        d.additionalDataNominatim?.lon,
-    );
-    setTripDeliveries(activeDeliveries);
+    const filteredDeliveries = freshDeliveries.filter((d) => d && d.additionalDataNominatim?.lat && d.additionalDataNominatim?.lon);
+    const nullableCount = freshDeliveries.length - filteredDeliveries.length;
+    if (nullableCount > 0) {
+      console.log('[TripMapScreen][DEBUG] handleGroupCompleted: entregas sin additionalDataNominatim filtradas:', nullableCount);
+    }
+    setTripDeliveries(filteredDeliveries);
 
     // If no more active deliveries remain, close the map and go back
-    if (activeDeliveries.length === 0) {
+    if (filteredDeliveries.length === 0) {
       console.log('[TripMapScreen] No quedan entregas activas, volviendo a la pantalla principal');
       router.back();
       return;
@@ -636,26 +596,54 @@ export default function TripMapScreen() {
 
   // Send route + waypoints once the map is ready (or when route data arrives)
   useEffect(() => {
-    if (mapVersion === 0 || routeCoordinates.length === 0 || groupedWaypoints.length === 0) return;
-    const waypoints = groupedWaypoints.map((g) => ({
-      latitude: g.coordinate.latitude,
-      longitude: g.coordinate.longitude,
-      count: g.count,
-      type: g.type,
-      isFirstInRoute: g.isFirstInRoute,
-      isLastInRoute: g.isLastInRoute,
-      deliveryId: g.deliveries[0]?.id,
-    }));
+    if (mapVersion === 0) {
+      console.log('[TripMapScreen][DEBUG] route sync: mapVersion es 0, skipping');
+      return;
+    }
+    if (routeCoordinates.length === 0) {
+      console.log('[TripMapScreen][DEBUG] route sync: routeCoordinates vacío, skipping');
+      return;
+    }
+    if (groupedWaypoints.length === 0) {
+      console.log('[TripMapScreen][DEBUG] route sync: groupedWaypoints vacío, skipping');
+      return;
+    }
+    const waypoints = groupedWaypoints.map((g, idx) => {
+      if (!g.coordinate) {
+        console.log('[TripMapScreen][DEBUG] route sync: group.coordinate null en index', idx);
+      }
+      if (!g.deliveries || g.deliveries.length === 0) {
+        console.log('[TripMapScreen][DEBUG] route sync: group.deliveries vacío en index', idx);
+      }
+      return {
+        latitude: g.coordinate?.latitude,
+        longitude: g.coordinate?.longitude,
+        count: g.count,
+        type: g.type,
+        isFirstInRoute: g.isFirstInRoute,
+        isLastInRoute: g.isLastInRoute,
+        deliveryId: g.deliveries?.[0]?.id,
+      };
+    });
 
     // Split flat routeCoordinates into one segment per waypoint (leg of the journey)
     const segmentCoordinates: number[][][] = [];
     let lastIdx = 0;
     groupedWaypoints.forEach((group) => {
+      if (!group.coordinate) {
+        console.log('[TripMapScreen][DEBUG] segment building: group.coordinate null, saltando segmento');
+        return;
+      }
       let minDist = Infinity;
       let nearestIdx = lastIdx;
       for (let i = lastIdx; i < routeCoordinates.length; i++) {
-        const dLat = routeCoordinates[i].latitude - group.coordinate.latitude;
-        const dLng = routeCoordinates[i].longitude - group.coordinate.longitude;
+        const rc = routeCoordinates[i];
+        if (!rc) {
+          console.log('[TripMapScreen][DEBUG] segment building: routeCoordinates[' + i + '] es null');
+          continue;
+        }
+        const dLat = rc.latitude - group.coordinate.latitude;
+        const dLng = rc.longitude - group.coordinate.longitude;
         const d = dLat * dLat + dLng * dLng;
         if (d < minDist) { minDist = d; nearestIdx = i; }
       }
@@ -707,7 +695,16 @@ export default function TripMapScreen() {
   // Handle messages coming FROM the WebView (e.g. marker clicks)
   const handleWebViewMessage = (event: { nativeEvent: { data: string } }) => {
     try {
-      const msg = JSON.parse(event.nativeEvent.data) as { type: string; groupIndex?: number; deliveryId?: string };
+      const rawData = event?.nativeEvent?.data;
+      if (rawData == null) {
+        console.log('[TripMapScreen][DEBUG] handleWebViewMessage: nativeEvent.data es null/undefined');
+        return;
+      }
+      const msg = JSON.parse(rawData) as { type: string; groupIndex?: number; deliveryId?: string };
+      if (!msg || !msg.type) {
+        console.log('[TripMapScreen][DEBUG] handleWebViewMessage: mensaje sin type', JSON.stringify(msg));
+        return;
+      }
       if (msg.type === "MAP_READY") {
         setMapVersion(v => v + 1);
       } else if (msg.type === "MARKER_CLICK") {
@@ -715,21 +712,39 @@ export default function TripMapScreen() {
           handleMarkerClickByDeliveryId(msg.deliveryId);
         } else if (msg.groupIndex !== undefined) {
           handleMarkerClick(msg.groupIndex);
+        } else {
+          console.log('[TripMapScreen][DEBUG] handleWebViewMessage: MARKER_CLICK sin deliveryId ni groupIndex');
         }
       }
-    } catch (_) { }
+    } catch (err) {
+      console.log('[TripMapScreen][DEBUG] handleWebViewMessage: error parseando mensaje', err, 'raw:', event?.nativeEvent?.data);
+    }
   };
 
   // Advance to the next group when all deliveries in the current one are completed
   useEffect(() => {
-    if (groupedWaypoints.length === 0 || completedDeliveryIds.size === 0)
+    if (groupedWaypoints.length === 0) {
+      console.log('[TripMapScreen][DEBUG] auto-advance: groupedWaypoints vacío');
       return;
+    }
+    if (completedDeliveryIds.size === 0) {
+      console.log('[TripMapScreen][DEBUG] auto-advance: completedDeliveryIds vacío');
+      return;
+    }
     const currentGroup = groupedWaypoints[currentTargetGroupIndex];
-    if (!currentGroup) return;
+    if (!currentGroup) {
+      console.log('[TripMapScreen][DEBUG] auto-advance: no se encontró currentGroup para index', currentTargetGroupIndex);
+      return;
+    }
+    if (!currentGroup.deliveries) {
+      console.log('[TripMapScreen][DEBUG] auto-advance: currentGroup.deliveries es null/undefined');
+      return;
+    }
     if (
-      currentGroup.deliveries.every((d) => completedDeliveryIds.has(d.id)) &&
+      currentGroup.deliveries.every((d) => d && d.id && completedDeliveryIds.has(d.id)) &&
       currentTargetGroupIndex < groupedWaypoints.length - 1
     ) {
+      console.log('[TripMapScreen][DEBUG] auto-advance: avanzando de grupo', currentTargetGroupIndex, '->', currentTargetGroupIndex + 1);
       setCurrentTargetGroupIndex((prev) => prev + 1);
     }
   }, [completedDeliveryIds, groupedWaypoints, currentTargetGroupIndex]);
@@ -762,6 +777,10 @@ export default function TripMapScreen() {
             return prevIndex;
           }
           const expectedPosition = routeCoordinates[nextIndex];
+          if (!expectedPosition) {
+            console.log('[TripMapScreen][DEBUG] simulación: expectedPosition null en index', nextIndex);
+            return prevIndex;
+          }
           const actualPosition = simulateDeviation(expectedPosition);
           setCurrentPosition(actualPosition);
           sendToMap({
@@ -787,6 +806,10 @@ export default function TripMapScreen() {
               distanceInterval: 10,
             },
             (location) => {
+              if (!location || !location.coords) {
+                console.log('[TripMapScreen][DEBUG] GPS viaje: location/coords null');
+                return;
+              }
               const actualPosition: Coordinate = {
                 latitude: location.coords.latitude,
                 longitude: location.coords.longitude,
@@ -862,6 +885,14 @@ export default function TripMapScreen() {
             distanceInterval: 0, // Sin mínimo de distancia (reportar todos los cambios)
           },
           (location) => {
+            if (!location || !location.coords) {
+              console.log('[TripMapScreen][DEBUG] GPS callback: location o coords null', location);
+              return;
+            }
+            if (location.coords.latitude == null || location.coords.longitude == null) {
+              console.log('[TripMapScreen][DEBUG] GPS callback: lat/lng null', JSON.stringify(location.coords));
+              return;
+            }
             const actualPosition: Coordinate = {
               latitude: location.coords.latitude,
               longitude: location.coords.longitude,
@@ -881,6 +912,10 @@ export default function TripMapScreen() {
               let closestIndex = 0;
               let minDistance = Infinity;
               routeCoordinatesRef.current.forEach((coord, index) => {
+                if (!coord || coord.latitude == null || coord.longitude == null) {
+                  console.log('[TripMapScreen][DEBUG] GPS: coord null en ruta index', index, JSON.stringify(coord));
+                  return;
+                }
                 const distance = calculateDistance(actualPosition, coord);
                 if (distance < minDistance) {
                   minDistance = distance;
@@ -908,7 +943,9 @@ export default function TripMapScreen() {
                   routeCoordinatesRef.current[
                   routeCoordinatesRef.current.length - 1
                   ];
-                if (calculateDistance(actualPosition, lastPoint) < 20) {
+                if (!lastPoint) {
+                  console.log('[TripMapScreen][DEBUG] GPS: lastPoint null en ruta');
+                } else if (calculateDistance(actualPosition, lastPoint) < 20) {
                   console.log('[TripMapScreen] Destino alcanzado (GPS continuo)');
                   setIsTraveling(false);
                 }
@@ -962,6 +999,7 @@ export default function TripMapScreen() {
   }
 
   if (!tripData || groupedWaypoints.length === 0) {
+    console.log('[TripMapScreen][DEBUG] render: sin datos - tripData:', !!tripData, 'groupedWaypoints:', groupedWaypoints.length);
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.centerContainer}>
@@ -1019,10 +1057,16 @@ export default function TripMapScreen() {
           {(() => {
             console.log('[TripMapScreen] ', groupedWaypoints.length, ' grupos de waypoints, currentTargetGroupIndex:', currentTargetGroupIndex);
             const currentGroup = groupedWaypoints[currentTargetGroupIndex];
+            if (!currentGroup) {
+              console.log('[TripMapScreen][DEBUG] render: currentGroup null para index', currentTargetGroupIndex, 'total grupos:', groupedWaypoints.length);
+            }
+            if (currentGroup && (!currentGroup.deliveries || currentGroup.deliveries.length === 0)) {
+              console.log('[TripMapScreen][DEBUG] render: currentGroup.deliveries vacío para index', currentTargetGroupIndex);
+            }
 
             const currentGroupStatus = currentGroup
-              ? (deliveryStatusOverrides.get(currentGroup.deliveries[0]?.id) ??
-                currentGroup.deliveries[0]?.deliveryStatus.title)
+              ? (deliveryStatusOverrides.get(currentGroup.deliveries?.[0]?.id) ??
+                currentGroup.deliveries?.[0]?.deliveryStatus?.title)
               : null;
             const isInProgress =
               currentGroupStatus === IDeliveryStatus.IN_PROGRESS;
@@ -1065,6 +1109,9 @@ export default function TripMapScreen() {
         <AssignmentDetailsModal
           visible={assignmentModalVisible && !!selectedAssignment}
           onClose={() => {
+            if (!selectedAssignment) {
+              console.log('[TripMapScreen][DEBUG] assignmentModal: cerrando sin selectedAssignment');
+            }
             setAssignmentModalVisible(false);
             setSelectedAssignment(null);
           }}
@@ -1090,242 +1137,4 @@ export default function TripMapScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: CustomColors.backgroundDarkest,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 15,
-    backgroundColor: CustomColors.backgroundDark,
-    borderBottomWidth: 1,
-    borderBottomColor: CustomColors.textLight + "20",
-  },
-  headerTitle: {
-    color: CustomColors.textLight,
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  closeButton: {
-    color: CustomColors.primary,
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  container: {
-    flex: 1,
-    backgroundColor: CustomColors.backgroundDarkest,
-    position: "relative",
-  },
-  map: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: CustomColors.backgroundDarkest,
-    padding: 20,
-  },
-  loadingText: {
-    color: CustomColors.textLight,
-    marginTop: 10,
-    fontSize: 16,
-  },
-  errorText: {
-    color: CustomColors.primary,
-    fontSize: 16,
-    textAlign: "center",
-  },
-  noDataText: {
-    color: CustomColors.textLight,
-    fontSize: 16,
-    textAlign: "center",
-    opacity: 0.7,
-  },
-  customMarker: {
-    alignItems: "center",
-    width: 60,
-    height: 60,
-  },
-  markerPin: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 3,
-    borderColor: "#FFFFFF",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  markerArrow: {
-    width: 0,
-    height: 0,
-    borderLeftWidth: 8,
-    borderRightWidth: 8,
-    borderTopWidth: 12,
-    borderLeftColor: "transparent",
-    borderRightColor: "transparent",
-    marginTop: -1,
-  },
-  markerBadge: {
-    position: "absolute",
-    top: -5,
-    right: -5,
-    backgroundColor: "#DC143C",
-    borderRadius: 12,
-    minWidth: 24,
-    height: 24,
-    paddingHorizontal: 6,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#FFFFFF",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
-    shadowRadius: 3,
-    elevation: 8,
-  },
-  markerBadgeText: {
-    color: "#FFFFFF",
-    fontSize: 11,
-    fontWeight: "bold",
-    textAlign: "center",
-  },
-  courierMarker: {
-    width: 50,
-    height: 50,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  courierMarkerInner: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#2196F3",
-    borderWidth: 3,
-    borderColor: "#FFFFFF",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  courierMarkerText: {
-    fontSize: 20,
-  },
-  controlsContainer: {
-    position: "absolute",
-    bottom: 150,
-    left: 20,
-    right: 20,
-  },
-  controlButton: {
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  startButton: {
-    backgroundColor: "#4CAF50",
-  },
-  inProgressButton: {
-    backgroundColor: "#FF9800",
-  },
-  stopButton: {
-    backgroundColor: "#F44336",
-  },
-  controlButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  centerButton: {
-    position: "absolute",
-    top: 16,
-    right: 16,
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: "#FFFFFF",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
-    shadowRadius: 4,
-    elevation: 6,
-    zIndex: 10,
-  },
-  centerButtonText: {
-    fontSize: 22,
-    lineHeight: 26,
-  },
-  simulationButton: {
-    position: "absolute",
-    top: 70,
-    right: 16,
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: "#2196F3",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
-    shadowRadius: 4,
-    elevation: 6,
-    zIndex: 10,
-  },
-  simulationButtonActive: {
-    backgroundColor: "#FFC107",
-  },
-  simulationButtonText: {
-    fontSize: 18,
-    lineHeight: 22,
-  },
-  loadingOverlay: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 20,
-  },
-  devControls: {
-    position: "absolute",
-    top: 10,
-    left: 10,
-    right: 10,
-    backgroundColor: "#00000080",
-    padding: 8,
-    borderRadius: 8,
-  },
-  checkboxRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginVertical: 4,
-  },
-  devLabel: {
-    color: "#FFFFFF",
-    fontSize: 14,
-  },
-});
+

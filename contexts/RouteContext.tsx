@@ -154,6 +154,7 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
           name: wp.address,
           distance: 0,
           hint: '',
+          assignmentId: wp.assignmentId,
         }))
       };
 
@@ -246,6 +247,7 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
           name: wp.address,
           distance: 0,
           hint: '',
+          assignmentId: wp.assignmentId,
         })),
       };
 
