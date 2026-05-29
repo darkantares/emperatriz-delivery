@@ -10,10 +10,11 @@ import {
 import { View } from "@/components/Themed";
 import { socketService, SocketEventType } from "@/services/websocketService";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { CustomColors } from "@/constants/CustomColors";
 import { useDelivery } from "@/context/DeliveryContext";
 import { useRouteContext } from "@/contexts/RouteContext";
+import { useAuth } from "@/context/AuthContext";
 import { AssignmentType } from "@/utils/enum";
 import { DeliveryItemAdapter } from "@/interfaces/delivery/deliveryAdapters";
 import GroupStatusUpdateModal from "@/components/status-update/GroupStatusUpdateModal";
@@ -26,21 +27,24 @@ import PayoutHistory from "@/components/ganancias/PayoutHistory";
 import StatsCharts from "@/components/ganancias/StatsCharts";
 import { DeliveryItemList } from "@/components/delivery-items/DeliveryItemList";
 import { useGanancias } from "@/core/hooks/useGanancias";
+import { GestionesContent } from "./gestiones";
 
-const TABS = ["Entregas", "Ganancias", "Pagos", "Estadísticas"] as const;
-type Tab = (typeof TABS)[number];
+const BASE_TABS = ["Entregas", "Ganancias", "Pagos", "Estadísticas"] as const;
+type Tab = (typeof BASE_TABS)[number] | "Gestiones";
 
 // ─── Segmented Control ──────────────────────────────────────────────────────
 const SegmentedTabs = ({
   activeTab,
   onTabChange,
+  tabs,
 }: {
   activeTab: Tab;
   onTabChange: (tab: Tab) => void;
+  tabs: readonly Tab[];
 }) => {
   return (
     <RNView style={tabStyles.container}>
-      {TABS.map((tab) => (
+      {tabs.map((tab) => (
         <TouchableOpacity
           key={tab}
           style={[
@@ -91,8 +95,7 @@ const tabStyles = StyleSheet.create({
   },
   tab: {
     paddingVertical: 10,
-    paddingHorizontal: 16,
-    marginHorizontal: 2,
+    paddingHorizontal: 12,
     alignItems: "center",
     justifyContent: "center",
     zIndex: 1,
@@ -113,6 +116,24 @@ const tabStyles = StyleSheet.create({
 
 function TabOneScreenContent() {
   const [activeTab, setActiveTab] = useState<Tab>("Entregas");
+  const { hasPermission } = useAuth();
+  // const isAdmin = hasPermission('ADMINISTRADOR_ENTREGAS') || hasPermission('SUPERVISOR_ENTREGAS');
+  const isAdmin = true;
+  
+  const visibleTabs = useMemo(() => {
+    const base: Tab[] = [...BASE_TABS];
+    if (isAdmin) {
+      base.push("Gestiones");
+    }
+    return base;
+  }, [isAdmin]);
+
+  useEffect(() => {
+    if (!visibleTabs.includes(activeTab)) {
+      setActiveTab("Entregas");
+    }
+  }, [visibleTabs, activeTab]);
+
   // compute header title based on current tab
   const headerTitle =
     activeTab === "Ganancias"
@@ -121,7 +142,9 @@ function TabOneScreenContent() {
       ? "Entregas"
       : activeTab === "Pagos"
       ? "Historial de pagos"
-      : "Estadísticas";  
+      : activeTab === "Estadísticas"
+      ? "Estadísticas"
+      : "Gestiones";  
 
   const {
     allDeliveries,
@@ -256,7 +279,7 @@ function TabOneScreenContent() {
             </TouchableOpacity>
           </RNView>
 
-          <SegmentedTabs activeTab={activeTab} onTabChange={setActiveTab} />
+          <SegmentedTabs tabs={visibleTabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
           {activeTab === "Entregas" ? (
             <DeliveryItemList
@@ -268,6 +291,8 @@ function TabOneScreenContent() {
               contentContainerStyle={{ paddingBottom: 120 }}
               style={{ flex: 1 }}
             />
+          ) : activeTab === "Gestiones" ? (
+            <GestionesContent />
           ) : (
             <ScrollView
               showsVerticalScrollIndicator={false}
