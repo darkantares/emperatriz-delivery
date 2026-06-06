@@ -1,4 +1,4 @@
-import { StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { StyleSheet, Pressable, ScrollView } from 'react-native';
 import { Text, View } from '@/components/Themed';
 import { CustomColors } from '@/constants/CustomColors';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -32,12 +32,12 @@ export default function TabTwoScreen() {
           <View style={styles.settingsContainer}>
             <Text style={styles.title}>Ajustes</Text>
             
-            <TouchableOpacity 
+            <Pressable 
               style={styles.logoutButton}
               onPress={handleLogout}
             >
               <Text style={styles.logoutText}>Cerrar Sesión</Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
       </ScrollView>
@@ -74,11 +74,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 15,
     marginBottom: 20,
-    shadowColor: CustomColors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
+    boxShadow: '0px 2px 3px rgba(0,0,0,0.2)',
   },
   rolesTitle: {
     fontSize: 16,
@@ -99,11 +95,7 @@ const styles = StyleSheet.create({
     backgroundColor: CustomColors.backgroundMedium,
     borderRadius: 12,
     padding: 20,
-    shadowColor: CustomColors.shadow,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 5,
+    boxShadow: '0px 3px 5px rgba(0,0,0,0.3)',
     alignItems: 'center',
   },
   title: {
@@ -121,11 +113,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
     borderRadius: 8,
     marginTop: 10,
-    shadowColor: CustomColors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    boxShadow: '0px 2px 3.84px rgba(0,0,0,0.25)',
   },
   logoutText: {
     color: CustomColors.textLight,

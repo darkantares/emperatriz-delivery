@@ -1,5 +1,5 @@
 import React from "react";
-import { TouchableOpacity, Text } from "react-native";
+import { Pressable, Text } from "react-native";
 import { styles } from "../tripMapStyles";
 
 interface SimulationControlsProps {
@@ -10,7 +10,7 @@ interface SimulationControlsProps {
 const SimulationControls: React.FC<SimulationControlsProps> = React.memo(
   ({ isManualSimulation, onToggle }) => {
     return (
-      <TouchableOpacity
+      <Pressable
         style={[
           styles.simulationButton,
           isManualSimulation && styles.simulationButtonActive,
@@ -20,7 +20,7 @@ const SimulationControls: React.FC<SimulationControlsProps> = React.memo(
         <Text style={styles.simulationButtonText}>
           {isManualSimulation ? "⏸" : "▶️"}
         </Text>
-      </TouchableOpacity>
+      </Pressable>
     );
   },
 );

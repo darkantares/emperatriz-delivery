@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ActivityIndicator, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, Pressable, StyleSheet } from 'react-native';
 
 type UpdateStatus = 'idle' | 'checking' | 'downloading' | 'updated' | 'error';
 
@@ -25,9 +25,9 @@ export default function ForceUpdateScreen({ status, onRetry }: ForceUpdateScreen
           <Text style={styles.errorText}>
             No se pudo descargar la actualización. Verifica tu conexión a internet.
           </Text>
-          <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
+          <Pressable style={styles.retryButton} onPress={onRetry}>
             <Text style={styles.retryText}>Reintentar</Text>
-          </TouchableOpacity>
+          </Pressable>
         </>
       )}
     </View>

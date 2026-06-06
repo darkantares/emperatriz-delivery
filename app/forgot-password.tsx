@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
     StyleSheet,
     TextInput,
-    TouchableOpacity,
+    Pressable,
     ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
@@ -91,18 +91,18 @@ export default function ForgotPasswordScreen() {
                         </Text>
                     </View>
                     <View style={styles.formContainer}>
-                        <TouchableOpacity
+                        <Pressable
                             style={styles.primaryButton}
                             onPress={handleGoToLogin}
                         >
                             <Text style={styles.primaryButtonText}>Ir al inicio de sesión</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
+                        </Pressable>
+                        <Pressable
                             style={styles.cancelButton}
                             onPress={handleCancel}
                         >
                             <Text style={styles.cancelButtonText}>Cancelar recuperación</Text>
-                        </TouchableOpacity>
+                        </Pressable>
                     </View>
                 </ScrollView>
             </SafeAreaView>
@@ -120,9 +120,9 @@ export default function ForgotPasswordScreen() {
                 <ScrollView contentContainerStyle={styles.scrollView} keyboardShouldPersistTaps="handled">
                     {/* Header */}
                     <View style={styles.header}>
-                        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+                        <Pressable style={styles.backButton} onPress={() => router.back()}>
                             <FontAwesome name="arrow-left" size={20} color={CustomColors.textLight} />
-                        </TouchableOpacity>
+                        </Pressable>
                         <FontAwesome name="lock" size={50} color={CustomColors.secondary} style={styles.icon} />
                         <Text style={styles.title}>Recuperar contraseña</Text>
                         <Text style={styles.subtitle}>Ingresa tu correo y te enviaremos una contraseña temporal</Text>
@@ -144,7 +144,7 @@ export default function ForgotPasswordScreen() {
                             />
                         </View>
 
-                        <TouchableOpacity
+                        <Pressable
                             style={styles.primaryButton}
                             onPress={handleSendEmail}
                             disabled={isLoading}
@@ -153,7 +153,7 @@ export default function ForgotPasswordScreen() {
                                 ? <ActivityIndicator color={CustomColors.textLight} />
                                 : <Text style={styles.primaryButtonText}>Enviar contraseña temporal</Text>
                             }
-                        </TouchableOpacity>
+                        </Pressable>
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { useToast } from 'react-native-toast-notifications';
 
 import { IUserEntity, IRolesAllowedEntity, DeliveryPersonEntity } from '@/interfaces/auth';
@@ -234,20 +234,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [toast]);
 
+  const contextValue = useMemo(() => ({
+    isAuthenticated,
+    isLoading,
+    user,
+    carrier,
+    roles,
+    login,
+    logout,
+    hasPermission,
+    refreshUser,
+  }), [isAuthenticated, isLoading, user, carrier, roles, login, logout, hasPermission, refreshUser]);
+
   return (
-    <AuthContext.Provider
-      value={{
-        isAuthenticated,
-        isLoading,
-        user,
-        carrier,
-        roles,
-        login,
-        logout,
-        hasPermission,
-        refreshUser,
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

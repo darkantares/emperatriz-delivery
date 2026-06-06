@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
     StyleSheet,
     TextInput,
-    TouchableOpacity,
+    Pressable,
     ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
@@ -111,9 +111,9 @@ export default function ChangeInitialPasswordScreen() {
                                     autoCapitalize="none"
                                     editable={!isLoading}
                                 />
-                                <TouchableOpacity onPress={() => setShowCurrent(!showCurrent)} style={styles.eyeBtn}>
+                                <Pressable onPress={() => setShowCurrent(!showCurrent)} style={styles.eyeBtn}>
                                     <FontAwesome name={showCurrent ? 'eye' : 'eye-slash'} size={18} color={CustomColors.neutralLight} />
-                                </TouchableOpacity>
+                                </Pressable>
                             </View>
                         </View>
 
@@ -131,9 +131,9 @@ export default function ChangeInitialPasswordScreen() {
                                     autoCapitalize="none"
                                     editable={!isLoading}
                                 />
-                                <TouchableOpacity onPress={() => setShowNew(!showNew)} style={styles.eyeBtn}>
+                                <Pressable onPress={() => setShowNew(!showNew)} style={styles.eyeBtn}>
                                     <FontAwesome name={showNew ? 'eye' : 'eye-slash'} size={18} color={CustomColors.neutralLight} />
-                                </TouchableOpacity>
+                                </Pressable>
                             </View>
                         </View>
 
@@ -151,13 +151,13 @@ export default function ChangeInitialPasswordScreen() {
                                     autoCapitalize="none"
                                     editable={!isLoading}
                                 />
-                                <TouchableOpacity onPress={() => setShowConfirm(!showConfirm)} style={styles.eyeBtn}>
+                                <Pressable onPress={() => setShowConfirm(!showConfirm)} style={styles.eyeBtn}>
                                     <FontAwesome name={showConfirm ? 'eye' : 'eye-slash'} size={18} color={CustomColors.neutralLight} />
-                                </TouchableOpacity>
+                                </Pressable>
                             </View>
                         </View>
 
-                        <TouchableOpacity
+                        <Pressable
                             style={[styles.button, isLoading && styles.buttonDisabled]}
                             onPress={handleChangePassword}
                             disabled={isLoading}
@@ -167,7 +167,7 @@ export default function ChangeInitialPasswordScreen() {
                             ) : (
                                 <Text style={styles.buttonText}>Cambiar contraseña</Text>
                             )}
-                        </TouchableOpacity>
+                        </Pressable>
                     </View>
 
                     <View style={styles.infoBox}>

@@ -65,11 +65,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 2,
     marginBottom: 6,
     backgroundColor: CustomColors.backgroundDark,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.12,
-    shadowRadius: 5,
-    elevation: 4,
+    boxShadow: '0px 3px 5px rgba(0,0,0,0.12)',
   },
   pickupContainer: {
     backgroundColor: CustomColors.cardBackground,

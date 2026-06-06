@@ -6,7 +6,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useRef, useState } from 'react';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { View, Image, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import { Provider as PaperProvider, MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
 import { registerTranslation } from 'react-native-paper-dates';
 
@@ -75,7 +76,8 @@ export default function RootLayout() {
     if (loaded) {
       SplashScreen.hideAsync();
       setShowBootLoader(true);
-      setTimeout(() => setShowBootLoader(false), 1200);
+      const timer = setTimeout(() => setShowBootLoader(false), 1200);
+      return () => clearTimeout(timer);
     }
   }, [loaded]);
 
@@ -97,7 +99,7 @@ export default function RootLayout() {
 
   return showBootLoader ? (
     <View style={styles.splashContainer}>
-      <Image source={require('../assets/images/screen.png')} style={styles.splashImage} resizeMode="contain" />
+      <Image source={require('../assets/images/screen.png')} style={styles.splashImage} contentFit="contain" />
       <ActivityIndicator size="large" color="#ffffff" style={styles.splashSpinner} />
     </View>
   ) : (
@@ -172,7 +174,7 @@ function ProtectedRouteGuard({ children }: { children: React.ReactNode }) {
         intervalRef.current = null;
       }
     };
-  }, [isAuthenticated, isLoading]);
+  }, [isAuthenticated, isLoading, fetchDeliveries]);
 
   if (isLoading) {
     return <LoadingScreen />;

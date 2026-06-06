@@ -24,11 +24,7 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: CustomColors.tabBarBackground,
           borderTopColor: 'transparent',
-          elevation: 10,
-          shadowColor: 'rgba(0,0,0,0.5)',
-          shadowOffset: { width: 0, height: -3 },
-          shadowOpacity: 0.25,
-          shadowRadius: 5,
+          boxShadow: '0px -3px 5px rgba(0,0,0,0.25)',
           height: 60,
         },
         tabBarLabelStyle: {

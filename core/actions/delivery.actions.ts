@@ -31,21 +31,21 @@ export const getDeliveries = (
     .then(adaptDeliveriesToAdapter);
 };
 
-export const getDeliveryById = (
+const getDeliveryById = (
   id: number,
 ): Promise<IDeliveryAssignmentEntity> =>
   apiAction.get<IDeliveryAssignmentEntity>(
     `${BackendUrls.DeliveryAssignments}/${id}`,
   );
 
-export const getDeliveryDestinies = (
+const getDeliveryDestinies = (
   deliveryId: number,
 ): Promise<IDeliveryAssignmentEntity[]> =>
   apiAction.get<IDeliveryAssignmentEntity[]>(
     `${BackendUrls.DeliveryAssignments}/${deliveryId}/destinies`,
   );
 
-export const updateDelivery = (
+const updateDelivery = (
   id: number,
   data: IUpdateDelivery,
 ): Promise<IDeliveryAssignmentEntity> =>
@@ -54,7 +54,7 @@ export const updateDelivery = (
     data,
   );
 
-export const updateDeliveryStatus = (
+const updateDeliveryStatus = (
   id: string,
   status: number,
   note?: string,
@@ -85,7 +85,7 @@ export const updateDeliveryStatus = (
   );
 };
 
-export const updateDeliveryStatusWithImages = (
+const updateDeliveryStatusWithImages = (
   updateData: IUpdateDeliveryStatusData,
 ): Promise<IDeliveryAssignmentEntity> => {
   const {

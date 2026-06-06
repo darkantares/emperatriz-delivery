@@ -81,6 +81,6 @@ export interface LoginResponse {
 }
 
 // Función de utilidad
-export function extractTitlesFromRolesAllowed(entity: IRolesAllowedEntity) {
+function extractTitlesFromRolesAllowed(entity: IRolesAllowedEntity) {
   return entity.title;
 }

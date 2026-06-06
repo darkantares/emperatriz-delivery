@@ -1,5 +1,5 @@
 import React from "react";
-import { TouchableOpacity, Text } from "react-native";
+import { Pressable, Text } from "react-native";
 import { IDeliveryStatus } from "@/interfaces/delivery/deliveryStatus";
 import { styles } from "../tripMapStyles";
 
@@ -16,7 +16,7 @@ const MapControls: React.FC<MapControlsProps> = React.memo(
       currentGroupStatus === IDeliveryStatus.IN_PROGRESS;
 
     return (
-      <TouchableOpacity
+      <Pressable
         style={[
           styles.controlButton,
           isInProgress ? styles.inProgressButton : styles.startButton,
@@ -28,7 +28,7 @@ const MapControls: React.FC<MapControlsProps> = React.memo(
         <Text style={styles.controlButtonText}>
           {isInProgress ? "En Progreso..." : "🚗 Iniciar Viaje"}
         </Text>
-      </TouchableOpacity>
+      </Pressable>
     );
   },
 );

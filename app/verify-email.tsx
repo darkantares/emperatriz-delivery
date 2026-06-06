@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
     StyleSheet,
     TextInput,
-    TouchableOpacity,
+    Pressable,
     ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
@@ -45,7 +45,7 @@ export default function VerifyEmailScreen() {
     // Countdown timer para resend
     useEffect(() => {
         if (countdown > 0) {
-            const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+            const timer = setTimeout(() => setCountdown(prev => prev - 1), 1000);
             return () => clearTimeout(timer);
         }
     }, [countdown]);
@@ -153,7 +153,7 @@ export default function VerifyEmailScreen() {
                             </Text>
                         </View>
 
-                        <TouchableOpacity
+                        <Pressable
                             style={[
                                 styles.verifyButton,
                                 isLoading && styles.disabledButton
@@ -166,11 +166,11 @@ export default function VerifyEmailScreen() {
                             ) : (
                                 <Text style={styles.buttonText}>Verificar código</Text>
                             )}
-                        </TouchableOpacity>
+                        </Pressable>
 
                         <View style={styles.resendContainer}>
                             <Text style={styles.resendText}>¿No recibiste el código?</Text>
-                            <TouchableOpacity
+                            <Pressable
                                 onPress={handleResendCode}
                                 disabled={isResending || countdown > 0}
                             >
@@ -184,10 +184,10 @@ export default function VerifyEmailScreen() {
                                         ? `Reenviar en ${countdown}s`
                                         : 'Reenviar código'}
                                 </Text>
-                            </TouchableOpacity>
+                            </Pressable>
                         </View>
 
-                        <TouchableOpacity
+                        <Pressable
                             style={styles.changeEmailButton}
                             onPress={() => {
                                 authService.logout();
@@ -195,7 +195,7 @@ export default function VerifyEmailScreen() {
                             }}
                         >
                             <Text style={styles.changeEmailText}>Cambiar correo electrónico</Text>
-                        </TouchableOpacity>
+                        </Pressable>
                     </View>
 
                     <View style={styles.infoBox}>

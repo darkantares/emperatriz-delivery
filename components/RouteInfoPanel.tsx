@@ -51,11 +51,7 @@ const styles = StyleSheet.create({
     backgroundColor: CustomColors.backgroundDark,
     borderRadius: 12,
     padding: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
+    boxShadow: '0px 2px 4px rgba(0,0,0,0.3)',
   },
   infoPanelRow: {
     flexDirection: 'row',

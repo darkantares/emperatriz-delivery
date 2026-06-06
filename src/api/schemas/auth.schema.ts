@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { OkResultOf } from "./global.schema";
 
-export const EnterpriseSchema = z
+const EnterpriseSchema = z
   .object({
     id: z.number(),
     title: z.string(),
@@ -9,7 +9,7 @@ export const EnterpriseSchema = z
   })
   .loose();
 
-export const DeliveryPersonSchema = z
+const DeliveryPersonSchema = z
   .object({
     id: z.number(),
     firstname: z.string().optional(),
@@ -19,7 +19,7 @@ export const DeliveryPersonSchema = z
   })
   .loose();
 
-export const RoleSchema = z
+const RoleSchema = z
   .object({
     id: z.number(),
     title: z.string(),
@@ -27,7 +27,7 @@ export const RoleSchema = z
   })
   .loose();
 
-export const UserEntitySchema = z
+const UserEntitySchema = z
   .object({
     id: z.number(),
     isActive: z.boolean(),
@@ -44,7 +44,7 @@ export const UserEntitySchema = z
   })
   .loose();
 
-export const LoginResponseSchema = z
+const LoginResponseSchema = z
   .object({
     user: UserEntitySchema,
     access_token: z.string(),

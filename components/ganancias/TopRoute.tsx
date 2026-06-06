@@ -54,11 +54,7 @@ const styles = StyleSheet.create({
         marginHorizontal: 2,
         marginBottom: 16,
         borderRadius: 20,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-        elevation: 4,
+        boxShadow: '0px 4px 12px rgba(0,0,0,0.08)',
     },
     card: {
         borderRadius: 20,

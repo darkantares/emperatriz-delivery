@@ -32,6 +32,15 @@ export function useSimulation(
 
   const [isManualSimulation, setIsManualSimulation] = useState<boolean>(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const sendToMapRef = useRef(sendToMap);
+  const onPositionUpdateRef = useRef(onPositionUpdate);
+  const onIndexUpdateRef = useRef(onIndexUpdate);
+  const onRemainingUpdateRef = useRef(onRemainingUpdate);
+
+  useEffect(() => { sendToMapRef.current = sendToMap; }, [sendToMap]);
+  useEffect(() => { onPositionUpdateRef.current = onPositionUpdate; }, [onPositionUpdate]);
+  useEffect(() => { onIndexUpdateRef.current = onIndexUpdate; }, [onIndexUpdate]);
+  useEffect(() => { onRemainingUpdateRef.current = onRemainingUpdate; }, [onRemainingUpdate]);
 
   useEffect(() => {
     if (!(__DEV__ && isManualSimulation) || routeCoordinates.length === 0) {
@@ -68,9 +77,9 @@ export function useSimulation(
       }
 
       const actualPosition = simulateDeviation(expectedPosition);
-      onPositionUpdate(actualPosition);
+      onPositionUpdateRef.current(actualPosition);
 
-      sendToMap({
+      sendToMapRef.current({
         type: "SET_VIEW",
         latitude: actualPosition.latitude,
         longitude: actualPosition.longitude,
@@ -80,8 +89,8 @@ export function useSimulation(
       const progressPercentage = nextStep / length;
       const remDist = totalDistance * (1 - progressPercentage);
       const remDur = totalDuration * (1 - progressPercentage);
-      onRemainingUpdate(remDist, remDur);
-      onIndexUpdate(nextStep);
+      onRemainingUpdateRef.current(remDist, remDur);
+      onIndexUpdateRef.current(nextStep);
 
       currentStep = nextStep;
     }, 2000);
@@ -92,7 +101,6 @@ export function useSimulation(
         intervalRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isManualSimulation, routeCoordinates, totalDistance, totalDuration]);
 
   return {

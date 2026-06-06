@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import {
   FlatList,
   StyleSheet,
@@ -12,6 +12,7 @@ import {
   Linking,
   Alert,
 } from 'react-native';
+import AnimatedReanimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { Swipeable, RectButton } from 'react-native-gesture-handler';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { DeliveryItem } from './DeliveryItem';
@@ -21,30 +22,23 @@ import { openWhatsAppMessage } from '@/utils/whatsapp';
 import { DeliveryItemAdapter } from '@/interfaces/delivery/deliveryAdapters';
 
 const AnimatedRow = ({ children, index }: { children: React.ReactNode; index: number }) => {
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
+  const fadeAnim = useSharedValue(0);
+  const slideAnim = useSharedValue(30);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: fadeAnim.value,
+    transform: [{ translateY: slideAnim.value }],
+  }));
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 500,
-        delay: index * 60,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 500,
-        delay: index * 60,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    fadeAnim.value = withTiming(1, { duration: 500, delay: index * 60 });
+    slideAnim.value = withTiming(0, { duration: 500, delay: index * 60 });
   }, []);
 
   return (
-    <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+    <AnimatedReanimated.View style={animatedStyle}>
       {children}
-    </Animated.View>
+    </AnimatedReanimated.View>
   );
 };
 
@@ -312,11 +306,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginVertical: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.18,
-    shadowRadius: 3,
-    elevation: 3,
+    boxShadow: '0px 2px 3px rgba(0,0,0,0.18)',
   },
   progressAction: {
     backgroundColor: '#2ecc71',

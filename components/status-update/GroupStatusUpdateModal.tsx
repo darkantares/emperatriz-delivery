@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
-  TouchableOpacity,
+  Pressable,
   StyleSheet,
   ActivityIndicator,
   Alert,
@@ -76,8 +76,24 @@ export default function GroupStatusUpdateModal({
 
   const isPickupType = assignmentType === AssignmentType.PICKUP;
 
-  const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
+  const [selectedStatus, setSelectedStatusRaw] = useState<string | null>(null);
   const { availableStatuses, loadingStatuses } = useStatusData(currentStatus);
+
+  const handleSelectStatus = useCallback((newStatus: string | null) => {
+    setSelectedStatusRaw(newStatus);
+    const isNowDelivered = newStatus === IDeliveryStatus.DELIVERED;
+    if (isPickupType && isNowDelivered) {
+      setAmountPaid("0");
+    } else if (isNowDelivered && !isPickupType && !amountPaidEdited) {
+      setAmountPaid(String(totalAmount));
+      if (totalAmount === 0) {
+        const transferencia = paymentMethods.find(
+          (pm) => pm.title?.toLowerCase() === "transferencia",
+        );
+        if (transferencia) setSelectedPaymentMethod(transferencia.id);
+      }
+    }
+  }, [isPickupType, amountPaidEdited, totalAmount, paymentMethods]);
   const [loading, setLoading] = useState<boolean>(false);
   const [note, setNote] = useState<string>("");
   const [photoUri, setPhotoUri] = useState<string | null>(null);
@@ -101,6 +117,7 @@ export default function GroupStatusUpdateModal({
   const [showPaymentMethodPicker, setShowPaymentMethodPicker] =
     useState<boolean>(false);
 
+  const currentHour = useMemo(() => new Date().getHours(), []);
   const statusesRequiringNote = [
     IDeliveryStatus.CANCELLED,
     IDeliveryStatus.RETURNED,
@@ -132,24 +149,6 @@ export default function GroupStatusUpdateModal({
       amountPaid,
     );
 
-  useEffect(() => {
-    if (isPickupType && isDelivered) {
-      setAmountPaid("0");
-    }
-  }, [isPickupType, selectedStatus]);
-
-  useEffect(() => {
-    if (isDelivered && !isPickupType && !amountPaidEdited) {
-      setAmountPaid(String(totalAmount));
-      if (totalAmount === 0) {
-        const transferencia = paymentMethods.find(
-          (pm) => pm.title?.toLowerCase() === "transferencia",
-        );
-        if (transferencia) setSelectedPaymentMethod(transferencia.id);
-      }
-    }
-  }, [selectedStatus, isPickupType, totalAmount, amountPaidEdited, paymentMethods]);
-
   const isFormValid =
     selectedStatus &&
     availableStatuses.length > 0 &&
@@ -163,7 +162,7 @@ export default function GroupStatusUpdateModal({
     (!isScheduled || scheduledAt !== null);
 
   useEffect(() => {
-    setSelectedStatus(null);
+    setSelectedStatusRaw(null);
     setNote("");
     setPhotoUri(null);
     setImageUri(null);
@@ -184,38 +183,36 @@ export default function GroupStatusUpdateModal({
     .find((delivery) => ids.includes(delivery.id))
     ?.deliveryVerificationCode;
 
-  // Validar código en tiempo real contra el del assignment
-  useEffect(() => {
-    if (isDelivered && verificationCode.length === 4) {
-      if (verificationCode === assignmentVerificationCode) {
-        setCodeVerificationStatus("valid");
-      } else {
-        setCodeVerificationStatus("invalid");
+  // Validar código + contar intentos en un solo handler (consolida effects encadenados)
+  const handleVerificationCodeChange = (text: string) => {
+    const cleaned = text.replace(/[^0-9]/g, "").slice(0, 4);
+    setVerificationCode(cleaned);
+
+    if (isDelivered && cleaned.length === 4) {
+      const isValid = cleaned === assignmentVerificationCode;
+      setCodeVerificationStatus(isValid ? "valid" : "invalid");
+
+      if (!isValid) {
+        setFailedAttempts(prev => {
+          const newAttempts = prev + 1;
+          if (newAttempts >= 3) {
+            setIsCodeLocked(true);
+            setLockTimeRemaining(15);
+          }
+          return newAttempts;
+        });
       }
-    } else if (verificationCode.length === 0) {
+    } else if (cleaned.length === 0) {
       setCodeVerificationStatus("pending");
     }
-  }, [verificationCode, isDelivered, assignmentVerificationCode]);
-
-  // Manejar contador de intentos fallidos
-  useEffect(() => {
-    if (codeVerificationStatus === "invalid" && verificationCode.length === 4) {
-      const newAttempts = failedAttempts + 1;
-      setFailedAttempts(newAttempts);
-
-      if (newAttempts >= 3) {
-        setIsCodeLocked(true);
-        setLockTimeRemaining(15);
-      }
-    }
-  }, [codeVerificationStatus]);
+  };
 
   // Timeout de 30 segundos después de 3 intentos fallidos
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | null = null;
     if (isCodeLocked && lockTimeRemaining > 0) {
       timer = setTimeout(() => {
-        setLockTimeRemaining(lockTimeRemaining - 1);
+        setLockTimeRemaining(prev => prev - 1);
       }, 1000);
     } else if (isCodeLocked && lockTimeRemaining === 0) {
       setIsCodeLocked(false);
@@ -399,7 +396,7 @@ export default function GroupStatusUpdateModal({
       handleDriversGroupAssigned(freshDeliveries);
 
       // Reset all fields
-      setSelectedStatus(null);
+      setSelectedStatusRaw(null);
       setNote("");
       setPhotoUri(null);
       setImageUri(null);
@@ -455,7 +452,7 @@ export default function GroupStatusUpdateModal({
             <StatusList
               availableStatuses={availableStatuses as any}
               selectedStatus={selectedStatus}
-              onSelectStatus={setSelectedStatus}
+              onSelectStatus={handleSelectStatus}
               loadingStatuses={loadingStatuses}
               styles={styles}
             />
@@ -463,7 +460,7 @@ export default function GroupStatusUpdateModal({
             {isScheduled && (
               <View style={styles.paymentContainer}>
                 <Text style={styles.paymentLabel}>Hora programada (obligatoria):</Text>
-                <TouchableOpacity
+                <Pressable
                   style={styles.paymentInput}
                   onPress={() => setShowSchedulePicker(true)}
                 >
@@ -472,7 +469,7 @@ export default function GroupStatusUpdateModal({
                       ? scheduledAt.toLocaleString('es-DO', { dateStyle: 'short', timeStyle: 'short' })
                       : 'Seleccionar hora...'}
                   </Text>
-                </TouchableOpacity>
+                </Pressable>
               </View>
             )}
 
@@ -570,10 +567,7 @@ export default function GroupStatusUpdateModal({
                       placeholder="Ingresar código..."
                       placeholderTextColor={CustomColors.divider}
                       value={verificationCode}
-                      onChangeText={(text) => {
-                        const cleaned = text.replace(/[^0-9]/g, "").slice(0, 4);
-                        setVerificationCode(cleaned);
-                      }}
+                      onChangeText={handleVerificationCodeChange}
                       keyboardType="numeric"
                       maxLength={4}
                       returnKeyType="done"
@@ -592,14 +586,14 @@ export default function GroupStatusUpdateModal({
           </ScrollView>
 
           <View style={styles.buttonContainer}>
-            <TouchableOpacity
+            <Pressable
               style={[styles.button, styles.cancelButton]}
               onPress={handleClose}
               disabled={loading}
             >
               <Text style={styles.buttonText}>Cancelar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+            </Pressable>
+            <Pressable
               style={[
                 styles.button,
                 styles.confirmButton,
@@ -613,7 +607,7 @@ export default function GroupStatusUpdateModal({
               ) : (
                 <Text style={styles.buttonText}>Guardar</Text>
               )}
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
       </View>
@@ -633,7 +627,7 @@ export default function GroupStatusUpdateModal({
           setScheduledAt(date);
           setShowSchedulePicker(false);
         }}
-        hours={scheduledAt ? scheduledAt.getHours() : new Date().getHours()}
+        hours={scheduledAt ? scheduledAt.getHours() : currentHour}
         minutes={scheduledAt ? scheduledAt.getMinutes() : 0}
         label="Hora programada"
         locale="es"

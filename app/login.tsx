@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
     StyleSheet,
     TextInput,
-    TouchableOpacity,
+    Pressable,
     ActivityIndicator,
     Image,
     KeyboardAvoidingView,
@@ -183,9 +183,9 @@ export default function LoginScreen() {
                             )}
                         </Text>
                         {apiStatus.message ? (
-                            <TouchableOpacity onPress={checkServerConnection}>
+                            <Pressable onPress={checkServerConnection}>
                                 <Text style={styles.apiErrorMessage}>{apiStatus.message}</Text>
-                            </TouchableOpacity>
+                            </Pressable>
                         ) : null}
                     </View>
 
@@ -213,7 +213,7 @@ export default function LoginScreen() {
                                     onChangeText={setPassword}
                                     secureTextEntry={!showPassword}
                                 />
-                                <TouchableOpacity
+                                <Pressable
                                     style={styles.eyeIcon}
                                     onPress={() => setShowPassword(!showPassword)}
                                 >
@@ -222,11 +222,11 @@ export default function LoginScreen() {
                                         size={20}
                                         color={CustomColors.neutralLight}
                                     />
-                                </TouchableOpacity>
+                                </Pressable>
                             </View>
                         </View>
 
-                        <TouchableOpacity
+                        <Pressable
                             style={styles.loginButton}
                             onPress={handleLogin}
                             disabled={isLoading}
@@ -236,10 +236,10 @@ export default function LoginScreen() {
                             ) : (
                                 <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
                             )}
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.forgotPassword} onPress={() => router.push('/forgot-password' as any)}>
+                        </Pressable>
+                        <Pressable style={styles.forgotPassword} onPress={() => router.push('/forgot-password' as any)}>
                             <Text style={styles.forgotPasswordText}>¿Olvidaste tu contraseña?</Text>
-                        </TouchableOpacity>
+                        </Pressable>
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
@@ -351,11 +351,7 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         alignItems: 'center',
         marginTop: 10,
-        shadowColor: CustomColors.shadow,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-        elevation: 5,
+        boxShadow: '0px 2px 3.84px rgba(0,0,0,0.25)',
     },
     loginButtonText: {
         color: CustomColors.textLight,

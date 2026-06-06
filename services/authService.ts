@@ -5,10 +5,10 @@ import { storeTokens, clearTokens } from './auth-fetch';
 
 // Keys para almacenamiento
 export const AUTH_TOKEN_KEY = 'auth_token';
-export const REFRESH_TOKEN_KEY = 'refresh_token';
-export const USER_DATA_KEY = 'user_data';
-export const USER_ROLES_KEY = 'user_roles';
-export const CARRIER_DATA_KEY = 'carrier_data';
+const REFRESH_TOKEN_KEY = 'refresh_token';
+const USER_DATA_KEY = 'user_data';
+const USER_ROLES_KEY = 'user_roles';
+const CARRIER_DATA_KEY = 'carrier_data';
 
 // Servicio de autenticación
 export const authService = {
@@ -50,10 +50,11 @@ export const authService = {
             // Guardar tokens usando el servicio centralizado
             await storeTokens(loginData.access_token, loginData.refresh_token);
 
-            // Guardar datos del usuario y roles
-            await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(loginData.user));
-            await AsyncStorage.setItem(USER_ROLES_KEY, JSON.stringify(normalizedRoles));
-            await AsyncStorage.setItem(CARRIER_DATA_KEY, JSON.stringify(normalizedCarrier));
+            await Promise.all([
+              AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(loginData.user)),
+              AsyncStorage.setItem(USER_ROLES_KEY, JSON.stringify(normalizedRoles)),
+              AsyncStorage.setItem(CARRIER_DATA_KEY, JSON.stringify(normalizedCarrier)),
+            ]);
 
             return {
                 success: true,

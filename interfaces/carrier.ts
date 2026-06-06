@@ -1,5 +1,5 @@
-import { IEnterpriseEntity } from "./auth";
-import { IDeliveryAssignmentEntity } from "./delivery/delivery";
+import type { IEnterpriseEntity } from "./auth";
+import type { IDeliveryAssignmentEntity } from "./delivery/delivery";
 
 
 export interface IDeliveryPerson {

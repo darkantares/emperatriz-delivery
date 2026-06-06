@@ -47,9 +47,22 @@ export function useGpsTracking(params: UseGpsTrackingParams): void {
   );
   const isTravelingRef = useRef<boolean>(false);
 
-  useEffect(() => {
-    isTravelingRef.current = isTraveling;
-  }, [isTraveling]);
+  const sendToMapRef = useRef(sendToMap);
+  const onPositionUpdateRef = useRef(onPositionUpdate);
+  const onIndexUpdateRef = useRef(onIndexUpdate);
+  const onRemainingUpdateRef = useRef(onRemainingUpdate);
+  const onDestinationReachedRef = useRef(onDestinationReached);
+  const detectRouteDeviationRef = useRef(detectRouteDeviation);
+  const recalculateRouteOnDeviationRef = useRef(recalculateRouteOnDeviation);
+
+  useEffect(() => { isTravelingRef.current = isTraveling; }, [isTraveling]);
+  useEffect(() => { sendToMapRef.current = sendToMap; }, [sendToMap]);
+  useEffect(() => { onPositionUpdateRef.current = onPositionUpdate; }, [onPositionUpdate]);
+  useEffect(() => { onIndexUpdateRef.current = onIndexUpdate; }, [onIndexUpdate]);
+  useEffect(() => { onRemainingUpdateRef.current = onRemainingUpdate; }, [onRemainingUpdate]);
+  useEffect(() => { onDestinationReachedRef.current = onDestinationReached; }, [onDestinationReached]);
+  useEffect(() => { detectRouteDeviationRef.current = detectRouteDeviation; }, [detectRouteDeviation]);
+  useEffect(() => { recalculateRouteOnDeviationRef.current = recalculateRouteOnDeviation; }, [recalculateRouteOnDeviation]);
 
   // Effect A: Travel tracking (production branch)
   useEffect(() => {
@@ -83,8 +96,8 @@ export function useGpsTracking(params: UseGpsTrackingParams): void {
               latitude: location.coords.latitude,
               longitude: location.coords.longitude,
             };
-            onPositionUpdate(actualPosition);
-            sendToMap({
+            onPositionUpdateRef.current(actualPosition);
+            sendToMapRef.current({
               type: "SET_VIEW",
               latitude: actualPosition.latitude,
               longitude: actualPosition.longitude,
@@ -100,12 +113,12 @@ export function useGpsTracking(params: UseGpsTrackingParams): void {
                 closestIndex = index;
               }
             });
-            onIndexUpdate(closestIndex);
+            onIndexUpdateRef.current(closestIndex);
             const progressPercentage =
               closestIndex / routeCoordinates.length;
             const remDist = totalDistance * (1 - progressPercentage);
             const remDur = totalDuration * (1 - progressPercentage);
-            onRemainingUpdate(remDist, remDur);
+            onRemainingUpdateRef.current(remDist, remDur);
 
             if (routeCoordinates.length > 0) {
               const lastPoint =
@@ -117,7 +130,7 @@ export function useGpsTracking(params: UseGpsTrackingParams): void {
                 console.log(
                   "[useGpsTracking] Destino alcanzado (GPS viaje)",
                 );
-                onDestinationReached();
+                onDestinationReachedRef.current();
               }
             }
           },
@@ -128,7 +141,7 @@ export function useGpsTracking(params: UseGpsTrackingParams): void {
           "[useGpsTracking] Error iniciando seguimiento GPS (viaje):",
           err,
         );
-        onDestinationReached();
+        onDestinationReachedRef.current();
       }
     })();
 
@@ -138,7 +151,6 @@ export function useGpsTracking(params: UseGpsTrackingParams): void {
         locationSubscriptionRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isTraveling, routeCoordinates, totalDistance, totalDuration]);
 
   // Effect B: Continuous GPS tracking
@@ -180,9 +192,9 @@ export function useGpsTracking(params: UseGpsTrackingParams): void {
               longitude: location.coords.longitude,
             };
 
-            onPositionUpdate(actualPosition);
+            onPositionUpdateRef.current(actualPosition);
 
-            sendToMap({
+            sendToMapRef.current({
               type: "UPDATE_POSITION",
               latitude: actualPosition.latitude,
               longitude: actualPosition.longitude,
@@ -215,7 +227,7 @@ export function useGpsTracking(params: UseGpsTrackingParams): void {
                   }
                 },
               );
-              onIndexUpdate(closestIndex);
+              onIndexUpdateRef.current(closestIndex);
 
               const progressPercentage =
                 closestIndex / routeCoordinatesRef.current.length;
@@ -223,10 +235,10 @@ export function useGpsTracking(params: UseGpsTrackingParams): void {
                 totalDistanceRef.current * (1 - progressPercentage);
               const remDur =
                 totalDurationRef.current * (1 - progressPercentage);
-              onRemainingUpdate(remDist, remDur);
+              onRemainingUpdateRef.current(remDist, remDur);
 
-              detectRouteDeviation(actualPosition, minDistance);
-              recalculateRouteOnDeviation(actualPosition);
+              detectRouteDeviationRef.current(actualPosition, minDistance);
+              recalculateRouteOnDeviationRef.current(actualPosition);
 
               if (routeCoordinatesRef.current.length > 0) {
                 const lastPoint =
@@ -244,7 +256,7 @@ export function useGpsTracking(params: UseGpsTrackingParams): void {
                   console.log(
                     "[useGpsTracking] Destino alcanzado (GPS continuo)",
                   );
-                  onDestinationReached();
+                  onDestinationReachedRef.current();
                 }
               }
             }
@@ -266,6 +278,5 @@ export function useGpsTracking(params: UseGpsTrackingParams): void {
         locationSubscriptionRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupedWaypoints.length, isTraveling]);
 }

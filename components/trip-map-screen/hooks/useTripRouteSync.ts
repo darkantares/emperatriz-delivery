@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Coordinate, WaypointGroup } from "../types";
 
 export interface UseTripRouteSyncParams {
@@ -23,6 +23,9 @@ export function useTripRouteSync(params: UseTripRouteSyncParams): void {
     isTraveling,
     currentTargetGroupIndex,
   } = params;
+
+  const sendToMapRef = useRef(sendToMap);
+  useEffect(() => { sendToMapRef.current = sendToMap; }, [sendToMap]);
 
   // INIT_ROUTE
   useEffect(() => {
@@ -115,24 +118,22 @@ export function useTripRouteSync(params: UseTripRouteSyncParams): void {
       );
     }
 
-    sendToMap({
+    sendToMapRef.current({
       type: "INIT_ROUTE",
       segmentCoordinates,
       waypoints,
       targetGroupIndex: currentTargetGroupIndex,
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapVersion, routeCoordinates, groupedWaypoints]);
+  }, [mapVersion, routeCoordinates, groupedWaypoints, currentTargetGroupIndex]);
 
   // UPDATE_POSITION
   useEffect(() => {
     if (mapVersion === 0 || !currentPosition) return;
-    sendToMap({
+    sendToMapRef.current({
       type: "UPDATE_POSITION",
       latitude: currentPosition.latitude,
       longitude: currentPosition.longitude,
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapVersion, currentPosition]);
 
   // UPDATE_TRAVELED
@@ -141,14 +142,12 @@ export function useTripRouteSync(params: UseTripRouteSyncParams): void {
     const traveledCoords = routeCoordinates
       .slice(0, currentIndex + 1)
       .map((c) => [c.latitude, c.longitude]);
-    sendToMap({ type: "UPDATE_TRAVELED", traveledCoords });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    sendToMapRef.current({ type: "UPDATE_TRAVELED", traveledCoords });
   }, [mapVersion, currentIndex, isTraveling, routeCoordinates]);
 
   // UPDATE_TARGET
   useEffect(() => {
     if (mapVersion === 0) return;
-    sendToMap({ type: "UPDATE_TARGET", groupIndex: currentTargetGroupIndex });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    sendToMapRef.current({ type: "UPDATE_TARGET", groupIndex: currentTargetGroupIndex });
   }, [mapVersion, currentTargetGroupIndex]);
 }

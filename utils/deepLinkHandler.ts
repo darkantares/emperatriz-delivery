@@ -15,7 +15,7 @@ interface Coordinates {
  * - https://www.google.com/maps?q=lat,lng
  * - https://goo.gl/maps/...
  */
-export function extractCoordinatesFromUrl(url: string): Coordinates | null {
+function extractCoordinatesFromUrl(url: string): Coordinates | null {
   try {
     console.log('[DeepLink] Extracting coordinates from URL:', url);
 
@@ -83,7 +83,7 @@ export function extractCoordinatesFromUrl(url: string): Coordinates | null {
 /**
  * Send coordinates to backend OSRM endpoint
  */
-export async function sendCoordinatesToBackend(coordinates: Coordinates): Promise<any> {
+async function sendCoordinatesToBackend(coordinates: Coordinates): Promise<any> {
   try {
     const apiUrl = Constants.expoConfig?.extra?.apiUrl?.EXPO_PUBLIC_API_URL_DEFAULT;
     
@@ -114,7 +114,7 @@ export async function sendCoordinatesToBackend(coordinates: Coordinates): Promis
 /**
  * Handle incoming deep link
  */
-export async function handleDeepLink(url: string): Promise<void> {
+async function handleDeepLink(url: string): Promise<void> {
   try {
     console.log('[DeepLink] Handling deep link:', url);
 

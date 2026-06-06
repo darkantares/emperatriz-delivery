@@ -1,5 +1,6 @@
 import React from "react";
-import { View, Text, Image, TouchableOpacity } from "react-native";
+import { View, Text, Pressable } from "react-native";
+import { Image } from 'expo-image';
 
 type Props = {
   showEvidence: boolean;
@@ -42,9 +43,9 @@ export function EvidenceSection({
             {photoUri ? (
               <View style={styles.photoPreviewContainer}>
                 <Image source={{ uri: photoUri }} style={styles.photoPreviewHalf} />
-                <TouchableOpacity style={styles.removePhotoButton} onPress={removePhoto}>
+                <Pressable style={styles.removePhotoButton} onPress={removePhoto}>
                   <Text style={styles.removePhotoText}>✕</Text>
-                </TouchableOpacity>
+                </Pressable>
               </View>
             ) : (
               <View style={styles.imagePlaceholderContainer}>
@@ -52,11 +53,11 @@ export function EvidenceSection({
                   <Text style={styles.placeholderIcon}>📷</Text>
                   <Text style={styles.placeholderText}>No image selected</Text>
                 </View>
-                <TouchableOpacity style={styles.placeholderButton} onPress={takePhoto}>
+                <Pressable style={styles.placeholderButton} onPress={takePhoto}>
                   <Text style={styles.placeholderButtonText}>
                     📷 Foto {requiresCameraPhoto ? "(*)" : ""}
                   </Text>
-                </TouchableOpacity>
+                </Pressable>
               </View>
             )}
           </View>
@@ -65,9 +66,9 @@ export function EvidenceSection({
             {imageUri ? (
               <View style={styles.photoPreviewContainer}>
                 <Image source={{ uri: imageUri }} style={styles.photoPreviewHalf} />
-                <TouchableOpacity style={styles.removePhotoButton} onPress={removeImage}>
+                <Pressable style={styles.removePhotoButton} onPress={removeImage}>
                   <Text style={styles.removePhotoText}>✕</Text>
-                </TouchableOpacity>
+                </Pressable>
               </View>
             ) : (
               <View style={styles.imagePlaceholderContainer}>
@@ -75,14 +76,14 @@ export function EvidenceSection({
                   <Text style={styles.placeholderIcon}>🖼️</Text>
                   <Text style={styles.placeholderText}>No image selected</Text>
                 </View>
-                <TouchableOpacity
+                <Pressable
                   style={styles.placeholderButton}
                   onPress={selectImageFromGallery}
                 >
                   <Text style={styles.placeholderButtonText}>
                     🖼️ Imagen {requiresGalleryImage ? "(*)" : ""}
                   </Text>
-                </TouchableOpacity>
+                </Pressable>
               </View>
             )}
           </View>
@@ -95,17 +96,17 @@ export function EvidenceSection({
                 <View>
                   <View style={styles.photoPreviewContainer}>
                     <Image source={{ uri: photoUri }} style={styles.photoPreview} />
-                    <TouchableOpacity style={styles.removePhotoButton} onPress={removePhoto}>
+                    <Pressable style={styles.removePhotoButton} onPress={removePhoto}>
                       <Text style={styles.removePhotoText}>✕</Text>
-                    </TouchableOpacity>
+                    </Pressable>
                   </View>
                 </View>
               ) : (
-                <TouchableOpacity style={styles.photoButton} onPress={takePhoto}>
+                <Pressable style={styles.photoButton} onPress={takePhoto}>
                   <Text style={styles.photoButtonText}>
                     📷 Foto {requiresCameraPhoto ? "(obligatorio)" : "(opcional)"}
                   </Text>
-                </TouchableOpacity>
+                </Pressable>
               )}
             </View>
           )}
@@ -116,20 +117,20 @@ export function EvidenceSection({
                   <Text style={styles.imageTypeLabel}>Imagen de galería:</Text>
                   <View style={styles.photoPreviewContainer}>
                     <Image source={{ uri: imageUri }} style={styles.photoPreview} />
-                    <TouchableOpacity style={styles.removePhotoButton} onPress={removeImage}>
+                    <Pressable style={styles.removePhotoButton} onPress={removeImage}>
                       <Text style={styles.removePhotoText}>✕</Text>
-                    </TouchableOpacity>
+                    </Pressable>
                   </View>
                 </View>
               ) : (
-                <TouchableOpacity
+                <Pressable
                   style={styles.photoButton}
                   onPress={selectImageFromGallery}
                 >
                   <Text style={styles.photoButtonText}>
                     🖼️ Imagen {requiresGalleryImage ? "(obligatorio)" : "(opcional)"}
                   </Text>
-                </TouchableOpacity>
+                </Pressable>
               )}
             </View>
           )}

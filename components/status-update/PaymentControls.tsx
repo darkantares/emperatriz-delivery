@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, TouchableOpacity, Modal } from "react-native";
+import { View, Text, Pressable, Modal } from "react-native";
 import { CustomColors } from "@/constants/CustomColors";
 import { IPaymentMethodEntity } from "@/interfaces/payment/payment";
 import { Capitalize } from "@/utils/capitalize";
@@ -27,7 +27,7 @@ export function PaymentControls({
     <>
       <View style={styles.paymentContainer}>
         <Text style={styles.paymentLabel}>Método de Pago (Obligatorio):</Text>
-        <TouchableOpacity
+        <Pressable
           style={[styles.paymentMethodButton, disabled && { opacity: 0.5 }]}
           onPress={() => setShowPicker(true)}
           disabled={disabled}
@@ -38,7 +38,7 @@ export function PaymentControls({
               : Capitalize("Seleccionar...")}
           </Text>
           <Text style={styles.dropdownArrow}>▼</Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       <Modal
@@ -52,7 +52,7 @@ export function PaymentControls({
             <Text style={styles.modalTitle}>Seleccionar...</Text>
             <View>
               {paymentMethods.map((item) => (
-                <TouchableOpacity
+                <Pressable
                   key={item.id.toString()}
                   style={[
                     styles.statusItem,
@@ -96,15 +96,15 @@ export function PaymentControls({
                   >
                     {Capitalize(item.title)}
                   </Text>
-                </TouchableOpacity>
+                </Pressable>
               ))}
             </View>
-            <TouchableOpacity
+            <Pressable
               style={[styles.button, styles.cancelButton, { width: "100%", marginTop: 10 }]}
               onPress={() => setShowPicker(false)}
             >
               <Text style={styles.buttonText}>Cancelar</Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
       </Modal>

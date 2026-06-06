@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, ActivityIndicator } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { CustomColors } from '@/constants/CustomColors';
 import { RecentDeliveryItem } from '@/core/actions/ganancias-actions';
@@ -19,18 +20,21 @@ const formatRelativeTime = (isoString: string): string => {
 };
 
 const ActivityRow = ({ item, index }: { item: RecentDeliveryItem; index: number }) => {
-    const slideAnim = useRef(new Animated.Value(20)).current;
-    const opacityAnim = useRef(new Animated.Value(0)).current;
+    const slideAnim = useSharedValue(20);
+    const opacityAnim = useSharedValue(0);
+
+    const animatedStyle = useAnimatedStyle(() => ({
+        opacity: opacityAnim.value,
+        transform: [{ translateX: slideAnim.value }],
+    }));
 
     useEffect(() => {
-        Animated.parallel([
-            Animated.timing(slideAnim, { toValue: 0, duration: 400, delay: 100 * index, useNativeDriver: true }),
-            Animated.timing(opacityAnim, { toValue: 1, duration: 400, delay: 100 * index, useNativeDriver: true }),
-        ]).start();
+        slideAnim.value = withTiming(0, { duration: 400, delay: 100 * index });
+        opacityAnim.value = withTiming(1, { duration: 400, delay: 100 * index });
     }, []);
 
     return (
-        <Animated.View style={[styles.row, { opacity: opacityAnim, transform: [{ translateX: slideAnim }] }]}> 
+        <Animated.View style={[styles.row, animatedStyle]}> 
             <View style={styles.iconContainer}>
                 <Ionicons name="bicycle-outline" size={18} color={CustomColors.primary} />
             </View>
@@ -48,19 +52,24 @@ interface RecentDeliveriesProps {
     isLoading?: boolean;
 }
 
-const RecentDeliveries = ({ items = [], isLoading = false }: RecentDeliveriesProps) => {
-    const fadeAnim = useRef(new Animated.Value(0)).current;
-    const slideAnim = useRef(new Animated.Value(30)).current;
+const EMPTY_ITEMS: RecentDeliveryItem[] = [];
+
+const RecentDeliveries = ({ items = EMPTY_ITEMS, isLoading = false }: RecentDeliveriesProps) => {
+    const fadeAnim = useSharedValue(0);
+    const slideAnim = useSharedValue(30);
+
+    const animatedStyle = useAnimatedStyle(() => ({
+        opacity: fadeAnim.value,
+        transform: [{ translateY: slideAnim.value }],
+    }));
 
     useEffect(() => {
-        Animated.parallel([
-            Animated.timing(fadeAnim, { toValue: 1, duration: 700, delay: 450, useNativeDriver: true }),
-            Animated.timing(slideAnim, { toValue: 0, duration: 700, delay: 450, useNativeDriver: true }),
-        ]).start();
+        fadeAnim.value = withTiming(1, { duration: 700, delay: 450 });
+        slideAnim.value = withTiming(0, { duration: 700, delay: 450 });
     }, []);
 
     return (
-        <Animated.View style={[styles.wrapper, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}> 
+        <Animated.View style={[styles.wrapper, animatedStyle]}> 
             <View style={styles.card}>
                 <View style={styles.header}>
                     <View>
@@ -98,11 +107,7 @@ const styles = StyleSheet.create({
         marginHorizontal: 2,
         marginBottom: 16,
         borderRadius: 20,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-        elevation: 4,
+        boxShadow: '0px 4px 12px rgba(0,0,0,0.08)',
     },
     card: {
         borderRadius: 20,

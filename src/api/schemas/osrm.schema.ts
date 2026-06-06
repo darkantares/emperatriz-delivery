@@ -29,13 +29,13 @@ const OsrmWaypointSchema = z.object({
     location: z.array(z.number()),
 }).loose();
 
-export const OsrmTripResultSchema = z.object({
+const OsrmTripResultSchema = z.object({
     code: z.string(),
     trips: z.array(OsrmTripSchema),
     waypoints: z.array(OsrmWaypointSchema),
 }).loose();
 
-export const OsrmRouteResultSchema = z.object({
+const OsrmRouteResultSchema = z.object({
     code: z.string(),
     routes: z.array(z.unknown()),
     waypoints: z.array(z.unknown()),

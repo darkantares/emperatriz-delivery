@@ -1,11 +1,11 @@
-import { AssignmentType } from "@/utils/enum";
-import { IGlobalEntity } from "../global";
-import { IMunicipio, IProvincia, ISector } from "../location";
-import { IDeliveryPerson } from "../carrier";
-import { IEnterpriseEntity } from "../auth";
-import { IDeliveryStatus } from "./deliveryStatus";
-import { IPaymentMethodEntity } from "../payment/payment";
-import { ProductEntity } from "../product";
+import type { AssignmentType } from "@/utils/enum";
+import type { IGlobalEntity } from "../global";
+import type { IMunicipio, IProvincia, ISector } from "../location";
+import type { IDeliveryPerson } from "../carrier";
+import type { IEnterpriseEntity } from "../auth";
+import type { IDeliveryStatus } from "./deliveryStatus";
+import type { IPaymentMethodEntity } from "../payment/payment";
+import type { ProductEntity } from "../product";
 
 export interface IUpdateDelivery extends Partial<ICreateDeliveryAssigment>{}
 

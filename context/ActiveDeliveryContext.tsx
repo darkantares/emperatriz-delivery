@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { IDeliveryStatus } from '@/interfaces/delivery/deliveryStatus';
 import { DeliveryItemAdapter } from '@/interfaces/delivery/deliveryAdapters';
 
@@ -22,8 +22,7 @@ export const useActiveDelivery = () => {
 export const ActiveDeliveryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeDelivery, setActiveDelivery] = useState<DeliveryItemAdapter | null>(null);
 
-  // Obtener el siguiente delivery a procesar (primer elemento que no esté completado)
-  const getNextDeliveryToProcess = (deliveries: DeliveryItemAdapter[]): DeliveryItemAdapter | null => {
+  const getNextDeliveryToProcess = useCallback((deliveries: DeliveryItemAdapter[]): DeliveryItemAdapter | null => {
     const completedStatuses = [
       // IDeliveryStatus.COMPLETED,
       IDeliveryStatus.RETURNED,
@@ -31,27 +30,26 @@ export const ActiveDeliveryProvider: React.FC<{ children: React.ReactNode }> = (
       IDeliveryStatus.CANCELLED
     ];
 
-    // Buscar el primer delivery que no esté completado
     const nextDelivery = deliveries.find(delivery => 
       !completedStatuses.includes(delivery.deliveryStatus.title as IDeliveryStatus)
     );
 
     return nextDelivery || null;
-  };
+  }, []);
 
-  // Verificar si se puede procesar un nuevo delivery
-  const canProcessNewDelivery = (_deliveries: DeliveryItemAdapter[]): boolean => {
-    // No se puede procesar si ya hay un envío activo en el contexto
+  const canProcessNewDelivery = useCallback((_deliveries: DeliveryItemAdapter[]): boolean => {
     return activeDelivery === null;
-  };
+  }, [activeDelivery]);
+
+  const contextValue = useMemo(() => ({
+    activeDelivery,
+    setActiveDelivery,
+    getNextDeliveryToProcess,
+    canProcessNewDelivery
+  }), [activeDelivery, getNextDeliveryToProcess, canProcessNewDelivery]);
 
   return (
-    <ActiveDeliveryContext.Provider value={{
-      activeDelivery,
-      setActiveDelivery,
-      getNextDeliveryToProcess,
-      canProcessNewDelivery
-    }}>
+    <ActiveDeliveryContext.Provider value={contextValue}>
       {children}
     </ActiveDeliveryContext.Provider>
   );

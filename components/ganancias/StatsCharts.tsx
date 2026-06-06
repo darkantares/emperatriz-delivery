@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, ActivityIndicator } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, withDelay } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { CustomColors } from '@/constants/CustomColors';
 import { MonthlyStatItem, WeeklyStatItem } from '@/core/actions/ganancias-actions';
@@ -8,21 +9,21 @@ const formatDOP = (value: number) =>
     value.toLocaleString('es-DO', { style: 'currency', currency: 'DOP', maximumFractionDigits: 2 });
 
 const AnimatedBar = ({ ratio, delay, color }: { ratio: number; delay: number; color: string }) => {
-    const heightAnim = useRef(new Animated.Value(0)).current;
+    const heightAnim = useSharedValue(0);
+
+    const barStyle = useAnimatedStyle(() => ({
+        height: heightAnim.value.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, 100],
+        }),
+        backgroundColor: color,
+    }));
 
     useEffect(() => {
-        Animated.sequence([
-            Animated.delay(delay),
-            Animated.timing(heightAnim, { toValue: ratio, duration: 700, useNativeDriver: false }),
-        ]).start();
+        heightAnim.value = withDelay(delay, withTiming(ratio, { duration: 700 }));
     }, []);
 
-    const barHeight = heightAnim.interpolate({
-        inputRange: [0, 1],
-        outputRange: [0, 100],
-    });
-
-    return <Animated.View style={[styles.barFill, { height: barHeight, backgroundColor: color }]} />;
+    return <Animated.View style={[styles.barFill, barStyle]} />;
 };
 
 interface StatsChartsProps {
@@ -31,15 +32,21 @@ interface StatsChartsProps {
     isLoading?: boolean;
 }
 
-const StatsCharts = ({ monthlyStats = [], weeklyStats = [], isLoading = false }: StatsChartsProps) => {
-    const fadeAnim = useRef(new Animated.Value(0)).current;
-    const slideAnim = useRef(new Animated.Value(30)).current;
+const EMPTY_MONTHLY: MonthlyStatItem[] = [];
+const EMPTY_WEEKLY: WeeklyStatItem[] = [];
+
+const StatsCharts = ({ monthlyStats = EMPTY_MONTHLY, weeklyStats = EMPTY_WEEKLY, isLoading = false }: StatsChartsProps) => {
+    const fadeAnim = useSharedValue(0);
+    const slideAnim = useSharedValue(30);
+
+    const animatedStyle = useAnimatedStyle(() => ({
+        opacity: fadeAnim.value,
+        transform: [{ translateY: slideAnim.value }],
+    }));
 
     useEffect(() => {
-        Animated.parallel([
-            Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
-            Animated.timing(slideAnim, { toValue: 0, duration: 600, useNativeDriver: true }),
-        ]).start();
+        fadeAnim.value = withTiming(1, { duration: 600 });
+        slideAnim.value = withTiming(0, { duration: 600 });
     }, []);
 
     const maxMonthly = monthlyStats.length > 0 ? Math.max(...monthlyStats.map((d) => d.value)) : 1;
@@ -52,7 +59,7 @@ const StatsCharts = ({ monthlyStats = [], weeklyStats = [], isLoading = false }:
         : null;
 
     return (
-        <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+        <Animated.View style={animatedStyle}>
             {/* Monthly Chart */}
             <View style={styles.chartWrapper}>
                 <View style={styles.card}>
@@ -73,8 +80,8 @@ const StatsCharts = ({ monthlyStats = [], weeklyStats = [], isLoading = false }:
                     ) : (
                         <>
                             <View style={styles.chartArea}>
-                                {monthlyStats.map((item, index) => (
-                                    <View key={index} style={styles.barGroup}>
+                                {monthlyStats.map((item) => (
+                                    <View key={item.month} style={styles.barGroup}>
                                         <View style={styles.barContainer}>
                                             <AnimatedBar ratio={item.value / maxMonthly} delay={80 * index} color={CustomColors.primary} />
                                         </View>
@@ -112,8 +119,8 @@ const StatsCharts = ({ monthlyStats = [], weeklyStats = [], isLoading = false }:
                     ) : (
                         <>
                             <View style={styles.chartArea}>
-                                {weeklyStats.map((item, index) => (
-                                    <View key={index} style={styles.barGroup}>
+                                {weeklyStats.map((item) => (
+                                    <View key={item.day} style={styles.barGroup}>
                                         <View style={styles.barContainer}>
                                             <AnimatedBar ratio={item.value / maxWeekly} delay={80 * index} color="#059669" />
                                         </View>
@@ -141,11 +148,7 @@ const styles = StyleSheet.create({
         marginHorizontal: 2,
         marginBottom: 16,
         borderRadius: 20,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-        elevation: 4,
+        boxShadow: '0px 4px 12px rgba(0,0,0,0.08)',
     },
     card: {
         borderRadius: 20,

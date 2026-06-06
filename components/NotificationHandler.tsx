@@ -46,8 +46,6 @@ const toastConfig = {
       contentContainerStyle={styles.contentContainer}
       text1Style={styles.title}
       text2Style={styles.message}
-      // Generamos un ID único basado en el timestamp
-      key={`success-toast-${Date.now()}`}
       renderLeadingIcon={() => renderToastIcon(NotificationType.SUCCESS)}
     />
   ),
@@ -58,7 +56,6 @@ const toastConfig = {
       contentContainerStyle={styles.contentContainer}
       text1Style={styles.title}
       text2Style={styles.message}
-      key={`error-toast-${Date.now()}`}
       renderLeadingIcon={() => renderToastIcon(NotificationType.ERROR)}
     />
   ),
@@ -69,7 +66,6 @@ const toastConfig = {
       contentContainerStyle={styles.contentContainer}
       text1Style={styles.title}
       text2Style={styles.message}
-      key={`warning-toast-${Date.now()}`}
       renderLeadingIcon={() => renderToastIcon(NotificationType.WARNING)}
     />
   ),
@@ -80,7 +76,6 @@ const toastConfig = {
       contentContainerStyle={styles.contentContainer}
       text1Style={styles.title}
       text2Style={styles.message}
-      key={`info-toast-${Date.now()}`}
       renderLeadingIcon={() => renderToastIcon(NotificationType.INFO)}
     />
   ),
@@ -128,11 +123,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 6,
     marginHorizontal: 16,
     backgroundColor: CustomColors.backgroundDark, // Cambiado para mejor contraste con texto claro
-    shadowColor: CustomColors.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 6,
+    boxShadow: `0px 4px 8px rgba(0,0,0,${0.3 * 0.15})`,
     minHeight: 70,
   },
   contentContainer: {

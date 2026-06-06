@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, ActivityIndicator } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { CustomColors } from '@/constants/CustomColors';
 import { PaidInvoice } from '@/core/actions/ganancias-actions';
@@ -13,18 +14,21 @@ const formatDate = (dateStr: string): string => {
 };
 
 const PayoutCard = ({ item, index }: { item: PaidInvoice; index: number }) => {
-    const slideAnim = useRef(new Animated.Value(30)).current;
-    const opacityAnim = useRef(new Animated.Value(0)).current;
+    const slideAnim = useSharedValue(30);
+    const opacityAnim = useSharedValue(0);
+
+    const animatedStyle = useAnimatedStyle(() => ({
+        opacity: opacityAnim.value,
+        transform: [{ translateY: slideAnim.value }],
+    }));
 
     useEffect(() => {
-        Animated.parallel([
-            Animated.timing(slideAnim, { toValue: 0, duration: 500, delay: 120 * index, useNativeDriver: true }),
-            Animated.timing(opacityAnim, { toValue: 1, duration: 500, delay: 120 * index, useNativeDriver: true }),
-        ]).start();
+        slideAnim.value = withTiming(0, { duration: 500, delay: 120 * index });
+        opacityAnim.value = withTiming(1, { duration: 500, delay: 120 * index });
     }, []);
 
     return (
-        <Animated.View style={[styles.cardWrapper, { opacity: opacityAnim, transform: [{ translateY: slideAnim }] }]}>
+        <Animated.View style={[styles.cardWrapper, animatedStyle]}>
             <View style={styles.card}>
                 <View style={styles.accentBar} />
                 <View style={styles.cardLeft}>
@@ -48,18 +52,24 @@ interface PayoutHistoryProps {
     isLoading?: boolean;
 }
 
-const PayoutHistory = ({ items = [], isLoading = false }: PayoutHistoryProps) => {
-    const fadeAnim = useRef(new Animated.Value(0)).current;
+const EMPTY_ITEMS: PaidInvoice[] = [];
+
+const PayoutHistory = ({ items = EMPTY_ITEMS, isLoading = false }: PayoutHistoryProps) => {
+    const fadeAnim = useSharedValue(0);
+
+    const animatedStyle = useAnimatedStyle(() => ({
+        opacity: fadeAnim.value,
+    }));
 
     useEffect(() => {
-        Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
+        fadeAnim.value = withTiming(1, { duration: 600 });
     }, []);
 
     const totalPaid = items.reduce((sum, i) => sum + i.totalAmount, 0);
     const avgPaid = items.length > 0 ? totalPaid / items.length : 0;
 
     return (
-        <Animated.View style={{ opacity: fadeAnim }}>
+        <Animated.View style={animatedStyle}>
             {/* Summary card */}
             <View style={styles.summaryWrapper}>
                 <View style={styles.summaryCard}>
@@ -106,11 +116,7 @@ const styles = StyleSheet.create({
         marginHorizontal: 2,
         marginBottom: 24,
         borderRadius: 20,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-        elevation: 4,
+        boxShadow: '0px 4px 12px rgba(0,0,0,0.08)',
     },
     summaryCard: {
         borderRadius: 20,
@@ -166,11 +172,7 @@ const styles = StyleSheet.create({
     },
     cardWrapper: {
         borderRadius: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-        elevation: 3,
+        boxShadow: '0px 2px 8px rgba(0,0,0,0.06)',
     },
     card: {
         flexDirection: 'row',

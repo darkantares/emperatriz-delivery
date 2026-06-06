@@ -1,7 +1,7 @@
 import {
   StyleSheet,
   Alert,
-  TouchableOpacity,
+  Pressable,
   Text,
   ScrollView,
   View as RNView,
@@ -45,14 +45,14 @@ const SegmentedTabs = ({
   return (
     <RNView style={tabStyles.container}>
       {tabs.map((tab) => (
-        <TouchableOpacity
+        <Pressable
           key={tab}
-          style={[
+          style={({ pressed }) => [
+            { opacity: pressed ? 0.7 : 1 },
             tabStyles.tab,
             activeTab === tab && tabStyles.tabActive,
           ]}
           onPress={() => onTabChange(tab)}
-          activeOpacity={0.7}
         >
           <Text
             style={[
@@ -62,7 +62,7 @@ const SegmentedTabs = ({
           >
             {tab}
           </Text>
-        </TouchableOpacity>
+        </Pressable>
       ))}
     </RNView>
   );
@@ -181,7 +181,7 @@ function TabOneScreenContent() {
     currentStatus: string;
     totalAmount: number;
   } | null>(null);
-  const [isSocketConnected, setIsSocketConnected] = useState<boolean>(socketService.isConnected());
+  const [isSocketConnected, setIsSocketConnected] = useState<boolean>(() => socketService.isConnected());
 
   useEffect(() => {
     const handleConnectionChange = (connected: boolean) => {
@@ -274,9 +274,9 @@ function TabOneScreenContent() {
                 <Text style={styles.liveText}>En tiempo real</Text>
               </RNView> */}
             </RNView>
-            <TouchableOpacity style={styles.refreshButton} onPress={() => { fetchDeliveries(); refreshGanancias(); }}>
+            <Pressable style={styles.refreshButton} onPress={() => { fetchDeliveries(); refreshGanancias(); }}>
               <Ionicons name="refresh-outline" size={20} color={CustomColors.textLight} />
-            </TouchableOpacity>
+            </Pressable>
           </RNView>
 
           <SegmentedTabs tabs={visibleTabs} activeTab={activeTab} onTabChange={setActiveTab} />
@@ -332,7 +332,7 @@ function TabOneScreenContent() {
           {/* Iniciar Rutas button — only if we have at least one delivery */}
           {deliveries && deliveries.length > 0 && (
             <RNView style={styles.bottomBar}>
-              <TouchableOpacity
+              <Pressable
                 style={[styles.startRoutesButton, tripLoading && styles.startRoutesButtonDisabled]}
                 onPress={handleStartRoutes}
                 disabled={tripLoading}
@@ -346,7 +346,7 @@ function TabOneScreenContent() {
                 <Text style={styles.startRoutesButtonText}>
                   {tripLoading ? "Calculando ruta..." : "Iniciar Rutas"}
                 </Text>
-              </TouchableOpacity>
+              </Pressable>
             </RNView>
           )}
         </SafeAreaView>
@@ -443,11 +443,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     justifyContent: "center",
-    elevation: 5,
-    shadowColor: CustomColors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 4,
+    boxShadow: '0px 2px 4px rgba(0,0,0,0.4)',
   },
   startRoutesButtonDisabled: {
     backgroundColor: CustomColors.divider,

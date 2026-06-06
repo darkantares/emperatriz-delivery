@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
+  Pressable,
   View as RNView,
   TextInput,
   Modal,
@@ -314,14 +314,14 @@ export function GestionesContent() {
 
         {/* Pay All Button */}
         <RNView style={styles.actionBar}>
-          <TouchableOpacity
+          <Pressable
             style={[styles.payAllButton, isSaving && { opacity: 0.6 }]}
             onPress={showPayAllDialog}
             disabled={isSaving}
           >
             <Ionicons name="cash-outline" size={18} color="#fff" style={{ marginRight: 6 }} />
             <Text style={styles.payAllButtonText}>Pagar deudas</Text>
-          </TouchableOpacity>
+          </Pressable>
         </RNView>
 
         {/* Providers Section */}
@@ -339,7 +339,7 @@ export function GestionesContent() {
 
             return (
               <RNView key={row.proveedorId} style={styles.providerCard}>
-                <TouchableOpacity style={styles.providerHeader} onPress={() => toggleExpand(row.proveedorId)} activeOpacity={0.7}>
+                <Pressable style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }, styles.providerHeader]} onPress={() => toggleExpand(row.proveedorId)}>
                   <RNView style={styles.providerInfo}>
                     <RNView style={styles.providerNameRow}>
                       <Ionicons
@@ -356,7 +356,7 @@ export function GestionesContent() {
                     <Text style={styles.providerBalance}>{formatCurrency(row.saldoPendiente)}</Text>
                     <Text style={styles.providerDocs}>{row.documentos} docs</Text>
                   </RNView>
-                </TouchableOpacity>
+                </Pressable>
 
                 {isExpanded && (
                   <RNView style={styles.invoiceSubTable}>
@@ -395,22 +395,22 @@ export function GestionesContent() {
                 )}
 
                 <RNView style={styles.providerActions}>
-                  <TouchableOpacity
+                  <Pressable
                     style={styles.actionButton}
                     onPress={() => payDebt(row)}
                     disabled={isSaving}
                   >
                     <Ionicons name="card-outline" size={16} color={CustomColors.success} />
                     <Text style={[styles.actionButtonText, { color: CustomColors.success }]}>Pagar</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
+                  </Pressable>
+                  <Pressable
                     style={styles.actionButton}
                     onPress={() => openCreditNoteDialog(row)}
                     disabled={isSaving}
                   >
                     <Ionicons name="document-text-outline" size={16} color={CustomColors.secondary} />
                     <Text style={[styles.actionButtonText, { color: CustomColors.secondary }]}>N. Crédito</Text>
-                  </TouchableOpacity>
+                  </Pressable>
                 </RNView>
               </RNView>
             );
@@ -455,10 +455,10 @@ export function GestionesContent() {
             />
 
             <RNView style={styles.modalActions}>
-              <TouchableOpacity style={styles.modalCancelBtn} onPress={hideCreditNoteDialog}>
+              <Pressable style={styles.modalCancelBtn} onPress={hideCreditNoteDialog}>
                 <Text style={styles.modalCancelText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
+              </Pressable>
+              <Pressable
                 style={[styles.modalConfirmBtn, (!creditNoteAmount || Number(creditNoteAmount) <= 0) && { opacity: 0.5 }]}
                 onPress={submitCreditNote}
                 disabled={!creditNoteAmount || Number(creditNoteAmount) <= 0 || isSaving}
@@ -468,7 +468,7 @@ export function GestionesContent() {
                 ) : (
                   <Text style={styles.modalConfirmText}>Crear Nota de Crédito</Text>
                 )}
-              </TouchableOpacity>
+              </Pressable>
             </RNView>
           </RNView>
         </RNView>
@@ -492,16 +492,16 @@ export function GestionesContent() {
               </Text>
             </RNView>
             <RNView style={styles.modalActions}>
-              <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setPayAllDialogVisible(false)}>
+              <Pressable style={styles.modalCancelBtn} onPress={() => setPayAllDialogVisible(false)}>
                 <Text style={styles.modalCancelText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.modalConfirmBtnDanger} onPress={confirmPayAll} disabled={isSaving}>
+              </Pressable>
+              <Pressable style={styles.modalConfirmBtnDanger} onPress={confirmPayAll} disabled={isSaving}>
                 {isSaving ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
                   <Text style={styles.modalConfirmText}>Sí, pagar todas las deudas</Text>
                 )}
-              </TouchableOpacity>
+              </Pressable>
             </RNView>
           </RNView>
         </RNView>
@@ -531,11 +531,7 @@ const styles = StyleSheet.create({
     backgroundColor: CustomColors.backgroundMedium,
     borderRadius: 12,
     padding: 14,
-    shadowColor: CustomColors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
+    boxShadow: '0px 2px 3px rgba(0,0,0,0.2)',
   },
   cardOverdue: {
     borderLeftWidth: 3,
@@ -570,11 +566,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 12,
     borderRadius: 10,
-    elevation: 3,
-    shadowColor: CustomColors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    boxShadow: '0px 2px 4px rgba(0,0,0,0.3)',
   },
   payAllButtonText: {
     color: '#fff',
@@ -629,11 +621,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 10,
     overflow: 'hidden',
-    shadowColor: CustomColors.shadow,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
+    boxShadow: '0px 1px 2px rgba(0,0,0,0.2)',
   },
   providerHeader: {
     flexDirection: 'row',

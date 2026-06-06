@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, Pressable } from "react-native";
 import { CustomColors } from "@/constants/CustomColors";
 import { getStatusColor } from "@/interfaces/delivery/deliveryStatus";
 import { Capitalize } from "@/utils/capitalize";
@@ -51,7 +51,7 @@ export function StatusList({
         const isSelected = selectedStatus === item.title;
         const statusColor = getStatusColor(item.title);
         return (
-          <TouchableOpacity
+          <Pressable
             key={item.id.toString()}
             style={[
               styles.statusItem,
@@ -77,7 +77,7 @@ export function StatusList({
               {Capitalize(item.title)}
             </Text>
             <View style={[styles.statusIndicator, { backgroundColor: statusColor }]} />
-          </TouchableOpacity>
+          </Pressable>
         );
       })}
     </View>

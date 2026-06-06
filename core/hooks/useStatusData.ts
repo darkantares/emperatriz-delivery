@@ -59,8 +59,6 @@ export function useStatusData(currentStatus: string) {
             setLoadingStatuses(false);
         };
 
-        setAvailableStatuses([]);
-        setLoadingStatuses(true);
         loadStatuses().then(processStatuses);
 
         return () => {

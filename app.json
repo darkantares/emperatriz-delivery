@@ -118,7 +118,15 @@
       "@react-native-firebase/messaging",
       "expo-audio",
       "expo-asset",
-      "expo-build-properties"
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static",
+            "forceStaticLinking": ["RNFBApp", "RNFBMessaging"]
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

@@ -109,7 +109,7 @@ export function getStatusColor(status: string): string {
     }
 }
 
-export function getNextValidStatuses(currentStatus: string): IDeliveryStatus[] {
+function getNextValidStatuses(currentStatus: string): IDeliveryStatus[] {
     // Find the matching DeliveryStatus enum value
     const matchingStatus = Object.values(IDeliveryStatus).find(
         status => status === currentStatus
@@ -139,7 +139,7 @@ export function getStatusIdFromTitle(statusTitle: string): number | null {
 /**
  * Obtiene el título de un estado basado en su ID
  */
-export function getStatusTitleFromId(statusId: number): string | null {
+function getStatusTitleFromId(statusId: number): string | null {
     const status = deliveryStatuses.find(s => s.id === statusId);
     return status ? status.title : null;
 }

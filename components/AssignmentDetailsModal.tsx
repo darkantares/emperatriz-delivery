@@ -3,7 +3,7 @@ import {
   Modal,
   View,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
   Linking,
   Alert,
   Text,
@@ -57,9 +57,9 @@ export default function AssignmentDetailsModal({
         <View style={styles.container}>
           <View style={styles.header}>
             <Text style={styles.title}>Detalle de ubicación</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <Pressable onPress={onClose} style={styles.closeButton}>
               <Text style={styles.closeText}>✕</Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
 
           <View style={styles.content}>
@@ -79,18 +79,18 @@ export default function AssignmentDetailsModal({
             </View>
 
             <View style={styles.actionsRow}>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.whatsappButton]}
+              <Pressable
+                style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }, styles.actionButton, styles.whatsappButton]}
                 onPress={handleWhatsApp}
               >
                 <Text style={styles.actionText}>WhatsApp</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.callButton]}
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }, styles.actionButton, styles.callButton]}
                 onPress={handleCall}
               >
                 <Text style={styles.actionText}>Llamar</Text>
-              </TouchableOpacity>
+              </Pressable>
             </View>
 
             {assignment.relatedOrder?.orderDetails &&
@@ -111,7 +111,7 @@ export default function AssignmentDetailsModal({
                         console.log('DETAIL:', detail.product);
                         
                         return (
-                          <View key={idx} style={styles.productItem}>
+                          <View key={detail.id || idx} style={styles.productItem}>
                             {imageUrl ? (
                               <Image
                                 source={{ uri: imageUrl }}
