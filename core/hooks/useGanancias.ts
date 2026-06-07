@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useReducer, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import {
   getDriverEarnings,
@@ -17,22 +17,56 @@ import {
   RecentDeliveryItem,
 } from '../actions/ganancias-actions';
 
+interface GananciasState {
+  earnings: DriverEarnings | null;
+  paidInvoices: PaidInvoice[];
+  monthlyStats: MonthlyStatItem[];
+  weeklyStats: WeeklyStatItem[];
+  deliveryStats: DriverWeeklyStats | null;
+  topRoute: DriverTopRoute | null;
+  recentDeliveries: RecentDeliveryItem[];
+  isLoading: boolean;
+  error: string | null;
+}
+
+type GananciasAction =
+  | { type: 'FETCH_START' }
+  | { type: 'FETCH_SUCCESS'; payload: Omit<GananciasState, 'isLoading' | 'error'> }
+  | { type: 'FETCH_ERROR'; error: string }
+  | { type: 'CLEAR' };
+
+const initialState: GananciasState = {
+  earnings: null,
+  paidInvoices: [],
+  monthlyStats: [],
+  weeklyStats: [],
+  deliveryStats: null,
+  topRoute: null,
+  recentDeliveries: [],
+  isLoading: true,
+  error: null,
+};
+
+function gananciasReducer(state: GananciasState, action: GananciasAction): GananciasState {
+  switch (action.type) {
+    case 'FETCH_START':
+      return { ...state, isLoading: true, error: null };
+    case 'FETCH_SUCCESS':
+      return { ...state, ...action.payload, isLoading: false, error: null };
+    case 'FETCH_ERROR':
+      return { ...state, error: action.error, isLoading: false };
+    case 'CLEAR':
+      return initialState;
+  }
+}
+
 export const useGanancias = () => {
-  const [earnings, setEarnings] = useState<DriverEarnings | null>(null);
-  const [paidInvoices, setPaidInvoices] = useState<PaidInvoice[]>([]);
-  const [monthlyStats, setMonthlyStats] = useState<MonthlyStatItem[]>([]);
-  const [weeklyStats, setWeeklyStats] = useState<WeeklyStatItem[]>([]);
-  const [deliveryStats, setDeliveryStats] = useState<DriverWeeklyStats | null>(null);
-  const [topRoute, setTopRoute] = useState<DriverTopRoute | null>(null);
-  const [recentDeliveries, setRecentDeliveries] = useState<RecentDeliveryItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [state, dispatch] = useReducer(gananciasReducer, initialState);
   const { isAuthenticated } = useAuth();
   const wasAuthenticatedRef = useRef(isAuthenticated);
 
   const fetchData = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
+    dispatch({ type: 'FETCH_START' });
     try {
       const [
         earningsData,
@@ -52,18 +86,21 @@ export const useGanancias = () => {
         getDriverRecentDeliveries(),
       ]);
 
-      setEarnings(earningsData);
-      setPaidInvoices(paidInvoicesData);
-      setMonthlyStats(monthlyData);
-      setWeeklyStats(weeklyData);
-      setDeliveryStats(deliveryStatsData);
-      setTopRoute(topRouteData);
-      setRecentDeliveries(recentDeliveriesData);
+      dispatch({
+        type: 'FETCH_SUCCESS',
+        payload: {
+          earnings: earningsData,
+          paidInvoices: paidInvoicesData,
+          monthlyStats: monthlyData,
+          weeklyStats: weeklyData,
+          deliveryStats: deliveryStatsData,
+          topRoute: topRouteData,
+          recentDeliveries: recentDeliveriesData,
+        },
+      });
     } catch (err: any) {
       console.error('useGanancias fetch error', err);
-      setError(err instanceof Error ? err.message : 'Error loading data');
-    } finally {
-      setIsLoading(false);
+      dispatch({ type: 'FETCH_ERROR', error: err instanceof Error ? err.message : 'Error loading data' });
     }
   }, []);
 
@@ -71,29 +108,21 @@ export const useGanancias = () => {
     if (isAuthenticated && !wasAuthenticatedRef.current) {
       fetchData();
     } else if (!isAuthenticated) {
-      setIsLoading(false);
-      setError(null);
-      setEarnings(null);
-      setPaidInvoices([]);
-      setMonthlyStats([]);
-      setWeeklyStats([]);
-      setDeliveryStats(null);
-      setTopRoute(null);
-      setRecentDeliveries([]);
+      dispatch({ type: 'CLEAR' });
     }
     wasAuthenticatedRef.current = isAuthenticated;
   }, [isAuthenticated, fetchData]);
 
   return {
-    earnings,
-    paidInvoices,
-    monthlyStats,
-    weeklyStats,
-    deliveryStats,
-    topRoute,
-    recentDeliveries,
-    isLoading,
-    error,
+    earnings: state.earnings,
+    paidInvoices: state.paidInvoices,
+    monthlyStats: state.monthlyStats,
+    weeklyStats: state.weeklyStats,
+    deliveryStats: state.deliveryStats,
+    topRoute: state.topRoute,
+    recentDeliveries: state.recentDeliveries,
+    isLoading: state.isLoading,
+    error: state.error,
     refresh: fetchData,
   };
 };

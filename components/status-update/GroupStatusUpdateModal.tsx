@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -89,7 +89,7 @@ export default function GroupStatusUpdateModal({
   const [loading, setLoading] = useState<boolean>(false);
   const [note, setNote] = useState<string>("");
   const [amountPaid, setAmountPaid] = useState<string>("");
-  const [amountPaidEdited, setAmountPaidEdited] = useState<boolean>(false);
+  const amountPaidEditedRef = useRef<boolean>(false);
   const [additionalAmount, setAdditionalAmount] = useState<string>("");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
     number | null
@@ -128,7 +128,7 @@ export default function GroupStatusUpdateModal({
     const isNowDelivered = newStatus === IDeliveryStatus.DELIVERED;
     if (isPickupType && isNowDelivered) {
       setAmountPaid("0");
-    } else if (isNowDelivered && !isPickupType && !amountPaidEdited) {
+    } else if (isNowDelivered && !isPickupType && !amountPaidEditedRef.current) {
       setAmountPaid(String(totalAmount));
       if (totalAmount === 0) {
         const transferencia = paymentMethods.find(
@@ -137,7 +137,7 @@ export default function GroupStatusUpdateModal({
         if (transferencia) setSelectedPaymentMethod(transferencia.id);
       }
     }
-  }, [isPickupType, amountPaidEdited, totalAmount, paymentMethods]);
+  }, [isPickupType, totalAmount, paymentMethods]);
 
   const currentHour = useMemo(() => new Date().getHours(), []);
 
@@ -322,7 +322,7 @@ export default function GroupStatusUpdateModal({
       setPhotoUri(null);
       setImageUri(null);
       setAmountPaid("");
-      setAmountPaidEdited(false);
+      amountPaidEditedRef.current = false;
       setAdditionalAmount("");
       setSelectedPaymentMethod(null);
       resetVerificationCode();

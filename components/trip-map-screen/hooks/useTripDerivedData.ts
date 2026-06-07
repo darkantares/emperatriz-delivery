@@ -18,24 +18,23 @@ export function useTripDerivedData(
     if (!tripData.waypoints || tripData.waypoints.length === 0) return [];
 
     const waypointsData: WaypointWithDelivery[] = tripData.waypoints
-      .map((wp: any, idx: number) => {
-        if (!wp) return null;
-        if (!wp.location || wp.location.length < 2) return null;
+      .flatMap((wp: any, idx: number): WaypointWithDelivery[] => {
+        if (!wp) return [];
+        if (!wp.location || wp.location.length < 2) return [];
         const delivery =
           wp.assignmentId != null
             ? tripDeliveries.find((d) => d.id === String(wp.assignmentId))
             : tripDeliveries[wp.waypoint_index];
-        if (!delivery) return null;
-        return {
+        if (!delivery) return [];
+        return [{
           coordinate: {
             latitude: wp.location[1],
             longitude: wp.location[0],
           },
           delivery,
           index: wp.waypoint_index,
-        };
-      })
-      .filter(Boolean) as WaypointWithDelivery[];
+        }];
+      });
 
     return groupWaypointsByCoordinates(waypointsData);
   }, [tripData, tripDeliveries]);
@@ -46,14 +45,13 @@ export function useTripDerivedData(
     if (!trip || !trip.geometry || !trip.geometry.coordinates) return [];
 
     return trip.geometry.coordinates
-      .map((coord: number[], idx: number) => {
-        if (!coord || coord.length < 2 || coord[0] == null || coord[1] == null) return null;
-        return {
+      .flatMap((coord: number[]): Coordinate[] => {
+        if (!coord || coord.length < 2 || coord[0] == null || coord[1] == null) return [];
+        return [{
           latitude: coord[1],
           longitude: coord[0],
-        };
-      })
-      .filter(Boolean) as Coordinate[];
+        }];
+      });
   }, [tripData]);
 
   const totalDistance = useMemo(() => {

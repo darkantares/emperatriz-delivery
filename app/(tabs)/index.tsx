@@ -128,21 +128,17 @@ function TabOneScreenContent() {
     return base;
   }, [isAdmin]);
 
-  useEffect(() => {
-    if (!visibleTabs.includes(activeTab)) {
-      setActiveTab("Entregas");
-    }
-  }, [visibleTabs, activeTab]);
+  const effectiveActiveTab = visibleTabs.includes(activeTab) ? activeTab : "Entregas";
 
   // compute header title based on current tab
   const headerTitle =
-    activeTab === "Ganancias"
+    effectiveActiveTab === "Ganancias"
       ? "Mis ganancias"
-      : activeTab === "Entregas"
+      : effectiveActiveTab === "Entregas"
       ? "Entregas"
-      : activeTab === "Pagos"
+      : effectiveActiveTab === "Pagos"
       ? "Historial de pagos"
-      : activeTab === "Estadísticas"
+      : effectiveActiveTab === "Estadísticas"
       ? "Estadísticas"
       : "Gestiones";  
 
@@ -281,7 +277,7 @@ function TabOneScreenContent() {
 
           <SegmentedTabs tabs={visibleTabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
-          {activeTab === "Entregas" ? (
+          {effectiveActiveTab === "Entregas" ? (
             <DeliveryItemList
               data={deliveries}
               loading={loading}
@@ -291,22 +287,22 @@ function TabOneScreenContent() {
               contentContainerStyle={{ paddingBottom: 120 }}
               style={{ flex: 1 }}
             />
-          ) : activeTab === "Gestiones" ? (
+          ) : effectiveActiveTab === "Gestiones" ? (
             <GestionesContent />
           ) : (
             <ScrollView
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.scrollContent}
             >
-              {activeTab === "Ganancias" && (
+              {effectiveActiveTab === "Ganancias" && (
                 <>
                   <EarningsCard earnings={earnings} deliveries={deliveryStats} isLoading={gananciaLoading} />
                   <TopRoute route={topRoute} isLoading={gananciaLoading} />
                   <RecentDeliveries items={recentDeliveries} isLoading={gananciaLoading} />
                 </>
               )}
-              {activeTab === "Pagos" && <PayoutHistory items={paidInvoices} isLoading={gananciaLoading} />}
-              {activeTab === "Estadísticas" && <StatsCharts monthlyStats={monthlyStats} weeklyStats={weeklyStats} isLoading={gananciaLoading} />}
+              {effectiveActiveTab === "Pagos" && <PayoutHistory items={paidInvoices} isLoading={gananciaLoading} />}
+              {effectiveActiveTab === "Estadísticas" && <StatsCharts monthlyStats={monthlyStats} weeklyStats={weeklyStats} isLoading={gananciaLoading} />}
 
               <RNView style={{ height: 120 }} />
             </ScrollView>

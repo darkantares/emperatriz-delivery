@@ -105,12 +105,11 @@ export default function AssignmentDetailsModal({
                     contentContainerStyle={styles.productsScrollContent}
                   >
                     {assignment.relatedOrder.orderDetails
-                      .filter((detail) => detail.type === 'PRODUCT')
-                      .map((detail, idx) => {
+                      .reduce<React.ReactNode[]>((acc, detail, idx) => {
+                        if (detail.type !== 'PRODUCT') return acc;
                         const imageUrl = detail.product?.files?.[0]?.url;
                         console.log('DETAIL:', detail.product);
-                        
-                        return (
+                        acc.push(
                           <View key={detail.id || idx} style={styles.productItem}>
                             {imageUrl ? (
                               <Image
@@ -131,7 +130,8 @@ export default function AssignmentDetailsModal({
                             ) : null}
                           </View>
                         );
-                      })}
+                        return acc;
+                      }, [])}
                   </ScrollView>
                 </View>
               )}

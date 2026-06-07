@@ -14,10 +14,12 @@ export function useStatusData(currentStatus: string) {
     const [loadingStatuses, setLoadingStatuses] = useState<boolean>(true);
 
     useEffect(() => {
+        let cancelled = false;
         const loadStatuses = async () => {
             if (!areStatusesLoaded()) {
                 try {
                     const data = await getDeliveryStatuses();
+                    if (cancelled) return;
                     if (data && data.length > 0) {
                         setDeliveryStatuses(data);
                         setAllStatuses(getCachedStatuses());
@@ -26,16 +28,17 @@ export function useStatusData(currentStatus: string) {
                         return;
                     }
                 } catch {
-                    Alert.alert('Error', 'Error de conexión al cargar los estados');
+                    if (!cancelled) Alert.alert('Error', 'Error de conexión al cargar los estados');
                     return;
                 }
             } else {
                 setAllStatuses(getCachedStatuses());
             }
-            setLoadingStatuses(false);
+            if (!cancelled) setLoadingStatuses(false);
         };
 
         loadStatuses();
+        return () => { cancelled = true; };
     }, []);
 
     const availableStatuses = useMemo(() => {
@@ -50,9 +53,10 @@ export function useStatusData(currentStatus: string) {
         if (currentStatusAsEnum && validStatusTransitions[currentStatusAsEnum]) {
             validNextStatuses = validStatusTransitions[currentStatusAsEnum];
         } else {
-            validNextStatuses = allStatuses
-                .filter((status) => status.title !== currentStatus)
-                .map((status) => status.title);
+            validNextStatuses = allStatuses.reduce<string[]>((acc, status) => {
+                if (status.title !== currentStatus) acc.push(status.title);
+                return acc;
+            }, []);
         }
 
         return allStatuses.filter((status) =>

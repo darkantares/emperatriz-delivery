@@ -73,7 +73,9 @@ export const DeliveryItemList: React.FC<DeliveryItemListProps> = ({
 }) => {
   const { carrier } = useAuth();
   const openSwipeableRef = useRef<Swipeable | null>(null);
-  const rowSwipeables = useRef(new Map<string, Swipeable | null>());
+  const rowSwipeablesRef = useRef<Map<string, Swipeable | null>>(null);
+  if (rowSwipeablesRef.current === null) rowSwipeablesRef.current = new Map();
+  const rowSwipeables = rowSwipeablesRef as React.MutableRefObject<Map<string, Swipeable | null>>;
 
   const getMessengerPhone = (item: DeliveryItemAdapter) => carrier?.phone ?? item.phone;
 

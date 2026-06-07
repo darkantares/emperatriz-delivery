@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback, useReducer } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Location from "expo-location";
@@ -13,14 +13,13 @@ import { styles } from "@/components/trip-map-screen/tripMapStyles";
 import { Coordinate } from "@/components/trip-map-screen/types";
 import { useTripDerivedData } from "@/components/trip-map-screen/hooks/useTripDerivedData";
 import { useTripModals } from "@/components/trip-map-screen/hooks/useTripModals";
-import { useGroupProgressHandlers } from "@/components/trip-map-screen/hooks/useGroupProgressHandlers";
+import { useGroupProgressHandlers, progressionReducer, type ProgressionState } from "@/components/trip-map-screen/hooks/useGroupProgressHandlers";
 import { useMapCommunication } from "@/components/trip-map-screen/hooks/useMapCommunication";
 import { useSocketRouteUpdates } from "@/components/trip-map-screen/hooks/useSocketRouteUpdates";
 import { useRouteDeviation } from "@/components/trip-map-screen/hooks/useRouteDeviation";
 import { useGpsTracking } from "@/components/trip-map-screen/hooks/useGpsTracking";
 import { useSimulation } from "@/components/trip-map-screen/hooks/useSimulation";
 import { useTripRouteSync } from "@/components/trip-map-screen/hooks/useTripRouteSync";
-import { useWaypointProgression } from "@/components/trip-map-screen/hooks/useWaypointProgression";
 import TripMapView from "@/components/trip-map-screen/components/TripMapView";
 import MapControls from "@/components/trip-map-screen/components/MapControls";
 import SimulationControls from "@/components/trip-map-screen/components/SimulationControls";
@@ -45,17 +44,18 @@ export default function TripMapScreen() {
     useTripDerivedData(tripData, tripDeliveries);
 
   // ===== Waypoint progression =====
-  const [currentTargetGroupIndex, setCurrentTargetGroupIndex] = useState<number>(0);
-  const [completedDeliveryIds, setCompletedDeliveryIds] = useState<Set<string>>(new Set());
-  const [deliveryStatusOverrides, setDeliveryStatusOverrides] = useState<Map<string, string>>(new Map());
+  const initialProgression: ProgressionState = {
+    currentTargetGroupIndex: 0,
+    completedDeliveryIds: new Set(),
+    deliveryStatusOverrides: new Map(),
+  };
+  const [progression, dispatch] = useReducer(progressionReducer, initialProgression);
 
   // Reset progression state when trip data changes
   const tripDataRef = useRef(tripData);
   useEffect(() => {
     if (tripData !== tripDataRef.current) {
-      setCurrentTargetGroupIndex(0);
-      setCompletedDeliveryIds(new Set());
-      setDeliveryStatusOverrides(new Map());
+      dispatch({ type: "RESET" });
       tripDataRef.current = tripData;
     }
   }, [tripData]);
@@ -99,13 +99,11 @@ export default function TripMapScreen() {
   // ===== Handlers =====
 
   const { handleProgressGroup, handleGroupCompleted } = useGroupProgressHandlers({
-    deliveryStatusOverrides,
-    setDeliveryStatusOverrides,
+    progression,
+    dispatch,
     setIsTraveling,
     setTripDeliveries,
-    setCompletedDeliveryIds,
     groupedWaypoints,
-    currentTargetGroupIndex,
     tripDeliveries,
     router,
     setGroupStatusModalParams,
@@ -166,14 +164,7 @@ export default function TripMapScreen() {
     currentPosition,
     currentIndex,
     isTraveling,
-    currentTargetGroupIndex,
-  });
-
-  useWaypointProgression({
-    groupedWaypoints,
-    completedDeliveryIds,
-    currentTargetGroupIndex,
-    onAdvanceTarget: useCallback((next: number) => setCurrentTargetGroupIndex(next), []),
+    currentTargetGroupIndex: progression.currentTargetGroupIndex,
   });
 
   // ===== Effects =====
@@ -245,16 +236,16 @@ export default function TripMapScreen() {
   }
 
   // Determine current group status for the control button
-  const currentGroup = groupedWaypoints[currentTargetGroupIndex];
+  const currentGroup = groupedWaypoints[progression.currentTargetGroupIndex];
   if (!currentGroup) {
-    console.log("[TripMapScreen][DEBUG] render: currentGroup null para index", currentTargetGroupIndex, "total grupos:", groupedWaypoints.length);
+    console.log("[TripMapScreen][DEBUG] render: currentGroup null para index", progression.currentTargetGroupIndex, "total grupos:", groupedWaypoints.length);
   }
   if (currentGroup && (!currentGroup.deliveries || currentGroup.deliveries.length === 0)) {
-    console.log("[TripMapScreen][DEBUG] render: currentGroup.deliveries vacío para index", currentTargetGroupIndex);
+    console.log("[TripMapScreen][DEBUG] render: currentGroup.deliveries vacío para index", progression.currentTargetGroupIndex);
   }
 
   const currentGroupStatus = currentGroup
-    ? (deliveryStatusOverrides.get(currentGroup.deliveries?.[0]?.id) ??
+    ? (progression.deliveryStatusOverrides.get(currentGroup.deliveries?.[0]?.id) ??
       currentGroup.deliveries?.[0]?.deliveryStatus?.title)
     : null;
   const hasAssignments = tripDeliveries.length > 0;

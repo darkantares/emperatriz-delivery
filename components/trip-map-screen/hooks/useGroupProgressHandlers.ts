@@ -4,6 +4,41 @@ import { IDeliveryStatus } from "@/interfaces/delivery/deliveryStatus";
 import { AssignmentType } from "@/utils/enum";
 import { WaypointGroup } from "../types";
 
+export interface ProgressionState {
+  currentTargetGroupIndex: number;
+  completedDeliveryIds: Set<string>;
+  deliveryStatusOverrides: Map<string, string>;
+}
+
+export type ProgressionAction =
+  | { type: "RESET" }
+  | { type: "SET_TARGET_INDEX"; index: number }
+  | { type: "ADD_COMPLETED_IDS"; ids: string[] }
+  | { type: "SET_STATUS_OVERRIDES"; updater: (prev: Map<string, string>) => Map<string, string> };
+
+export function progressionReducer(
+  state: ProgressionState,
+  action: ProgressionAction,
+): ProgressionState {
+  switch (action.type) {
+    case "RESET":
+      return {
+        currentTargetGroupIndex: 0,
+        completedDeliveryIds: new Set(),
+        deliveryStatusOverrides: new Map(),
+      };
+    case "SET_TARGET_INDEX":
+      return { ...state, currentTargetGroupIndex: action.index };
+    case "ADD_COMPLETED_IDS": {
+      const next = new Set(state.completedDeliveryIds);
+      action.ids.forEach((id) => next.add(id));
+      return { ...state, completedDeliveryIds: next };
+    }
+    case "SET_STATUS_OVERRIDES":
+      return { ...state, deliveryStatusOverrides: action.updater(state.deliveryStatusOverrides) };
+  }
+}
+
 export interface GroupProgressHandlersResult {
   handleProgressGroup: (deliveries: DeliveryItemAdapter[]) => void;
   handleGroupCompleted: (
@@ -14,13 +49,11 @@ export interface GroupProgressHandlersResult {
 }
 
 export interface GroupProgressHandlersParams {
-  deliveryStatusOverrides: Map<string, string>;
-  setDeliveryStatusOverrides: React.Dispatch<React.SetStateAction<Map<string, string>>>;
+  progression: ProgressionState;
+  dispatch: React.Dispatch<ProgressionAction>;
   setIsTraveling: React.Dispatch<React.SetStateAction<boolean>>;
   setTripDeliveries: (deliveries: DeliveryItemAdapter[]) => void;
-  setCompletedDeliveryIds: React.Dispatch<React.SetStateAction<Set<string>>>;
   groupedWaypoints: WaypointGroup[];
-  currentTargetGroupIndex: number;
   tripDeliveries: DeliveryItemAdapter[];
   router: { back: () => void };
   setGroupStatusModalParams: React.Dispatch<React.SetStateAction<{
@@ -34,18 +67,18 @@ export interface GroupProgressHandlersParams {
 }
 
 export function useGroupProgressHandlers({
-  deliveryStatusOverrides,
-  setDeliveryStatusOverrides,
+  progression,
+  dispatch,
   setIsTraveling,
   setTripDeliveries,
-  setCompletedDeliveryIds,
   groupedWaypoints,
-  currentTargetGroupIndex,
   tripDeliveries,
   router,
   setGroupStatusModalParams,
   setGroupStatusModalVisible,
 }: GroupProgressHandlersParams): GroupProgressHandlersResult {
+  const { currentTargetGroupIndex, deliveryStatusOverrides } = progression;
+
   const handleProgressGroup = useCallback((deliveries: DeliveryItemAdapter[]) => {
     console.log("[TripMapScreen] handleProgressGroup llamado con deliveries:", deliveries);
 
@@ -118,10 +151,13 @@ export function useGroupProgressHandlers({
       return;
     }
 
-    setDeliveryStatusOverrides((prev) => {
-      const next = new Map(prev);
-      ids.forEach((id) => next.set(id, newStatus));
-      return next;
+    dispatch({
+      type: "SET_STATUS_OVERRIDES",
+      updater: (prev) => {
+        const next = new Map(prev);
+        ids.forEach((id) => next.set(id, newStatus));
+        return next;
+      },
     });
 
     if (newStatus === IDeliveryStatus.IN_PROGRESS) {
@@ -152,12 +188,18 @@ export function useGroupProgressHandlers({
     ];
     if (!terminalStatuses.includes(newStatus)) return;
 
-    setCompletedDeliveryIds((prev) => {
-      const next = new Set(prev);
-      ids.forEach((id) => next.add(id));
-      return next;
-    });
-  }, [setDeliveryStatusOverrides, setIsTraveling, setTripDeliveries, setCompletedDeliveryIds, router]);
+    dispatch({ type: "ADD_COMPLETED_IDS", ids });
+
+    const currentGroup = groupedWaypoints[currentTargetGroupIndex];
+    if (
+      currentGroup?.deliveries?.every(
+        (d) => d && d.id,
+      ) &&
+      currentTargetGroupIndex < groupedWaypoints.length - 1
+    ) {
+      setTimeout(() => dispatch({ type: "SET_TARGET_INDEX", index: currentTargetGroupIndex + 1 }), 0);
+    }
+  }, [dispatch, setIsTraveling, setTripDeliveries, router, groupedWaypoints, currentTargetGroupIndex]);
 
   return { handleProgressGroup, handleGroupCompleted };
 }

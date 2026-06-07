@@ -39,10 +39,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Verificar autenticación al inicio
   useEffect(() => {
+    let cancelled = false;
     const checkAuth = async () => {
       setIsLoading(true);
       try {
         const isAuth = await authService.isAuthenticated();
+
+        if (cancelled) return;
 
         if (isAuth) {
           // Sincronizar usuario con backend en cada carga/recarga.
@@ -81,11 +84,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCarrier(null);
         setRoles(null);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
 
     checkAuth();
+    return () => { cancelled = true; };
   }, []);
 
   // Gestionar tracking de ubicación basado en autenticación

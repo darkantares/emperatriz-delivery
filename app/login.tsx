@@ -41,22 +41,31 @@ export default function LoginScreen() {
     const login = authLogin as (email: string, password: string) => Promise<LoginResult>;
 
     React.useEffect(() => {
+        const controller = new AbortController();
 
         const checkConnection = async () => {
             await authService.logout();
             const result = await checkApiConnectivity();
-            setApiStatus({
-                connected: result.success,
-                message: result.success ? '' : `Error de conexión: ${result.error}`
-            });
+            if (!controller.signal.aborted) {
+                setApiStatus({
+                    connected: result.success,
+                    message: result.success ? '' : `Error de conexión: ${result.error}`
+                });
+            }
         };
 
         checkConnection();
 
-        fetch(`${API_URL}/app-version/delivery`)
+        fetch(`${API_URL}/app-version/delivery`, { signal: controller.signal })
             .then((res) => res.json())
-            .then((data) => setAppVersion(data.version))
+            .then((data) => {
+                if (!controller.signal.aborted) {
+                    setAppVersion(data.version);
+                }
+            })
             .catch(() => {});
+
+        return () => controller.abort();
     }, []);
 
     const checkServerConnection = async () => {

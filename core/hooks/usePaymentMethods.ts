@@ -7,15 +7,17 @@ export function usePaymentMethods() {
     const [paymentMethods, setPaymentMethods] = useState<IPaymentMethodEntity[]>([]);
 
     useEffect(() => {
+        let cancelled = false;
         const loadPaymentMethods = async () => {
             try {
                 const data = await getPaymentMethods();
-                setPaymentMethods(data);
+                if (!cancelled) setPaymentMethods(data);
             } catch {
-                Alert.alert('Error', 'No se pudieron cargar los métodos de pago');
+                if (!cancelled) Alert.alert('Error', 'No se pudieron cargar los métodos de pago');
             }
         };
         loadPaymentMethods();
+        return () => { cancelled = true; };
     }, []);
 
     return { paymentMethods };

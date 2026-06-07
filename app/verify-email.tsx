@@ -28,10 +28,11 @@ export default function VerifyEmailScreen() {
 
     // Obtener email del storage o parámetro
     useEffect(() => {
+        let cancelled = false;
         const getEmail = async () => {
             try {
                 const authData = await authService.getAuthData();
-                if (authData.user?.email) {
+                if (!cancelled && authData.user?.email) {
                     setEmail(authData.user.email);
                 }
             } catch (error) {
@@ -40,6 +41,7 @@ export default function VerifyEmailScreen() {
         };
 
         getEmail();
+        return () => { cancelled = true; };
     }, []);
 
     // Countdown timer para resend

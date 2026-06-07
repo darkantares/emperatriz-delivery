@@ -65,8 +65,56 @@ export function useOTAUpdates(): OTAUpdatesState {
   };
 
   useEffect(() => {
-    runUpdateCheck();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    let cancelled = false;
+    const originalSetStatus = setStatus;
+    const originalSetError = setError;
+    const originalSetForce = setIsForceUpdateRequired;
+
+    const run = async () => {
+      if (isRunning.current || cancelled) return;
+      isRunning.current = true;
+      originalSetError(null);
+
+      try {
+        originalSetStatus('checking');
+
+        const currentVersion: string =
+          (Constants.expoConfig?.version ?? '1.0.0') as string;
+        const minVersion = await fetchMinVersionRequired();
+
+        if (cancelled) return;
+
+        if (checkMinimumVersionRequired(currentVersion, minVersion)) {
+          originalSetForce(true);
+          originalSetStatus('downloading');
+
+          const result = await checkAndApplyUpdate();
+          if (cancelled) return;
+          if (result.error) {
+            originalSetError(result.error);
+            originalSetStatus('error');
+          }
+        } else {
+          originalSetStatus('downloading');
+          const result = await checkAndApplyUpdate();
+          if (cancelled) return;
+          if (result.error) {
+            console.warn('[OTA] Background update check failed:', result.error.message);
+          }
+          originalSetStatus('idle');
+        }
+      } catch (e) {
+        if (!cancelled) {
+          originalSetError(e as Error);
+          originalSetStatus('error');
+        }
+      } finally {
+        isRunning.current = false;
+      }
+    };
+
+    run();
+    return () => { cancelled = true; };
   }, []);
 
   return {
