@@ -45,6 +45,38 @@ interface ProveedorRow {
 
 type FilterValue = 'todas' | 'vencidas' | 'por_vencer' | 'vigentes';
 
+function aggregateByProveedor(data: FacturaCXP[]): ProveedorRow[] {
+  const map = new Map<number, ProveedorRow>();
+
+  for (const inv of data) {
+    const id = inv.provider?.id;
+    if (!id) continue;
+
+    const current = map.get(id) || {
+      proveedorId: id,
+      provider: inv.provider?.title || 'N/D',
+      saldoPendiente: 0,
+      documentos: 0,
+      bankInfo: `${inv.provider?.bank?.title || 'N/D'} - ${inv.provider?.bankAccountType?.title || 'N/D'} - ${inv.provider?.bank_account_number || 'N/D'}`,
+    };
+
+    current.saldoPendiente += Number(inv.outstanding_balance) || 0;
+    current.documentos += 1;
+    map.set(id, current);
+  }
+
+  return Array.from(map.values()).sort((a, b) => b.saldoPendiente - a.saldoPendiente);
+}
+
+function formatCurrency(value: number): string {
+  return value.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
 export function GestionesContent() {
   const toast = useToast();
 
@@ -120,29 +152,6 @@ export function GestionesContent() {
     setTotalVigentes(vigentes);
   };
 
-  const aggregateByProveedor = (data: FacturaCXP[]): ProveedorRow[] => {
-    const map = new Map<number, ProveedorRow>();
-
-    for (const inv of data) {
-      const id = inv.provider?.id;
-      if (!id) continue;
-
-      const current = map.get(id) || {
-        proveedorId: id,
-        provider: inv.provider?.title || 'N/D',
-        saldoPendiente: 0,
-        documentos: 0,
-        bankInfo: `${inv.provider?.bank?.title || 'N/D'} - ${inv.provider?.bankAccountType?.title || 'N/D'} - ${inv.provider?.bank_account_number || 'N/D'}`,
-      };
-
-      current.saldoPendiente += Number(inv.outstanding_balance) || 0;
-      current.documentos += 1;
-      map.set(id, current);
-    }
-
-    return Array.from(map.values()).sort((a, b) => b.saldoPendiente - a.saldoPendiente);
-  };
-
   const computeAllProveedores = (data: FacturaCXP[]) => {
     setAllProveedores(aggregateByProveedor(data));
   };
@@ -155,15 +164,6 @@ export function GestionesContent() {
 
   const toggleExpand = (providerId: number) => {
     setExpandedProviderId(prev => (prev === providerId ? null : providerId));
-  };
-
-  const formatCurrency = (value: number) => {
-    return value.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  };
-
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
   const payDebt = async (providerData: ProveedorRow) => {
@@ -202,7 +202,10 @@ export function GestionesContent() {
   const showPayAllDialog = () => setPayAllDialogVisible(true);
 
   const executePayAllDebts = async () => {
-    const pendingIds = invoices.filter(inv => inv.invoice_status === 'pending').map(inv => inv.id);
+    const pendingIds = invoices.reduce<number[]>((acc, inv) => {
+      if (inv.invoice_status === 'pending') acc.push(inv.id);
+      return acc;
+    }, []);
 
     if (pendingIds.length === 0) {
       toast.show('No hay facturas pendientes para pagar', { type: 'info', duration: 3000 });

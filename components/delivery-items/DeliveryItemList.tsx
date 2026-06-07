@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   FlatList,
   StyleSheet,
@@ -12,7 +12,7 @@ import {
   Linking,
   Alert,
 } from 'react-native';
-import AnimatedReanimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import AnimatedReanimated, { useSharedValue, useAnimatedStyle, withTiming, withDelay } from 'react-native-reanimated';
 import { Swipeable, RectButton } from 'react-native-gesture-handler';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { DeliveryItem } from './DeliveryItem';
@@ -31,8 +31,8 @@ const AnimatedRow = ({ children, index }: { children: React.ReactNode; index: nu
   }));
 
   useEffect(() => {
-    fadeAnim.value = withTiming(1, { duration: 500, delay: index * 60 });
-    slideAnim.value = withTiming(0, { duration: 500, delay: index * 60 });
+    fadeAnim.value = withDelay(index * 60, withTiming(1, { duration: 500 }));
+    slideAnim.value = withDelay(index * 60, withTiming(0, { duration: 500 }));
   }, []);
 
   return (
@@ -53,6 +53,14 @@ interface DeliveryItemListProps {
 }
 
 const actionButtonWidth = 110;
+
+function formatPhone(phone: string): string {
+  return phone.replace(/\D/g, '');
+}
+
+function getKeyExtractor(item: DeliveryItemAdapter): string {
+  return item.id;
+}
 
 export const DeliveryItemList: React.FC<DeliveryItemListProps> = ({
   data,
@@ -75,8 +83,6 @@ export const DeliveryItemList: React.FC<DeliveryItemListProps> = ({
       openSwipeableRef.current = null;
     }
   };
-
-  const formatPhone = (phone: string) => phone.replace(/\D/g, '');
 
   const handleWhatsApp = async (item: DeliveryItemAdapter) => {
     const phone = getMessengerPhone(item);
@@ -231,8 +237,6 @@ https://maps.google.com/?q=${lat},${lon}`;
       </AnimatedRow>
     );
   };
-
-  const getKeyExtractor = (item: DeliveryItemAdapter) => item.id;
 
   if (loading && data.length === 0) {
     return (

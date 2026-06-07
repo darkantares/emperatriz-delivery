@@ -49,6 +49,13 @@ function roundToHalfHour(hours: number, minutes: number): { hours: number; minut
   return { hours, minutes: rounded };
 }
 
+const STATUSES_REQUIRING_NOTE = [
+  IDeliveryStatus.CANCELLED,
+  IDeliveryStatus.RETURNED,
+  IDeliveryStatus.ON_HOLD,
+  IDeliveryStatus.SCHEDULED,
+];
+
 export interface GroupStatusUpdateModalProps {
   visible: boolean;
   onClose: () => void;
@@ -78,22 +85,6 @@ export default function GroupStatusUpdateModal({
 
   const [selectedStatus, setSelectedStatusRaw] = useState<string | null>(null);
   const { availableStatuses, loadingStatuses } = useStatusData(currentStatus);
-
-  const handleSelectStatus = useCallback((newStatus: string | null) => {
-    setSelectedStatusRaw(newStatus);
-    const isNowDelivered = newStatus === IDeliveryStatus.DELIVERED;
-    if (isPickupType && isNowDelivered) {
-      setAmountPaid("0");
-    } else if (isNowDelivered && !isPickupType && !amountPaidEdited) {
-      setAmountPaid(String(totalAmount));
-      if (totalAmount === 0) {
-        const transferencia = paymentMethods.find(
-          (pm) => pm.title?.toLowerCase() === "transferencia",
-        );
-        if (transferencia) setSelectedPaymentMethod(transferencia.id);
-      }
-    }
-  }, [isPickupType, amountPaidEdited, totalAmount, paymentMethods]);
   const [loading, setLoading] = useState<boolean>(false);
   const [note, setNote] = useState<string>("");
   const [photoUri, setPhotoUri] = useState<string | null>(null);
@@ -117,19 +108,29 @@ export default function GroupStatusUpdateModal({
   const [showPaymentMethodPicker, setShowPaymentMethodPicker] =
     useState<boolean>(false);
 
+  const handleSelectStatus = useCallback((newStatus: string | null) => {
+    setSelectedStatusRaw(newStatus);
+    const isNowDelivered = newStatus === IDeliveryStatus.DELIVERED;
+    if (isPickupType && isNowDelivered) {
+      setAmountPaid("0");
+    } else if (isNowDelivered && !isPickupType && !amountPaidEdited) {
+      setAmountPaid(String(totalAmount));
+      if (totalAmount === 0) {
+        const transferencia = paymentMethods.find(
+          (pm) => pm.title?.toLowerCase() === "transferencia",
+        );
+        if (transferencia) setSelectedPaymentMethod(transferencia.id);
+      }
+    }
+  }, [isPickupType, amountPaidEdited, totalAmount, paymentMethods]);
+
   const currentHour = useMemo(() => new Date().getHours(), []);
-  const statusesRequiringNote = [
-    IDeliveryStatus.CANCELLED,
-    IDeliveryStatus.RETURNED,
-    IDeliveryStatus.ON_HOLD,
-    IDeliveryStatus.SCHEDULED,
-  ];
 
   const isDelivered = selectedStatus === IDeliveryStatus.DELIVERED;
   const isScheduled = selectedStatus === IDeliveryStatus.SCHEDULED;
   const requiresNote =
     selectedStatus &&
-    statusesRequiringNote.includes(selectedStatus as IDeliveryStatus);
+    STATUSES_REQUIRING_NOTE.includes(selectedStatus as IDeliveryStatus);
   const requiresPaymentInfo = isDelivered && !isPickupType;
   const requiresVerificationCode = isDelivered;
 

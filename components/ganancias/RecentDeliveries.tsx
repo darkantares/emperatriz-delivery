@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, withDelay } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { CustomColors } from '@/constants/CustomColors';
 import { RecentDeliveryItem } from '@/core/actions/ganancias-actions';
@@ -29,8 +29,8 @@ const ActivityRow = ({ item, index }: { item: RecentDeliveryItem; index: number 
     }));
 
     useEffect(() => {
-        slideAnim.value = withTiming(0, { duration: 400, delay: 100 * index });
-        opacityAnim.value = withTiming(1, { duration: 400, delay: 100 * index });
+        slideAnim.value = withDelay(100 * index, withTiming(0, { duration: 400 }));
+        opacityAnim.value = withDelay(100 * index, withTiming(1, { duration: 400 }));
     }, []);
 
     return (
@@ -64,8 +64,8 @@ const RecentDeliveries = ({ items = EMPTY_ITEMS, isLoading = false }: RecentDeli
     }));
 
     useEffect(() => {
-        fadeAnim.value = withTiming(1, { duration: 700, delay: 450 });
-        slideAnim.value = withTiming(0, { duration: 700, delay: 450 });
+        fadeAnim.value = withDelay(450, withTiming(1, { duration: 700 }));
+        slideAnim.value = withDelay(450, withTiming(0, { duration: 700 }));
     }, []);
 
     return (

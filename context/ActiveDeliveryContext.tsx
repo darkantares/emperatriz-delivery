@@ -11,6 +11,21 @@ interface ActiveDeliveryContextType {
 
 const ActiveDeliveryContext = createContext<ActiveDeliveryContextType | undefined>(undefined);
 
+function getNextDeliveryToProcess(deliveries: DeliveryItemAdapter[]): DeliveryItemAdapter | null {
+  const completedStatuses = [
+    // IDeliveryStatus.COMPLETED,
+    IDeliveryStatus.RETURNED,
+    // IDeliveryStatus.FAILED,
+    IDeliveryStatus.CANCELLED
+  ];
+
+  const nextDelivery = deliveries.find(delivery => 
+    !completedStatuses.includes(delivery.deliveryStatus.title as IDeliveryStatus)
+  );
+
+  return nextDelivery || null;
+}
+
 export const useActiveDelivery = () => {
   const context = useContext(ActiveDeliveryContext);
   if (!context) {
@@ -21,21 +36,6 @@ export const useActiveDelivery = () => {
 
 export const ActiveDeliveryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeDelivery, setActiveDelivery] = useState<DeliveryItemAdapter | null>(null);
-
-  const getNextDeliveryToProcess = useCallback((deliveries: DeliveryItemAdapter[]): DeliveryItemAdapter | null => {
-    const completedStatuses = [
-      // IDeliveryStatus.COMPLETED,
-      IDeliveryStatus.RETURNED,
-      // IDeliveryStatus.FAILED,
-      IDeliveryStatus.CANCELLED
-    ];
-
-    const nextDelivery = deliveries.find(delivery => 
-      !completedStatuses.includes(delivery.deliveryStatus.title as IDeliveryStatus)
-    );
-
-    return nextDelivery || null;
-  }, []);
 
   const canProcessNewDelivery = useCallback((_deliveries: DeliveryItemAdapter[]): boolean => {
     return activeDelivery === null;

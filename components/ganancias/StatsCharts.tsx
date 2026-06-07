@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming, withDelay } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, withDelay, interpolate } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { CustomColors } from '@/constants/CustomColors';
 import { MonthlyStatItem, WeeklyStatItem } from '@/core/actions/ganancias-actions';
@@ -12,10 +12,7 @@ const AnimatedBar = ({ ratio, delay, color }: { ratio: number; delay: number; co
     const heightAnim = useSharedValue(0);
 
     const barStyle = useAnimatedStyle(() => ({
-        height: heightAnim.value.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0, 100],
-        }),
+        height: interpolate(heightAnim.value, [0, 1], [0, 100]),
         backgroundColor: color,
     }));
 
@@ -80,7 +77,7 @@ const StatsCharts = ({ monthlyStats = EMPTY_MONTHLY, weeklyStats = EMPTY_WEEKLY,
                     ) : (
                         <>
                             <View style={styles.chartArea}>
-                                {monthlyStats.map((item) => (
+                                {monthlyStats.map((item, index) => (
                                     <View key={item.month} style={styles.barGroup}>
                                         <View style={styles.barContainer}>
                                             <AnimatedBar ratio={item.value / maxMonthly} delay={80 * index} color={CustomColors.primary} />
@@ -119,7 +116,7 @@ const StatsCharts = ({ monthlyStats = EMPTY_MONTHLY, weeklyStats = EMPTY_WEEKLY,
                     ) : (
                         <>
                             <View style={styles.chartArea}>
-                                {weeklyStats.map((item) => (
+                                {weeklyStats.map((item, index) => (
                                     <View key={item.day} style={styles.barGroup}>
                                         <View style={styles.barContainer}>
                                             <AnimatedBar ratio={item.value / maxWeekly} delay={80 * index} color="#059669" />

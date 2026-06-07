@@ -36,39 +36,38 @@ interface RouteProviderProps {
   children: ReactNode;
 }
 
+function prepareRouteData(allDeliveries: DeliveryItemAdapter[]) {
+  const pendingDeliveries = allDeliveries.filter(delivery => {
+    console.log('delivery: ', delivery.id, 'status: ', delivery.deliveryStatus.title, 'nominatim: ', delivery.additionalDataNominatim);
+    
+    const isPending = delivery.deliveryStatus.title !== IDeliveryStatus.DELIVERED &&
+                     delivery.deliveryStatus.title !== IDeliveryStatus.CANCELLED &&
+                     delivery.deliveryStatus.title !== IDeliveryStatus.RETURNED &&
+                     delivery.deliveryStatus.title !== IDeliveryStatus.SCHEDULED;
+
+    const hasCoordinates = delivery.additionalDataNominatim?.lat &&
+                          delivery.additionalDataNominatim?.lon;
+
+    return isPending && hasCoordinates;
+  });
+
+  if (pendingDeliveries.length === 0) {
+    return null;
+  } 
+
+  const coordinates = pendingDeliveries.map(delivery => ({
+    latitude: parseFloat(delivery.additionalDataNominatim.lat),
+    longitude: parseFloat(delivery.additionalDataNominatim.lon),
+  }));
+
+  return { pendingDeliveries, coordinates };
+}
+
 export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
   const { data: tripData, loading: tripLoading, error: tripError, fetchTrip, setTripData } = useOsrmTrip();
   const [tripDeliveries, setTripDeliveries] = useState<DeliveryItemAdapter[]>([]);
   const [isOptimizing, setIsOptimizing] = useState<boolean>(false);
   const { user, carrier } = useAuth();
-
-  // Función auxiliar para preparar deliveries y coordenadas
-  const prepareRouteData = (allDeliveries: DeliveryItemAdapter[]) => {
-    const pendingDeliveries = allDeliveries.filter(delivery => {
-      console.log('delivery: ', delivery.id, 'status: ', delivery.deliveryStatus.title, 'nominatim: ', delivery.additionalDataNominatim);
-      
-      const isPending = delivery.deliveryStatus.title !== IDeliveryStatus.DELIVERED &&
-                       delivery.deliveryStatus.title !== IDeliveryStatus.CANCELLED &&
-                       delivery.deliveryStatus.title !== IDeliveryStatus.RETURNED &&
-                       delivery.deliveryStatus.title !== IDeliveryStatus.SCHEDULED;
-
-      const hasCoordinates = delivery.additionalDataNominatim?.lat &&
-                            delivery.additionalDataNominatim?.lon;
-
-      return isPending && hasCoordinates;
-    });
-
-    if (pendingDeliveries.length === 0) {
-      return null;
-    } 
-
-    const coordinates = pendingDeliveries.map(delivery => ({
-      latitude: parseFloat(delivery.additionalDataNominatim.lat),
-      longitude: parseFloat(delivery.additionalDataNominatim.lon),
-    }));
-
-    return { pendingDeliveries, coordinates };
-  };
 
   // Método para iniciar rutas con optimización del backend
   const startRoutes = async (allDeliveries: DeliveryItemAdapter[]) => {

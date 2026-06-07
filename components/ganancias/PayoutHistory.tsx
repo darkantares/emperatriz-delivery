@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, withDelay } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { CustomColors } from '@/constants/CustomColors';
 import { PaidInvoice } from '@/core/actions/ganancias-actions';
@@ -23,8 +23,8 @@ const PayoutCard = ({ item, index }: { item: PaidInvoice; index: number }) => {
     }));
 
     useEffect(() => {
-        slideAnim.value = withTiming(0, { duration: 500, delay: 120 * index });
-        opacityAnim.value = withTiming(1, { duration: 500, delay: 120 * index });
+        slideAnim.value = withDelay(120 * index, withTiming(0, { duration: 500 }));
+        opacityAnim.value = withDelay(120 * index, withTiming(1, { duration: 500 }));
     }, []);
 
     return (

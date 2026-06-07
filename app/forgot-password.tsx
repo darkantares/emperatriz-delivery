@@ -22,6 +22,15 @@ import {
     clearRecoveryState,
 } from '@/utils/passwordRecovery';
 
+async function handleCancelNavigation() {
+    await clearRecoveryState();
+    router.replace('/login');
+}
+
+function handleGoToLoginNavigation() {
+    router.replace('/login');
+}
+
 export default function ForgotPasswordScreen() {
     const [email, setEmail] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -64,14 +73,8 @@ export default function ForgotPasswordScreen() {
         }
     };
 
-    const handleCancel = async () => {
-        await clearRecoveryState();
-        router.replace('/login');
-    };
-
-    const handleGoToLogin = () => {
-        router.replace('/login');
-    };
+    const handleCancel = handleCancelNavigation;
+    const handleGoToLogin = handleGoToLoginNavigation;
 
     if (step === 'login_with_temp') {
         return (
