@@ -34,7 +34,7 @@ async function isBatteryOptimizationEnabled(): Promise<boolean> {
   }
 }
 
-export async function openBatteryOptimizationSettings(): Promise<void> {
+async function openBatteryOptimizationSettings(): Promise<void> {
   if (Platform.OS !== 'android') return;
 
   try {

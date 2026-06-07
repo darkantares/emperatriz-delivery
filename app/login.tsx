@@ -4,12 +4,12 @@ import {
     TextInput,
     Pressable,
     ActivityIndicator,
-    Image,
     KeyboardAvoidingView,
     Platform,
     Alert,
     ScrollView,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Text, View } from '@/components/Themed';
 import { useAuth } from '@/context/AuthContext';
 // Define la interfaz para el resultado del login para manejar los detalles
@@ -156,7 +156,7 @@ export default function LoginScreen() {
                         <Image
                             source={require('@/assets/images/screen.png')}
                             style={styles.logo}
-                            resizeMode="contain"
+                            contentFit="contain"
                         />
                         <Text style={styles.title}>Tiendas Dominicanas Mensajeria</Text>
                         <Text style={styles.apiUrl}>

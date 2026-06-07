@@ -42,7 +42,7 @@ export function EvidenceSection({
             <Text style={styles.imageTypeLabel}>Foto de cámara:</Text>
             {photoUri ? (
               <View style={styles.photoPreviewContainer}>
-                <Image source={{ uri: photoUri }} style={styles.photoPreviewHalf} />
+                <Image source={{ uri: photoUri }} style={styles.photoPreviewHalf} contentFit="cover" />
                 <Pressable style={styles.removePhotoButton} onPress={removePhoto}>
                   <Text style={styles.removePhotoText}>✕</Text>
                 </Pressable>
@@ -65,7 +65,7 @@ export function EvidenceSection({
             <Text style={styles.imageTypeLabel}>Imagen de galería:</Text>
             {imageUri ? (
               <View style={styles.photoPreviewContainer}>
-                <Image source={{ uri: imageUri }} style={styles.photoPreviewHalf} />
+                <Image source={{ uri: imageUri }} style={styles.photoPreviewHalf} contentFit="cover" />
                 <Pressable style={styles.removePhotoButton} onPress={removeImage}>
                   <Text style={styles.removePhotoText}>✕</Text>
                 </Pressable>
@@ -95,7 +95,7 @@ export function EvidenceSection({
               {photoUri ? (
                 <View>
                   <View style={styles.photoPreviewContainer}>
-                    <Image source={{ uri: photoUri }} style={styles.photoPreview} />
+                    <Image source={{ uri: photoUri }} style={styles.photoPreview} contentFit="cover" />
                     <Pressable style={styles.removePhotoButton} onPress={removePhoto}>
                       <Text style={styles.removePhotoText}>✕</Text>
                     </Pressable>
@@ -116,7 +116,7 @@ export function EvidenceSection({
                 <View>
                   <Text style={styles.imageTypeLabel}>Imagen de galería:</Text>
                   <View style={styles.photoPreviewContainer}>
-                    <Image source={{ uri: imageUri }} style={styles.photoPreview} />
+                    <Image source={{ uri: imageUri }} style={styles.photoPreview} contentFit="cover" />
                     <Pressable style={styles.removePhotoButton} onPress={removeImage}>
                       <Text style={styles.removePhotoText}>✕</Text>
                     </Pressable>

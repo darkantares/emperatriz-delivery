@@ -4,16 +4,16 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import * as Location from "expo-location";
 import { CustomColors } from "@/constants/CustomColors";
 import { DeliveryItemAdapter } from "@/interfaces/delivery/deliveryAdapters";
-import { IDeliveryStatus } from "@/interfaces/delivery/deliveryStatus";
-import { AssignmentType } from "@/utils/enum";
 import { useRouteContext } from "@/contexts/RouteContext";
 import RouteInfoPanel from "@/components/RouteInfoPanel";
 import AssignmentDetailsModal from "@/components/AssignmentDetailsModal";
 import GroupStatusUpdateModal from "@/components/status-update/GroupStatusUpdateModal";
 import { useRouter } from "expo-router";
 import { styles } from "@/components/trip-map-screen/tripMapStyles";
-import { Coordinate, WaypointWithDelivery, WaypointGroup } from "@/components/trip-map-screen/types";
-import { groupWaypointsByCoordinates } from "@/components/trip-map-screen/utils/waypointUtils";
+import { Coordinate } from "@/components/trip-map-screen/types";
+import { useTripDerivedData } from "@/components/trip-map-screen/hooks/useTripDerivedData";
+import { useTripModals } from "@/components/trip-map-screen/hooks/useTripModals";
+import { useGroupProgressHandlers } from "@/components/trip-map-screen/hooks/useGroupProgressHandlers";
 import { useMapCommunication } from "@/components/trip-map-screen/hooks/useMapCommunication";
 import { useSocketRouteUpdates } from "@/components/trip-map-screen/hooks/useSocketRouteUpdates";
 import { useRouteDeviation } from "@/components/trip-map-screen/hooks/useRouteDeviation";
@@ -40,28 +40,39 @@ export default function TripMapScreen() {
     setTripDeliveries,
   } = useRouteContext();
 
-  // ----- Route-derived state -----
-  const [groupedWaypoints, setGroupedWaypoints] = useState<WaypointGroup[]>([]);
-  const [routeCoordinates, setRouteCoordinates] = useState<Coordinate[]>([]);
-  const [totalDistance, setTotalDistance] = useState<number>(0);
-  const [totalDuration, setTotalDuration] = useState<number>(0);
+  // ===== Derived data from tripData =====
+  const { groupedWaypoints, routeCoordinates, totalDistance, totalDuration } =
+    useTripDerivedData(tripData, tripDeliveries);
 
-  // ----- Waypoint progression -----
+  // ===== Waypoint progression =====
   const [currentTargetGroupIndex, setCurrentTargetGroupIndex] = useState<number>(0);
   const [completedDeliveryIds, setCompletedDeliveryIds] = useState<Set<string>>(new Set());
   const [deliveryStatusOverrides, setDeliveryStatusOverrides] = useState<Map<string, string>>(new Map());
 
+  // Reset progression state when trip data changes
+  const tripDataRef = useRef(tripData);
+  useEffect(() => {
+    if (tripData !== tripDataRef.current) {
+      setCurrentTargetGroupIndex(0);
+      setCompletedDeliveryIds(new Set());
+      setDeliveryStatusOverrides(new Map());
+      tripDataRef.current = tripData;
+    }
+  }, [tripData]);
+
   // ----- Modal state -----
-  const [groupStatusModalVisible, setGroupStatusModalVisible] = useState(false);
-  const [groupStatusModalParams, setGroupStatusModalParams] = useState<{
-    ids: string[];
-    assignmentType: AssignmentType;
-    groupTitle: string;
-    currentStatus: string;
-    totalAmount: number;
-  } | null>(null);
-  const [assignmentModalVisible, setAssignmentModalVisible] = useState(false);
-  const [selectedAssignment, setSelectedAssignment] = useState<DeliveryItemAdapter | null>(null);
+  const {
+    groupStatusModalVisible,
+    groupStatusModalParams,
+    assignmentModalVisible,
+    selectedAssignment,
+    handleMarkerClick,
+    handleMarkerClickByDeliveryId,
+    setGroupStatusModalVisible,
+    setGroupStatusModalParams,
+    setSelectedAssignment,
+    setAssignmentModalVisible,
+  } = useTripModals(groupedWaypoints, tripDeliveries);
 
   // ----- Position tracking state -----
   const [isTraveling, setIsTraveling] = useState<boolean>(false);
@@ -87,156 +98,19 @@ export default function TripMapScreen() {
 
   // ===== Handlers =====
 
-  const handleMarkerClick = useCallback((groupIndex: number) => {
-    const group = groupedWaypoints[groupIndex];
-    if (!group) {
-      console.log("[TripMapScreen][DEBUG] handleMarkerClick: grupo no encontrado para index", groupIndex);
-      return;
-    }
-    if (!group.deliveries || group.deliveries.length === 0) {
-      console.log("[TripMapScreen][DEBUG] handleMarkerClick: group.deliveries vacío para index", groupIndex);
-      return;
-    }
-    setSelectedAssignment(group.deliveries[0]);
-    setAssignmentModalVisible(true);
-  }, [groupedWaypoints]);
-
-  const handleMarkerClickByDeliveryId = useCallback((deliveryId: string) => {
-    if (!deliveryId) {
-      console.log("[TripMapScreen][DEBUG] handleMarkerClickByDeliveryId: deliveryId es undefined/null");
-      return;
-    }
-    if (!tripDeliveries || tripDeliveries.length === 0) {
-      console.log("[TripMapScreen][DEBUG] handleMarkerClickByDeliveryId: tripDeliveries vacío, deliveryId:", deliveryId);
-    }
-    const found = tripDeliveries.find((d) => d.id === deliveryId);
-    if (found) {
-      setSelectedAssignment(found);
-      setAssignmentModalVisible(true);
-      return;
-    }
-    console.log("[TripMapScreen][DEBUG] handleMarkerClickByDeliveryId: deliveryId no encontrado en tripDeliveries, buscando en groupedWaypoints:", deliveryId);
-    const group = groupedWaypoints.find((g) => g.deliveries.some((d) => d.id === deliveryId));
-    if (group) {
-      setSelectedAssignment(group.deliveries[0]);
-      setAssignmentModalVisible(true);
-    } else {
-      console.log("[TripMapScreen][DEBUG] handleMarkerClickByDeliveryId: deliveryId no encontrado en groupedWaypoints:", deliveryId);
-    }
-  }, [tripDeliveries, groupedWaypoints]);
-
-  const handleProgressGroup = useCallback((deliveries: DeliveryItemAdapter[]) => {
-    console.log("[TripMapScreen] handleProgressGroup llamado con deliveries:", deliveries);
-
-    if (!Array.isArray(deliveries) || deliveries.length === 0) {
-      console.log("[TripMapScreen] No se pueden progresar 0 entregas");
-      return;
-    }
-
-    const first = deliveries[0];
-    if (!first) {
-      console.log("[TripMapScreen][DEBUG] handleProgressGroup: deliveries[0] es undefined/null");
-      return;
-    }
-
-    console.log("[TripMapScreen] Progresando grupo de entregas:", deliveries);
-
-    const type = deliveries[0].type;
-    if (type == null) {
-      console.log("[TripMapScreen][DEBUG] handleProgressGroup: deliveries[0].type es undefined/null");
-    }
-    const totalAmount = deliveries.reduce(
-      (sum, d) => sum + (d.deliveryCost || 0) + (d.amountToBeCharged || 0),
-      0,
-    );
-    const label = type === AssignmentType.PICKUP ? "Recogida" : "Entrega";
-    const client = deliveries[0].client;
-    if (client == null) {
-      console.log("[TripMapScreen][DEBUG] handleProgressGroup: deliveries[0].client es undefined/null");
-    }
-    const groupTitle =
-      deliveries.length === 1
-        ? `${label}: ${client}`
-        : `${deliveries.length} ${label}s en este punto`;
-
-    const firstId = deliveries[0].id;
-    if (firstId == null) {
-      console.log("[TripMapScreen][DEBUG] handleProgressGroup: deliveries[0].id es undefined/null");
-    }
-    if (!deliveries[0].deliveryStatus) {
-      console.log("[TripMapScreen][DEBUG] handleProgressGroup: deliveries[0].deliveryStatus es undefined/null");
-    }
-    const currentStatus =
-      deliveryStatusOverrides.get(firstId) ??
-      deliveries[0].deliveryStatus.title;
-
-    setGroupStatusModalParams({
-      ids: deliveries.map((d) => d.id),
-      assignmentType: type,
-      groupTitle,
-      currentStatus,
-      totalAmount,
-    });
-    setGroupStatusModalVisible(true);
-  }, [deliveryStatusOverrides]);
-
-  const handleGroupCompleted = useCallback((
-    ids: string[],
-    newStatus: string,
-    freshDeliveries: DeliveryItemAdapter[],
-  ) => {
-    if (!Array.isArray(ids)) {
-      console.log("[TripMapScreen][DEBUG] handleGroupCompleted: ids no es array", ids);
-      return;
-    }
-    if (!newStatus) {
-      console.log("[TripMapScreen][DEBUG] handleGroupCompleted: newStatus es null/undefined");
-    }
-    if (!Array.isArray(freshDeliveries)) {
-      console.log("[TripMapScreen][DEBUG] handleGroupCompleted: freshDeliveries no es array", freshDeliveries);
-      return;
-    }
-
-    setDeliveryStatusOverrides((prev) => {
-      const next = new Map(prev);
-      ids.forEach((id) => next.set(id, newStatus));
-      return next;
-    });
-
-    if (newStatus === IDeliveryStatus.IN_PROGRESS) {
-      console.log("[TripMapScreen] Iniciando viaje (estado: EN PROGRESO)");
-      setIsTraveling(true);
-    }
-
-    const filteredDeliveries = freshDeliveries.filter(
-      (d) => d && d.additionalDataNominatim?.lat && d.additionalDataNominatim?.lon,
-    );
-    const nullableCount = freshDeliveries.length - filteredDeliveries.length;
-    if (nullableCount > 0) {
-      console.log("[TripMapScreen][DEBUG] handleGroupCompleted: entregas sin additionalDataNominatim filtradas:", nullableCount);
-    }
-    setTripDeliveries(filteredDeliveries);
-
-    if (filteredDeliveries.length === 0) {
-      console.log("[TripMapScreen] No quedan entregas activas, volviendo a la pantalla principal");
-      router.back();
-      return;
-    }
-
-    const terminalStatuses: string[] = [
-      IDeliveryStatus.DELIVERED,
-      IDeliveryStatus.CANCELLED,
-      IDeliveryStatus.RETURNED,
-      IDeliveryStatus.SCHEDULED,
-    ];
-    if (!terminalStatuses.includes(newStatus)) return;
-
-    setCompletedDeliveryIds((prev) => {
-      const next = new Set(prev);
-      ids.forEach((id) => next.add(id));
-      return next;
-    });
-  }, [setTripDeliveries, router]);
+  const { handleProgressGroup, handleGroupCompleted } = useGroupProgressHandlers({
+    deliveryStatusOverrides,
+    setDeliveryStatusOverrides,
+    setIsTraveling,
+    setTripDeliveries,
+    setCompletedDeliveryIds,
+    groupedWaypoints,
+    currentTargetGroupIndex,
+    tripDeliveries,
+    router,
+    setGroupStatusModalParams,
+    setGroupStatusModalVisible,
+  });
 
   // ===== Hooks =====
 
@@ -346,93 +220,14 @@ export default function TripMapScreen() {
     })();
   }, []);
 
-  // Process trip data into routeCoordinates, groupedWaypoints, etc.
+  // Initialize remaining distance/duration when trip data changes
   useEffect(() => {
-    if (!tripData || !tripData.trips || tripData.trips.length === 0) {
-      console.log("[TripMapScreen][DEBUG] data useEffect: tripData.trips vacío o null, tripData:", tripData ? "exists" : "null");
-      return;
-    }
-
-    try {
+    if (tripData?.trips?.[0]) {
       const trip = tripData.trips[0];
-      if (!trip) {
-        console.log("[TripMapScreen][DEBUG] data useEffect: tripData.trips[0] es null");
-        return;
-      }
-      console.log("[TripMapScreen] Deliveries recibidos:", tripDeliveries?.length ?? 0);
-
-      if (tripData.waypoints && tripData.waypoints.length > 0) {
-        const waypointsData: WaypointWithDelivery[] = tripData.waypoints
-          .map((wp: any, idx: number) => {
-            if (!wp) {
-              console.log("[TripMapScreen][DEBUG] data useEffect: wp null en waypoint index", idx);
-              return null;
-            }
-            if (!wp.location || wp.location.length < 2) {
-              console.log("[TripMapScreen][DEBUG] data useEffect: wp.location inválido en waypoint", idx, "wp:", JSON.stringify(wp));
-              return null;
-            }
-            const delivery =
-              wp.assignmentId != null
-                ? tripDeliveries.find((d) => d.id === String(wp.assignmentId))
-                : tripDeliveries[wp.waypoint_index];
-            if (!delivery) {
-              console.log("[TripMapScreen][DEBUG] data useEffect: delivery no encontrado para waypoint", idx, "assignmentId:", wp.assignmentId, "waypoint_index:", wp.waypoint_index);
-              return null;
-            }
-            return {
-              coordinate: {
-                latitude: wp.location[1],
-                longitude: wp.location[0],
-              },
-              delivery,
-              index: wp.waypoint_index,
-            };
-          })
-          .filter(Boolean) as WaypointWithDelivery[];
-
-        const grouped = groupWaypointsByCoordinates(waypointsData);
-        setGroupedWaypoints(grouped);
-        console.log("[TripMapScreen] Grupos creados:", grouped.length);
-
-        setCurrentTargetGroupIndex(0);
-        setCompletedDeliveryIds(new Set());
-        setDeliveryStatusOverrides(new Map());
-      }
-
-      if (trip.geometry && trip.geometry.coordinates) {
-        const coords: Coordinate[] = trip.geometry.coordinates
-          .map((coord: number[], idx: number) => {
-            if (!coord || coord.length < 2 || coord[0] == null || coord[1] == null) {
-              console.log("[TripMapScreen][DEBUG] data useEffect: coord inválida en índice", idx, "coord:", JSON.stringify(coord));
-              return null;
-            }
-            return {
-              latitude: coord[1],
-              longitude: coord[0],
-            };
-          })
-          .filter(Boolean) as Coordinate[];
-        setRouteCoordinates(coords);
-        console.log("[TripMapScreen] Coordenadas de ruta extraídas:", coords.length);
-      } else {
-        console.log("[TripMapScreen][DEBUG] data useEffect: trip.geometry o trip.geometry.coordinates es null");
-      }
-
-      if (trip.distance == null) {
-        console.log("[TripMapScreen][DEBUG] data useEffect: trip.distance es null/undefined");
-      }
-      if (trip.duration == null) {
-        console.log("[TripMapScreen][DEBUG] data useEffect: trip.duration es null/undefined");
-      }
-      setTotalDistance(trip.distance);
-      setTotalDuration(trip.duration);
       setRemainingDistance(trip.distance);
       setRemainingDuration(trip.duration);
-    } catch (err: any) {
-      console.error("[TripMapScreen] Error procesando trip data:", err);
     }
-  }, [tripData, tripDeliveries]);
+  }, [tripData]);
 
   // ===== Render =====
 
@@ -527,6 +322,7 @@ export default function TripMapScreen() {
 
         {groupStatusModalParams && (
           <GroupStatusUpdateModal
+            key={groupStatusModalParams.currentStatus}
             visible={groupStatusModalVisible}
             onClose={() => setGroupStatusModalVisible(false)}
             onSuccess={(newStatus: string, freshDeliveries: DeliveryItemAdapter[]) =>

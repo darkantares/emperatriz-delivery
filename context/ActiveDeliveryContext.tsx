@@ -26,7 +26,7 @@ function getNextDeliveryToProcess(deliveries: DeliveryItemAdapter[]): DeliveryIt
   return nextDelivery || null;
 }
 
-export const useActiveDelivery = () => {
+const useActiveDelivery = () => {
   const context = useContext(ActiveDeliveryContext);
   if (!context) {
     throw new Error('useActiveDelivery must be used within an ActiveDeliveryProvider');

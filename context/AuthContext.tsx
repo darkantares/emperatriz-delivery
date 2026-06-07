@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { useToast } from 'react-native-toast-notifications';
 
 import { IUserEntity, IRolesAllowedEntity, DeliveryPersonEntity } from '@/interfaces/auth';
@@ -154,12 +154,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [isAuthenticated, user]);
 
   // Verifica si el usuario tiene un rol específico
-  const hasPermission = (roleTitle: string): boolean => {
+  const hasPermission = useCallback((roleTitle: string): boolean => {
     if (!roles) return false;
     return roles.some(role => role.title === roleTitle);
-  };
+  }, [roles]);
 
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     try {
       console.log('[AuthContext] login() iniciado');
       const result = await authService.login(email, password);
@@ -192,25 +192,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         details: error instanceof Error ? { message: error.message } : undefined
       };
     }
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     socketService.disconnect();
     await authService.logout();
     setIsAuthenticated(false);
     setUser(null);
     setCarrier(null);
     setRoles(null);
-  };
+  }, []);
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     const whoami = await authService.fetchWhoami();
     if (whoami.success && whoami.data) {
       setUser(whoami.data.user);
       setCarrier(whoami.data.carrier ?? null);
       setRoles(whoami.data.roles || []);
     }
-  };
+  }, []);
 
   useEffect(() => {
     // when the API signals authentication failure (401 + no refresh or refresh rejected)

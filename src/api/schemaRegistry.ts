@@ -16,7 +16,7 @@ const OkResultOf = <T extends z.ZodTypeAny>(schema: T) =>
 /**
  * Maps endpoint path prefixes to Zod schemas.
  */
-export const schemaRegistry: Record<string, AnySchema> = {
+const schemaRegistry: Record<string, AnySchema> = {
     '/auth/login-delivery':                OkLoginResponseSchema,
     '/delivery-assignments/courier':       OkOptimizedRouteSchema,
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import {
   getDriverEarnings,
@@ -28,12 +28,9 @@ export const useGanancias = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated } = useAuth();
+  const wasAuthenticatedRef = useRef(isAuthenticated);
 
   const fetchData = useCallback(async () => {
-    if (!isAuthenticated) {
-      return;
-    }
-
     setIsLoading(true);
     setError(null);
     try {
@@ -68,10 +65,12 @@ export const useGanancias = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated]);
+  }, []);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (isAuthenticated && !wasAuthenticatedRef.current) {
+      fetchData();
+    } else if (!isAuthenticated) {
       setIsLoading(false);
       setError(null);
       setEarnings(null);
@@ -81,11 +80,9 @@ export const useGanancias = () => {
       setDeliveryStats(null);
       setTopRoute(null);
       setRecentDeliveries([]);
-      return;
     }
-
-    fetchData();
-  }, [fetchData, isAuthenticated]);
+    wasAuthenticatedRef.current = isAuthenticated;
+  }, [isAuthenticated, fetchData]);
 
   return {
     earnings,

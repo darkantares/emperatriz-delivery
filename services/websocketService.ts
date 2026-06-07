@@ -24,7 +24,7 @@ export interface SocketParam<T> {
 	timestamp: string
 }
 
-export function checkPendingNotifications(): boolean {
+function checkPendingNotifications(): boolean {
   if (pendingNotification) {
     pendingNotification = false;
     return true;

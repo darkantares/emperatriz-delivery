@@ -15,7 +15,7 @@ const getStoredTokens = async () => {
   }
 };
 
-export const hasStoredAuthTokens = async (): Promise<boolean> => {
+const hasStoredAuthTokens = async (): Promise<boolean> => {
   const { accessToken, refreshToken } = await getStoredTokens();
   return Boolean(accessToken || refreshToken);
 };

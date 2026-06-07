@@ -11,7 +11,8 @@
     "update": "eas update --branch production --message \"OTA update\"",
     "update:preview": "eas update --branch preview --message \"Preview update\"",
     "build:android": "eas build --platform android --profile production",
-    "build:android:preview": "eas build --platform android --profile preview"
+    "build:android:preview": "eas build --platform android --profile preview",
+    "doctor": "npx react-doctor@latest"
   },
   "jest": {
     "preset": "jest-expo"

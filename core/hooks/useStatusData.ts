@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert } from 'react-native';
 import {
     areStatusesLoaded,
@@ -10,7 +10,7 @@ import {
 import { getDeliveryStatuses } from '@/core/actions/deliveryStatus.actions';
 
 export function useStatusData(currentStatus: string) {
-    const [availableStatuses, setAvailableStatuses] = useState<{ id: number; title: string }[]>([]);
+    const [allStatuses, setAllStatuses] = useState<{ id: number; title: string }[]>([]);
     const [loadingStatuses, setLoadingStatuses] = useState<boolean>(true);
 
     useEffect(() => {
@@ -20,52 +20,45 @@ export function useStatusData(currentStatus: string) {
                     const data = await getDeliveryStatuses();
                     if (data && data.length > 0) {
                         setDeliveryStatuses(data);
-                        setLoadingStatuses(false);
+                        setAllStatuses(getCachedStatuses());
                     } else {
                         Alert.alert('Error', 'No se pudieron cargar los estados de entrega');
-                        setLoadingStatuses(false);
                         return;
                     }
                 } catch {
                     Alert.alert('Error', 'Error de conexión al cargar los estados');
-                    setLoadingStatuses(false);
                     return;
                 }
-            }
-        };
-
-        const processStatuses = () => {
-            const allStatuses = getCachedStatuses();
-
-            const currentStatusAsEnum = Object.values(IDeliveryStatus).find(
-                (status) => status === currentStatus,
-            ) as IDeliveryStatus | undefined;
-
-            let validNextStatuses: string[] = [];
-
-            if (currentStatusAsEnum && validStatusTransitions[currentStatusAsEnum]) {
-                validNextStatuses = validStatusTransitions[currentStatusAsEnum];
             } else {
-                validNextStatuses = allStatuses
-                    .filter((status) => status.title !== currentStatus)
-                    .map((status) => status.title);
+                setAllStatuses(getCachedStatuses());
             }
-
-            const filteredStatuses = allStatuses.filter((status) =>
-                validNextStatuses.includes(status.title),
-            );
-
-            setAvailableStatuses(filteredStatuses);
             setLoadingStatuses(false);
         };
 
-        loadStatuses().then(processStatuses);
+        loadStatuses();
+    }, []);
 
-        return () => {
-            setAvailableStatuses([]);
-            setLoadingStatuses(true);
-        };
-    }, [currentStatus]);
+    const availableStatuses = useMemo(() => {
+        if (allStatuses.length === 0) return [];
+
+        const currentStatusAsEnum = Object.values(IDeliveryStatus).find(
+            (status) => status === currentStatus,
+        ) as IDeliveryStatus | undefined;
+
+        let validNextStatuses: string[] = [];
+
+        if (currentStatusAsEnum && validStatusTransitions[currentStatusAsEnum]) {
+            validNextStatuses = validStatusTransitions[currentStatusAsEnum];
+        } else {
+            validNextStatuses = allStatuses
+                .filter((status) => status.title !== currentStatus)
+                .map((status) => status.title);
+        }
+
+        return allStatuses.filter((status) =>
+            validNextStatuses.includes(status.title),
+        );
+    }, [currentStatus, allStatuses]);
 
     return { availableStatuses, loadingStatuses };
 }

@@ -68,7 +68,7 @@ export interface OsrmWaypoint {
     hint: string;
 }
 
-export const getOsrmRoute = (params: OsrmRouteParams): Promise<OsrmRouteResult> => {
+const getOsrmRoute = (params: OsrmRouteParams): Promise<OsrmRouteResult> => {
     const coordinatesParam = `${params.origin.longitude},${params.origin.latitude};${params.destination.longitude},${params.destination.latitude}`;
 
     const queryParams = new URLSearchParams({

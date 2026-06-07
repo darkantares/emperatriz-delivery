@@ -5,5 +5,5 @@ import { BackendUrls } from '@/utils/enum';
 export const getDeliveryStatuses = (): Promise<IDeliveryStatusEntity[]> =>
     apiAction.get<IDeliveryStatusEntity[]>(`${BackendUrls.DeliveryStatus}`);
 
-export const getDeliveryStatusById = (id: number): Promise<IDeliveryStatusEntity> =>
+const getDeliveryStatusById = (id: number): Promise<IDeliveryStatusEntity> =>
     apiAction.get<IDeliveryStatusEntity>(`${BackendUrls.DeliveryStatus}/${id}`);

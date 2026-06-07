@@ -8,8 +8,8 @@ import {
   Alert,
   Text,
   ScrollView,
-  Image,
 } from "react-native";
+import { Image } from "expo-image";
 import { DeliveryItemAdapter } from "@/interfaces/delivery/deliveryAdapters";
 import { AssignmentType } from "@/utils/enum";
 import { CustomColors } from "@/constants/CustomColors";
@@ -116,7 +116,7 @@ export default function AssignmentDetailsModal({
                               <Image
                                 source={{ uri: imageUrl }}
                                 style={styles.productImage}
-                                resizeMode="cover"
+                                contentFit="cover"
                                 defaultSource={require("@/assets/images/icon.png")}
                               />
                             ) : (

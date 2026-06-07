@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -11,7 +11,6 @@ import {
   ScrollView,
 } from "react-native";
 import { TimePickerModal } from "react-native-paper-dates";
-import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { IGpsReading } from "@/interfaces/delivery/delivery";
 import {
@@ -39,6 +38,8 @@ import { useEvidenceFlags } from "@/core/hooks/useEvidenceFlags";
 import { usePaymentMethods } from "@/core/hooks/usePaymentMethods";
 import { useStatusData } from "@/core/hooks/useStatusData";
 import { Capitalize } from "@/utils/capitalize";
+import { useVerificationCode } from "@/components/status-update/useVerificationCode";
+import { usePhotoCapture } from "@/components/status-update/usePhotoCapture";
 
 /** Rounds minutes to the nearest valid 30-minute interval (0 or 30). */
 function roundToHalfHour(hours: number, minutes: number): { hours: number; minutes: number } {
@@ -87,18 +88,9 @@ export default function GroupStatusUpdateModal({
   const { availableStatuses, loadingStatuses } = useStatusData(currentStatus);
   const [loading, setLoading] = useState<boolean>(false);
   const [note, setNote] = useState<string>("");
-  const [photoUri, setPhotoUri] = useState<string | null>(null);
-  const [imageUri, setImageUri] = useState<string | null>(null);
   const [amountPaid, setAmountPaid] = useState<string>("");
   const [amountPaidEdited, setAmountPaidEdited] = useState<boolean>(false);
   const [additionalAmount, setAdditionalAmount] = useState<string>("");
-  const [verificationCode, setVerificationCode] = useState<string>("");
-  const [codeVerificationStatus, setCodeVerificationStatus] = useState<
-    "pending" | "valid" | "invalid"
-  >("pending");
-  const [failedAttempts, setFailedAttempts] = useState<number>(0);
-  const [isCodeLocked, setIsCodeLocked] = useState<boolean>(false);
-  const [lockTimeRemaining, setLockTimeRemaining] = useState<number>(0);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
     number | null
   >(null);
@@ -107,6 +99,29 @@ export default function GroupStatusUpdateModal({
   const { paymentMethods } = usePaymentMethods();
   const [showPaymentMethodPicker, setShowPaymentMethodPicker] =
     useState<boolean>(false);
+
+  const {
+    photoUri,
+    imageUri,
+    takePhoto,
+    selectImageFromGallery,
+    removePhoto,
+    removeImage,
+    setPhotoUri,
+    setImageUri,
+  } = usePhotoCapture();
+
+  const isDelivered = selectedStatus === IDeliveryStatus.DELIVERED;
+  const {
+    verificationCode,
+    codeVerificationStatus,
+    isCodeLocked,
+    lockTimeRemaining,
+    failedAttempts,
+    assignmentVerificationCode,
+    handleVerificationCodeChange,
+    resetVerificationCode,
+  } = useVerificationCode(deliveries, ids, isDelivered);
 
   const handleSelectStatus = useCallback((newStatus: string | null) => {
     setSelectedStatusRaw(newStatus);
@@ -126,7 +141,6 @@ export default function GroupStatusUpdateModal({
 
   const currentHour = useMemo(() => new Date().getHours(), []);
 
-  const isDelivered = selectedStatus === IDeliveryStatus.DELIVERED;
   const isScheduled = selectedStatus === IDeliveryStatus.SCHEDULED;
   const requiresNote =
     selectedStatus &&
@@ -150,7 +164,7 @@ export default function GroupStatusUpdateModal({
       amountPaid,
     );
 
-  const isFormValid =
+  const isFormValid: boolean = !!(
     selectedStatus &&
     availableStatuses.length > 0 &&
     (!requiresNote || note.trim() !== "") &&
@@ -160,109 +174,15 @@ export default function GroupStatusUpdateModal({
       (amountPaid.trim() !== "" && selectedPaymentMethod)) &&
     (!requiresVerificationCode ||
       (verificationCode.trim().length === 4 && codeVerificationStatus === "valid")) &&
-    (!isScheduled || scheduledAt !== null);
+    (!isScheduled || scheduledAt !== null)
+  );
 
-  useEffect(() => {
-    setSelectedStatusRaw(null);
-    setNote("");
-    setPhotoUri(null);
-    setImageUri(null);
-    setAmountPaid("");
-    setAdditionalAmount("");
-    setSelectedPaymentMethod(null);
-    setAmountPaidEdited(false);
-    setVerificationCode("");
-    setCodeVerificationStatus("pending");
-    setFailedAttempts(0);
-    setIsCodeLocked(false);
-    setLockTimeRemaining(0);
-    setScheduledAt(null);
-    setShowSchedulePicker(false);
-  }, [currentStatus]);
-
-  const assignmentVerificationCode = deliveries
-    .find((delivery) => ids.includes(delivery.id))
-    ?.deliveryVerificationCode;
-
-  // Validar código + contar intentos en un solo handler (consolida effects encadenados)
-  const handleVerificationCodeChange = (text: string) => {
-    const cleaned = text.replace(/[^0-9]/g, "").slice(0, 4);
-    setVerificationCode(cleaned);
-
-    if (isDelivered && cleaned.length === 4) {
-      const isValid = cleaned === assignmentVerificationCode;
-      setCodeVerificationStatus(isValid ? "valid" : "invalid");
-
-      if (!isValid) {
-        setFailedAttempts(prev => {
-          const newAttempts = prev + 1;
-          if (newAttempts >= 3) {
-            setIsCodeLocked(true);
-            setLockTimeRemaining(15);
-          }
-          return newAttempts;
-        });
-      }
-    } else if (cleaned.length === 0) {
-      setCodeVerificationStatus("pending");
-    }
-  };
-
-  // Timeout de 30 segundos después de 3 intentos fallidos
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    if (isCodeLocked && lockTimeRemaining > 0) {
-      timer = setTimeout(() => {
-        setLockTimeRemaining(prev => prev - 1);
-      }, 1000);
-    } else if (isCodeLocked && lockTimeRemaining === 0) {
-      setIsCodeLocked(false);
-      setFailedAttempts(0);
-      setVerificationCode("");
-      setCodeVerificationStatus("pending");
-    }
-    return () => {
-      if (timer) clearTimeout(timer);
-    };
-  }, [isCodeLocked, lockTimeRemaining]);
-
-  const takePhoto = async () => {
-    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permissionResult.granted) {
-      Alert.alert("Permiso denegado", "Se requiere permiso de cámara.", [{ text: "OK" }]);
-      return;
-    }
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.8,
-    });
-    if (!result.canceled && result.assets[0]) setPhotoUri(result.assets[0].uri);
-  };
-
-  const selectImageFromGallery = async () => {
-    const permissionResult =
-      await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permissionResult.granted) {
-      Alert.alert("Permiso denegado", "Se requiere acceso a la galería.", [{ text: "OK" }]);
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: "images",
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.8,
-    });
-    if (!result.canceled && result.assets[0]) setImageUri(result.assets[0].uri);
-  };
-
-  const removePhoto = () => setPhotoUri(null);
-  const removeImage = () => setImageUri(null);
 
   const handleClose = () => {
     setLoading(false);
     setScheduledAt(null);
     setShowSchedulePicker(false);
+    resetVerificationCode();
     onClose();
   };
 
@@ -405,11 +325,7 @@ export default function GroupStatusUpdateModal({
       setAmountPaidEdited(false);
       setAdditionalAmount("");
       setSelectedPaymentMethod(null);
-      setVerificationCode("");
-      setCodeVerificationStatus("pending");
-      setFailedAttempts(0);
-      setIsCodeLocked(false);
-      setLockTimeRemaining(0);
+      resetVerificationCode();
       setScheduledAt(null);
       setShowSchedulePicker(false);
 
@@ -532,84 +448,24 @@ export default function GroupStatusUpdateModal({
             )}
 
             {isDelivered && (
-              <View style={styles.paymentContainer}>
-                <View style={styles.codeVerificationLabelRow}>
-                  <View style={styles.labelContainer}>
-                    <Text style={styles.paymentLabel}>Código (Obligatorio):</Text>
-                    {__DEV__ && assignmentVerificationCode ? (
-                      <Text style={styles.devCodeHint}>{assignmentVerificationCode}</Text>
-                    ) : null}
-                  </View>
-                  {codeVerificationStatus === "valid" && (
-                    <Text style={styles.checkIcon}>✓</Text>
-                  )}
-                  {codeVerificationStatus === "invalid" &&
-                    verificationCode.length === 4 && (
-                      <Text style={styles.errorIcon}>✕</Text>
-                    )}
-                </View>
-                {isCodeLocked ? (
-                  <View style={styles.lockedCodeContainer}>
-                    <Text style={styles.lockedCodeText}>
-                      Demasiados intentos. Intenta en {lockTimeRemaining}s
-                    </Text>
-                  </View>
-                ) : (
-                  <>
-                    <TextInput
-                      style={[
-                        styles.paymentInput,
-                        codeVerificationStatus === "invalid" &&
-                          verificationCode.length === 4 &&
-                          styles.inputError,
-                        codeVerificationStatus === "valid" &&
-                          styles.inputSuccess,
-                      ]}
-                      placeholder="Ingresar código..."
-                      placeholderTextColor={CustomColors.divider}
-                      value={verificationCode}
-                      onChangeText={handleVerificationCodeChange}
-                      keyboardType="numeric"
-                      maxLength={4}
-                      returnKeyType="done"
-                      editable={!isCodeLocked}
-                    />
-                    {codeVerificationStatus === "invalid" &&
-                      verificationCode.length === 4 && (
-                        <Text style={styles.errorMessage}>
-                          Código incorrecto. Intentos restantes: {3 - failedAttempts}
-                        </Text>
-                      )}
-                  </>
-                )}
-              </View>
+              <VerificationCodeSection
+                verificationCode={verificationCode}
+                codeVerificationStatus={codeVerificationStatus}
+                isCodeLocked={isCodeLocked}
+                lockTimeRemaining={lockTimeRemaining}
+                failedAttempts={failedAttempts}
+                assignmentVerificationCode={assignmentVerificationCode}
+                onChange={handleVerificationCodeChange}
+              />
             )}
           </ScrollView>
 
-          <View style={styles.buttonContainer}>
-            <Pressable
-              style={[styles.button, styles.cancelButton]}
-              onPress={handleClose}
-              disabled={loading}
-            >
-              <Text style={styles.buttonText}>Cancelar</Text>
-            </Pressable>
-            <Pressable
-              style={[
-                styles.button,
-                styles.confirmButton,
-                (!isFormValid || loading) && styles.disabledButton,
-              ]}
-              onPress={handleConfirm}
-              disabled={!isFormValid || loading}
-            >
-              {loading ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Text style={styles.buttonText}>Guardar</Text>
-              )}
-            </Pressable>
-          </View>
+          <ModalFooter
+            onCancel={handleClose}
+            onConfirm={handleConfirm}
+            isValid={isFormValid}
+            loading={loading}
+          />
         </View>
       </View>
 
@@ -635,6 +491,91 @@ export default function GroupStatusUpdateModal({
         use24HourClock
       />
     </Modal>
+  );
+}
+
+interface VerificationCodeSectionProps {
+  verificationCode: string;
+  codeVerificationStatus: "pending" | "valid" | "invalid";
+  isCodeLocked: boolean;
+  lockTimeRemaining: number;
+  failedAttempts: number;
+  assignmentVerificationCode: string | null | undefined;
+  onChange: (text: string) => void;
+}
+
+function VerificationCodeSection({
+  verificationCode,
+  codeVerificationStatus,
+  isCodeLocked,
+  lockTimeRemaining,
+  failedAttempts,
+  assignmentVerificationCode,
+  onChange,
+}: VerificationCodeSectionProps) {
+  return (
+    <View style={styles.paymentContainer}>
+      <View style={styles.codeVerificationLabelRow}>
+        <View style={styles.labelContainer}>
+          <Text style={styles.paymentLabel}>Código (Obligatorio):</Text>
+          {__DEV__ && assignmentVerificationCode ? (
+            <Text style={styles.devCodeHint}>{assignmentVerificationCode}</Text>
+          ) : null}
+        </View>
+        {codeVerificationStatus === "valid" && <Text style={styles.checkIcon}>✓</Text>}
+        {codeVerificationStatus === "invalid" && verificationCode.length === 4 && <Text style={styles.errorIcon}>✕</Text>}
+      </View>
+      {isCodeLocked ? (
+        <View style={styles.lockedCodeContainer}>
+          <Text style={styles.lockedCodeText}>Demasiados intentos. Intenta en {lockTimeRemaining}s</Text>
+        </View>
+      ) : (
+        <>
+          <TextInput
+            style={[
+              styles.paymentInput,
+              codeVerificationStatus === "invalid" && verificationCode.length === 4 && styles.inputError,
+              codeVerificationStatus === "valid" && styles.inputSuccess,
+            ]}
+            placeholder="Ingresar código..."
+            placeholderTextColor={CustomColors.divider}
+            value={verificationCode}
+            onChangeText={onChange}
+            keyboardType="numeric"
+            maxLength={4}
+            returnKeyType="done"
+            editable={!isCodeLocked}
+          />
+          {codeVerificationStatus === "invalid" && verificationCode.length === 4 && (
+            <Text style={styles.errorMessage}>Código incorrecto. Intentos restantes: {3 - failedAttempts}</Text>
+          )}
+        </>
+      )}
+    </View>
+  );
+}
+
+interface ModalFooterProps {
+  onCancel: () => void;
+  onConfirm: () => void;
+  isValid: boolean;
+  loading: boolean;
+}
+
+function ModalFooter({ onCancel, onConfirm, isValid, loading }: ModalFooterProps) {
+  return (
+    <View style={styles.buttonContainer}>
+      <Pressable style={[styles.button, styles.cancelButton]} onPress={onCancel} disabled={loading}>
+        <Text style={styles.buttonText}>Cancelar</Text>
+      </Pressable>
+      <Pressable
+        style={[styles.button, styles.confirmButton, (!isValid || loading) && styles.disabledButton]}
+        onPress={onConfirm}
+        disabled={!isValid || loading}
+      >
+        {loading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.buttonText}>Guardar</Text>}
+      </Pressable>
+    </View>
   );
 }
 
@@ -868,13 +809,11 @@ const styles = StyleSheet.create({
     width: 150,
     height: 112,
     borderRadius: 8,
-    resizeMode: "cover",
   },
   photoPreviewHalf: {
     width: "100%",
     height: 100,
     borderRadius: 8,
-    resizeMode: "cover",
   },
   removePhotoButton: {
     position: "absolute",

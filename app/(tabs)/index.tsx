@@ -314,6 +314,7 @@ function TabOneScreenContent() {
 
           {groupStatusModalParams && (
             <GroupStatusUpdateModal
+              key={groupStatusModalParams.currentStatus}
               visible={groupStatusModalVisible}
               onClose={() => setGroupStatusModalVisible(false)}
               onSuccess={(newStatus) => {

@@ -69,7 +69,7 @@ export function adaptDeliveriesToAdapter(deliveries: IDeliveryAssignmentEntity[]
 }
 
 // Función para agrupar entregas por shipmentId cuando isGroup = true
-export function groupDeliveriesByShipment(deliveries: DeliveryItemAdapter[]): (DeliveryItemAdapter | DeliveryGroupAdapter)[] {
+function groupDeliveriesByShipment(deliveries: DeliveryItemAdapter[]): (DeliveryItemAdapter | DeliveryGroupAdapter)[] {
   const groupedDeliveries: Map<string, DeliveryItemAdapter[]> = new Map();
   const individualDeliveries: DeliveryItemAdapter[] = [];
 

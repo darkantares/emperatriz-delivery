@@ -44,7 +44,7 @@ export function checkPendingNotifications(): PendingNotification | null {
 }
 
 // Función para mostrar el toast directamente
-export function showToast(type: NotificationType, title: string, message: string) {
+function showToast(type: NotificationType, title: string, message: string) {
   Toast.show({
     type: type,
     text1: title,

@@ -7,7 +7,7 @@ import { getStoredTokens } from './auth-fetch';
 import { captureTokensFromHeaders } from './token-refresh-response';
 
 // Keys para almacenamiento
-export const AUTH_TOKEN_KEY = 'auth_token';
+const AUTH_TOKEN_KEY = 'auth_token';
 
 let authFailureHandler: (() => void | Promise<void>) | null = null;
 
@@ -49,7 +49,7 @@ const getProductImageUrl = () => {
 
 // URL base para todas las peticiones
 export const API_URL = getApiBaseUrl();
-export const PRODUCT_IMAGE_URL = getProductImageUrl();
+const PRODUCT_IMAGE_URL = getProductImageUrl();
 
 // Opciones por defecto para fetch
 const defaultOptions = {
@@ -128,7 +128,7 @@ const handleSuccessResponse = async <T>(response: Response): Promise<FetchRespon
 };
 
 // Función genérica para hacer peticiones a la API
-export const apiRequest = async <T>(endpoint: string, options: ApiOptions = {}): Promise<FetchResponse<T>> => {
+const apiRequest = async <T>(endpoint: string, options: ApiOptions = {}): Promise<FetchResponse<T>> => {
     try {
         // Asegurarse de que endpoint comienza con /
         const formattedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;

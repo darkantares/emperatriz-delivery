@@ -36,7 +36,7 @@ export interface ProductTypeEntity {
   title: ProductTypeEnum;
 }
 
-export enum ProductTypeEnum {
+enum ProductTypeEnum {
   PHYSICAL = 'physical',
   SERVICE = 'service',
   DIGITAL = 'digital',

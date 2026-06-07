@@ -14,34 +14,8 @@ import { CustomColors } from '@/constants/CustomColors';
 import { Ionicons } from '@expo/vector-icons';
 import { api, extractDataFromResponse } from '@/services/api';
 import { useToast } from 'react-native-toast-notifications';
-
-interface FacturaCXP {
-  id: number;
-  invoice_number: string;
-  provider: {
-    id: number;
-    title: string;
-    bank?: { title: string };
-    bankAccountType?: { title: string };
-    bank_account_number?: string;
-  };
-  issue_date: string;
-  due_date: string;
-  base_amount: number;
-  tax_amount: number;
-  total_amount: number;
-  outstanding_balance: number;
-  invoice_status: 'pending' | 'paid' | 'overdue' | 'cancelled';
-  concept?: string;
-}
-
-interface ProveedorRow {
-  proveedorId: number;
-  provider: string;
-  saldoPendiente: number;
-  documentos: number;
-  bankInfo: string;
-}
+import { ProviderCard, type FacturaCXP, type ProveedorRow } from './ProviderCard';
+import { SummaryCards } from './SummaryCards';
 
 type FilterValue = 'todas' | 'vencidas' | 'por_vencer' | 'vigentes';
 
@@ -295,25 +269,12 @@ export function GestionesContent() {
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={CustomColors.secondary} />}
       >
-        {/* Summary Cards */}
-        <RNView style={styles.cardsGrid}>
-          <RNView style={styles.card}>
-            <Text style={styles.cardLabel}>Total por pagar</Text>
-            <Text style={styles.cardValue}>{formatCurrency(totalPendiente)}</Text>
-          </RNView>
-          <RNView style={[styles.card, styles.cardOverdue]}>
-            <Text style={styles.cardLabel}>Vencidas</Text>
-            <Text style={[styles.cardValue, { color: '#ef4444' }]}>{formatCurrency(totalVencidas)}</Text>
-          </RNView>
-          <RNView style={[styles.card, styles.cardDueSoon]}>
-            <Text style={styles.cardLabel}>Por vencer</Text>
-            <Text style={[styles.cardValue, { color: '#f59e0b' }]}>{formatCurrency(totalPorVencer)}</Text>
-          </RNView>
-          <RNView style={[styles.card, styles.cardCurrent]}>
-            <Text style={styles.cardLabel}>Vigentes</Text>
-            <Text style={[styles.cardValue, { color: '#10b981' }]}>{formatCurrency(totalVigentes)}</Text>
-          </RNView>
-        </RNView>
+        <SummaryCards
+          totalPendiente={totalPendiente}
+          totalVencidas={totalVencidas}
+          totalPorVencer={totalPorVencer}
+          totalVigentes={totalVigentes}
+        />
 
         {/* Pay All Button */}
         <RNView style={styles.actionBar}>
@@ -336,180 +297,127 @@ export function GestionesContent() {
             <Text style={styles.emptyText}>No hay facturas pendientes</Text>
           </RNView>
         ) : (
-          allProveedores.map((row) => {
-            const isExpanded = expandedProviderId === row.proveedorId;
-            const providerInvoices = getProviderInvoices(row.proveedorId);
-
-            return (
-              <RNView key={row.proveedorId} style={styles.providerCard}>
-                <Pressable style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }, styles.providerHeader]} onPress={() => toggleExpand(row.proveedorId)}>
-                  <RNView style={styles.providerInfo}>
-                    <RNView style={styles.providerNameRow}>
-                      <Ionicons
-                        name={isExpanded ? 'chevron-down' : 'chevron-forward'}
-                        size={16}
-                        color={CustomColors.neutralLight}
-                        style={{ marginRight: 8 }}
-                      />
-                      <Text style={styles.providerName}>{row.provider}</Text>
-                    </RNView>
-                    <Text style={styles.bankInfo}>{row.bankInfo}</Text>
-                  </RNView>
-                  <RNView style={styles.providerMeta}>
-                    <Text style={styles.providerBalance}>{formatCurrency(row.saldoPendiente)}</Text>
-                    <Text style={styles.providerDocs}>{row.documentos} docs</Text>
-                  </RNView>
-                </Pressable>
-
-                {isExpanded && (
-                  <RNView style={styles.invoiceSubTable}>
-                    {providerInvoices.length === 0 ? (
-                      <Text style={styles.emptySubText}>No hay documentos para este proveedor.</Text>
-                    ) : (
-                      providerInvoices.map((inv) => (
-                        <RNView key={inv.id} style={styles.invoiceRow}>
-                          <RNView style={styles.invoiceRowHeader}>
-                            <Text style={styles.invoiceNumber}>#{inv.invoice_number}</Text>
-                            <RNView style={[styles.statusBadge, {
-                              backgroundColor: inv.invoice_status === 'paid' ? '#10b98120' : inv.invoice_status === 'overdue' ? '#ef444420' : '#f59e0b20',
-                            }]}>
-                              <Text style={[styles.statusText, {
-                                color: inv.invoice_status === 'paid' ? '#10b981' : inv.invoice_status === 'overdue' ? '#ef4444' : '#f59e0b',
-                              }]}>
-                                {inv.invoice_status === 'pending' ? 'Pendiente' : inv.invoice_status === 'paid' ? 'Pagada' : inv.invoice_status === 'overdue' ? 'Vencida' : 'Cancelada'}
-                              </Text>
-                            </RNView>
-                          </RNView>
-                          <RNView style={styles.invoiceDetails}>
-                            <Text style={styles.invoiceDetailText}>Concepto: {inv.concept || '-'}</Text>
-                            <Text style={styles.invoiceDetailText}>Emisión: {formatDate(inv.issue_date)}</Text>
-                            <Text style={styles.invoiceDetailText}>Vencimiento: {formatDate(inv.due_date)}</Text>
-                          </RNView>
-                          <RNView style={styles.invoiceAmounts}>
-                            <Text style={styles.invoiceAmountLabel}>Saldo pendiente:</Text>
-                            <Text style={styles.invoiceAmountValue}>{formatCurrency(inv.outstanding_balance)}</Text>
-                            <Text style={styles.invoiceAmountLabel}>Total:</Text>
-                            <Text style={styles.invoiceAmountValue}>{formatCurrency(inv.total_amount)}</Text>
-                          </RNView>
-                        </RNView>
-                      ))
-                    )}
-                  </RNView>
-                )}
-
-                <RNView style={styles.providerActions}>
-                  <Pressable
-                    style={styles.actionButton}
-                    onPress={() => payDebt(row)}
-                    disabled={isSaving}
-                  >
-                    <Ionicons name="card-outline" size={16} color={CustomColors.success} />
-                    <Text style={[styles.actionButtonText, { color: CustomColors.success }]}>Pagar</Text>
-                  </Pressable>
-                  <Pressable
-                    style={styles.actionButton}
-                    onPress={() => openCreditNoteDialog(row)}
-                    disabled={isSaving}
-                  >
-                    <Ionicons name="document-text-outline" size={16} color={CustomColors.secondary} />
-                    <Text style={[styles.actionButtonText, { color: CustomColors.secondary }]}>N. Crédito</Text>
-                  </Pressable>
-                </RNView>
-              </RNView>
-            );
-          })
+          allProveedores.map((row) => (
+            <ProviderCard
+              key={row.proveedorId}
+              row={row}
+              isExpanded={expandedProviderId === row.proveedorId}
+              invoices={getProviderInvoices(row.proveedorId)}
+              onToggle={() => toggleExpand(row.proveedorId)}
+              onPay={payDebt}
+              onCreditNote={openCreditNoteDialog}
+              isSaving={isSaving}
+            />
+          ))
         )}
 
         <RNView style={{ height: 40 }} />
       </ScrollView>
 
-      {/* Credit Note Dialog */}
-      <Modal visible={creditNoteDialogVisible} transparent animationType="fade">
-        <RNView style={styles.modalOverlay}>
-          <RNView style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Crear Nota de Crédito</Text>
+      <CreditNoteDialog
+        visible={creditNoteDialogVisible}
+        provider={selectedProviderForCN}
+        amount={creditNoteAmount}
+        description={creditNoteDescription}
+        onAmountChange={setCreditNoteAmount}
+        onDescChange={setCreditNoteDescription}
+        onSubmit={submitCreditNote}
+        onClose={hideCreditNoteDialog}
+        isSaving={isSaving}
+      />
 
-            {selectedProviderForCN && (
-              <RNView style={styles.modalProviderInfo}>
-                <Text style={styles.modalProviderName}>{selectedProviderForCN.provider}</Text>
-                <Text style={styles.modalProviderBalance}>Saldo pendiente: {formatCurrency(selectedProviderForCN.saldoPendiente)}</Text>
-              </RNView>
-            )}
-
-            <Text style={styles.inputLabel}>Monto *</Text>
-            <TextInput
-              style={styles.input}
-              keyboardType="decimal-pad"
-              placeholder="0.00"
-              placeholderTextColor={CustomColors.neutralLight}
-              value={creditNoteAmount}
-              onChangeText={setCreditNoteAmount}
-            />
-
-            <Text style={styles.inputLabel}>Descripción</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Ingrese una descripción (opcional)"
-              placeholderTextColor={CustomColors.neutralLight}
-              value={creditNoteDescription}
-              onChangeText={setCreditNoteDescription}
-              multiline
-              maxLength={500}
-            />
-
-            <RNView style={styles.modalActions}>
-              <Pressable style={styles.modalCancelBtn} onPress={hideCreditNoteDialog}>
-                <Text style={styles.modalCancelText}>Cancelar</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.modalConfirmBtn, (!creditNoteAmount || Number(creditNoteAmount) <= 0) && { opacity: 0.5 }]}
-                onPress={submitCreditNote}
-                disabled={!creditNoteAmount || Number(creditNoteAmount) <= 0 || isSaving}
-              >
-                {isSaving ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={styles.modalConfirmText}>Crear Nota de Crédito</Text>
-                )}
-              </Pressable>
-            </RNView>
-          </RNView>
-        </RNView>
-      </Modal>
-
-      {/* Pay All Confirmation Dialog */}
-      <Modal visible={payAllDialogVisible} transparent animationType="fade">
-        <RNView style={styles.modalOverlay}>
-          <RNView style={styles.modalContent}>
-            <RNView style={styles.warningIconContainer}>
-              <Ionicons name="warning-outline" size={40} color="#f59e0b" />
-            </RNView>
-            <Text style={styles.modalTitle}>¿Está seguro de que desea pagar todas las deudas?</Text>
-            <Text style={styles.modalDescription}>
-              Esta acción marcará como pagadas todas las facturas pendientes de todos los proveedores. Esta operación no se puede deshacer.
-            </Text>
-            <RNView style={styles.summaryBox}>
-              <Text style={styles.summaryText}>
-                <Text style={{ fontWeight: 'bold' }}>Facturas pendientes:</Text> {getPendingCount()}{'\n'}
-                <Text style={{ fontWeight: 'bold' }}>Total a pagar:</Text> {formatCurrency(totalPendiente)}
-              </Text>
-            </RNView>
-            <RNView style={styles.modalActions}>
-              <Pressable style={styles.modalCancelBtn} onPress={() => setPayAllDialogVisible(false)}>
-                <Text style={styles.modalCancelText}>Cancelar</Text>
-              </Pressable>
-              <Pressable style={styles.modalConfirmBtnDanger} onPress={confirmPayAll} disabled={isSaving}>
-                {isSaving ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={styles.modalConfirmText}>Sí, pagar todas las deudas</Text>
-                )}
-              </Pressable>
-            </RNView>
-          </RNView>
-        </RNView>
-      </Modal>
+      <PayAllConfirmDialog
+        visible={payAllDialogVisible}
+        pendingCount={getPendingCount()}
+        totalPendiente={totalPendiente}
+        onConfirm={confirmPayAll}
+        onClose={() => setPayAllDialogVisible(false)}
+        isSaving={isSaving}
+      />
     </>
+  );
+}
+
+interface CreditNoteDialogProps {
+  visible: boolean;
+  provider: ProveedorRow | null;
+  amount: string;
+  description: string;
+  onAmountChange: (v: string) => void;
+  onDescChange: (v: string) => void;
+  onSubmit: () => void;
+  onClose: () => void;
+  isSaving: boolean;
+}
+
+function CreditNoteDialog({ visible, provider, amount, description, onAmountChange, onDescChange, onSubmit, onClose, isSaving }: CreditNoteDialogProps) {
+  return (
+    <Modal visible={visible} transparent animationType="fade">
+      <RNView style={styles.modalOverlay}>
+        <RNView style={styles.modalContent}>
+          <Text style={styles.modalTitle}>Crear Nota de Crédito</Text>
+          {provider && (
+            <RNView style={styles.modalProviderInfo}>
+              <Text style={styles.modalProviderName}>{provider.provider}</Text>
+              <Text style={styles.modalProviderBalance}>Saldo pendiente: {formatCurrency(provider.saldoPendiente)}</Text>
+            </RNView>
+          )}
+          <Text style={styles.inputLabel}>Monto *</Text>
+          <TextInput style={styles.input} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={CustomColors.neutralLight} value={amount} onChangeText={onAmountChange} />
+          <Text style={styles.inputLabel}>Descripción</Text>
+          <TextInput style={[styles.input, styles.textArea]} placeholder="Ingrese una descripción (opcional)" placeholderTextColor={CustomColors.neutralLight} value={description} onChangeText={onDescChange} multiline maxLength={500} />
+          <RNView style={styles.modalActions}>
+            <Pressable style={styles.modalCancelBtn} onPress={onClose}>
+              <Text style={styles.modalCancelText}>Cancelar</Text>
+            </Pressable>
+            <Pressable style={[styles.modalConfirmBtn, (!amount || Number(amount) <= 0) && { opacity: 0.5 }]} onPress={onSubmit} disabled={!amount || Number(amount) <= 0 || isSaving}>
+              {isSaving ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.modalConfirmText}>Crear Nota de Crédito</Text>}
+            </Pressable>
+          </RNView>
+        </RNView>
+      </RNView>
+    </Modal>
+  );
+}
+
+interface PayAllConfirmDialogProps {
+  visible: boolean;
+  pendingCount: number;
+  totalPendiente: number;
+  onConfirm: () => void;
+  onClose: () => void;
+  isSaving: boolean;
+}
+
+function PayAllConfirmDialog({ visible, pendingCount, totalPendiente, onConfirm, onClose, isSaving }: PayAllConfirmDialogProps) {
+  return (
+    <Modal visible={visible} transparent animationType="fade">
+      <RNView style={styles.modalOverlay}>
+        <RNView style={styles.modalContent}>
+          <RNView style={styles.warningIconContainer}>
+            <Ionicons name="warning-outline" size={40} color="#f59e0b" />
+          </RNView>
+          <Text style={styles.modalTitle}>¿Está seguro de que desea pagar todas las deudas?</Text>
+          <Text style={styles.modalDescription}>
+            Esta acción marcará como pagadas todas las facturas pendientes de todos los proveedores. Esta operación no se puede deshacer.
+          </Text>
+          <RNView style={styles.summaryBox}>
+            <Text style={styles.summaryText}>
+              <Text style={{ fontWeight: 'bold' }}>Facturas pendientes:</Text> {pendingCount}{'\n'}
+              <Text style={{ fontWeight: 'bold' }}>Total a pagar:</Text> {formatCurrency(totalPendiente)}
+            </Text>
+          </RNView>
+          <RNView style={styles.modalActions}>
+            <Pressable style={styles.modalCancelBtn} onPress={onClose}>
+              <Text style={styles.modalCancelText}>Cancelar</Text>
+            </Pressable>
+            <Pressable style={styles.modalConfirmBtnDanger} onPress={onConfirm} disabled={isSaving}>
+              {isSaving ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.modalConfirmText}>Sí, pagar todas las deudas</Text>}
+            </Pressable>
+          </RNView>
+        </RNView>
+      </RNView>
+    </Modal>
   );
 }
 
@@ -522,42 +430,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-  },
-  cardsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16,
-  },
-  card: {
-    width: '48%',
-    backgroundColor: CustomColors.backgroundMedium,
-    borderRadius: 12,
-    padding: 14,
-    boxShadow: '0px 2px 3px rgba(0,0,0,0.2)',
-  },
-  cardOverdue: {
-    borderLeftWidth: 3,
-    borderLeftColor: '#ef4444',
-  },
-  cardDueSoon: {
-    borderLeftWidth: 3,
-    borderLeftColor: '#f59e0b',
-  },
-  cardCurrent: {
-    borderLeftWidth: 3,
-    borderLeftColor: '#10b981',
-  },
-  cardLabel: {
-    fontSize: 12,
-    color: CustomColors.neutralLight,
-    marginBottom: 4,
-    fontWeight: '600',
-  },
-  cardValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: CustomColors.textLight,
   },
   actionBar: {
     marginBottom: 16,
@@ -618,137 +490,6 @@ const styles = StyleSheet.create({
     color: CustomColors.neutralLight,
     fontSize: 14,
     marginTop: 12,
-  },
-  providerCard: {
-    backgroundColor: CustomColors.backgroundMedium,
-    borderRadius: 12,
-    marginBottom: 10,
-    overflow: 'hidden',
-    boxShadow: '0px 1px 2px rgba(0,0,0,0.2)',
-  },
-  providerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 14,
-  },
-  providerInfo: {
-    flex: 1,
-    marginRight: 12,
-  },
-  providerNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  providerName: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: CustomColors.textLight,
-    textTransform: 'capitalize',
-  },
-  bankInfo: {
-    fontSize: 11,
-    color: CustomColors.neutralLight,
-    marginTop: 4,
-  },
-  providerMeta: {
-    alignItems: 'flex-end',
-  },
-  providerBalance: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: CustomColors.secondary,
-  },
-  providerDocs: {
-    fontSize: 11,
-    color: CustomColors.neutralLight,
-    marginTop: 2,
-  },
-  invoiceSubTable: {
-    backgroundColor: CustomColors.backgroundDark,
-    padding: 12,
-    borderTopWidth: 1,
-    borderTopColor: CustomColors.divider,
-  },
-  invoiceRow: {
-    backgroundColor: CustomColors.backgroundDarkest,
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
-  },
-  invoiceRowHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  invoiceNumber: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: CustomColors.textLight,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  invoiceDetails: {
-    marginBottom: 8,
-  },
-  invoiceDetailText: {
-    fontSize: 12,
-    color: CustomColors.neutralLight,
-    marginBottom: 2,
-  },
-  invoiceAmounts: {
-    borderTopWidth: 1,
-    borderTopColor: CustomColors.divider,
-    paddingTop: 8,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  invoiceAmountLabel: {
-    fontSize: 12,
-    color: CustomColors.neutralLight,
-    width: '45%',
-  },
-  invoiceAmountValue: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: CustomColors.textLight,
-    width: '45%',
-    textAlign: 'right',
-  },
-  emptySubText: {
-    color: CustomColors.neutralLight,
-    fontSize: 13,
-    textAlign: 'center',
-    paddingVertical: 16,
-  },
-  providerActions: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    borderTopColor: CustomColors.divider,
-    padding: 10,
-    gap: 12,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: CustomColors.backgroundDark,
-    gap: 6,
-  },
-  actionButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
   },
   modalOverlay: {
     flex: 1,
