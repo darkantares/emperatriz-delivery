@@ -70,7 +70,7 @@ function parseJSON<T>(schema: z.ZodType<T>, json: string): T {
 function safeParseJSON<T>(schema: z.ZodType<T>, json: string) {
   try {
     return { success: true as const, data: schema.parse(JSON.parse(json)) }
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof SyntaxError) {
       return { success: false as const, error: 'Invalid JSON' }
     }

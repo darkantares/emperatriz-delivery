@@ -140,7 +140,7 @@ export class UserController {
       const userData: CreateUserDTO = req.body;
       const user = await this.userService.createUser(userData);
       res.status(201).json(user);
-    } catch (error) {
+    } catch (error: any) {
       next(error);
     }
   }
@@ -150,7 +150,7 @@ export class UserController {
       const { id } = req.params;
       const user = await this.userService.getUserById(id);
       res.json(user);
-    } catch (error) {
+    } catch (error: any) {
       next(error);
     }
   }
@@ -161,7 +161,7 @@ export class UserController {
       const updates: UpdateUserDTO = req.body;
       const user = await this.userService.updateUser(id, updates);
       res.json(user);
-    } catch (error) {
+    } catch (error: any) {
       next(error);
     }
   }
@@ -171,7 +171,7 @@ export class UserController {
       const { id } = req.params;
       await this.userService.deleteUser(id);
       res.status(204).send();
-    } catch (error) {
+    } catch (error: any) {
       next(error);
     }
   }
@@ -346,7 +346,7 @@ export const authenticate = async (
 
     req.user = payload;
     next();
-  } catch (error) {
+  } catch (error: any) {
     next(new UnauthorizedError("Invalid token"));
   }
 };
@@ -386,7 +386,7 @@ export const validate = (schema: AnyZodObject) => {
         params: req.params,
       });
       next();
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof ZodError) {
         const errors = error.errors.map((err) => ({
           field: err.path.join("."),

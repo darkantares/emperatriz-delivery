@@ -186,7 +186,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     // Process...
     return Response.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error("API error:", error);
     return Response.json({ error: "Internal server error" }, { status: 500 });
   }

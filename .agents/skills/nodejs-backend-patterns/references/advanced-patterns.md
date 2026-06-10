@@ -132,7 +132,7 @@ const connectDB = async () => {
     });
 
     console.log("MongoDB connected");
-  } catch (error) {
+  } catch (error: any) {
     console.error("MongoDB connection error:", error);
     process.exit(1);
   }
@@ -214,7 +214,7 @@ export class OrderService {
 
       await client.query("COMMIT");
       return orderId;
-    } catch (error) {
+    } catch (error: any) {
       await client.query("ROLLBACK");
       throw error;
     } finally {
@@ -290,7 +290,7 @@ export class AuthService {
       });
 
       return { token };
-    } catch (error) {
+    } catch (error: any) {
       throw new UnauthorizedError("Invalid refresh token");
     }
   }

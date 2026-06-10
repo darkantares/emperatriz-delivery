@@ -35,7 +35,7 @@ export default function VerifyEmailScreen() {
                 if (!cancelled && authData.user?.email) {
                     setEmail(authData.user.email);
                 }
-            } catch (error) {
+            } catch (error: any) {
                 console.log('Error getting email:', error);
             }
         };

@@ -23,7 +23,7 @@ export async function checkAndApplyUpdate(): Promise<OTAUpdateResult> {
     await Updates.fetchUpdateAsync();
     await Updates.reloadAsync();
     return { updated: true };
-  } catch (error) {
+  } catch (error: any) {
     return { updated: false, error: error as Error };
   }
 }

@@ -231,7 +231,7 @@ class SocketService {
       }
 
       return null;
-    } catch (error) {
+    } catch (error: any) {
       console.log('[SocketService] Error en ensureFreshToken:', error);
       return null;
     }
@@ -274,7 +274,7 @@ class SocketService {
       }
 
       return null;
-    } catch (error) {
+    } catch (error: any) {
       console.log('[SocketService] Error al llamar whoami para refresh:', error);
       return null;
     }

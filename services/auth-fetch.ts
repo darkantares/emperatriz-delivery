@@ -9,7 +9,7 @@ const getStoredTokens = async () => {
       accessToken: await AsyncStorage.getItem(AUTH_TOKEN_KEY),
       refreshToken: await AsyncStorage.getItem(REFRESH_TOKEN_KEY),
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('[authFetch] Error getting stored tokens:', error);
     return { accessToken: null, refreshToken: null };
   }
@@ -24,7 +24,7 @@ export const storeTokens = async (accessToken: string, refreshToken: string) => 
   try {
     await AsyncStorage.setItem(AUTH_TOKEN_KEY, accessToken);
     await AsyncStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-  } catch (error) {
+  } catch (error: any) {
     console.error('[authFetch] Error storing tokens:', error);
   }
 };
@@ -33,7 +33,7 @@ export const clearTokens = async () => {
   try {
     await AsyncStorage.removeItem(AUTH_TOKEN_KEY);
     await AsyncStorage.removeItem(REFRESH_TOKEN_KEY);
-  } catch (error) {
+  } catch (error: any) {
     console.error('[authFetch] Error clearing tokens:', error);
   }
 };
