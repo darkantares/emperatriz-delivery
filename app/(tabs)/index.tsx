@@ -27,7 +27,7 @@ import PayoutHistory from "@/components/ganancias/PayoutHistory";
 import StatsCharts from "@/components/ganancias/StatsCharts";
 import { DeliveryItemList } from "@/components/delivery-items/DeliveryItemList";
 import { useGanancias } from "@/core/hooks/useGanancias";
-import { GestionesContent } from "./gestiones";
+import { GestionesContent } from "@/components/gestiones/GestionesContent";
 
 const BASE_TABS = ["Entregas", "Ganancias", "Pagos", "Estadísticas"] as const;
 type Tab = (typeof BASE_TABS)[number] | "Gestiones";
