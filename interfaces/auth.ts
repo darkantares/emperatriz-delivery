@@ -4,7 +4,6 @@ export interface IEnterpriseEntity {
     id: number;
     title: string
     document_verification: string;
-    phone: string;
     email: string;
     files: string;
     web: string;
