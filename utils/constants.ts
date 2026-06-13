@@ -7,3 +7,7 @@ export const API_URLS = {
     DEV_ANDROID: Constants.expoConfig?.extra?.apiUrl?.EXPO_PUBLIC_API_URL_DEV_ANDROID || '',
     DEFAULT: Constants.expoConfig?.extra?.apiUrl?.EXPO_PUBLIC_API_URL_DEFAULT || '',
 };
+
+// Storage keys
+export const AUTH_TOKEN_KEY = 'auth_token';
+export const REFRESH_TOKEN_KEY = 'refresh_token';

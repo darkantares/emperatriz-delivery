@@ -1,7 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const AUTH_TOKEN_KEY = 'auth_token';
-const REFRESH_TOKEN_KEY = 'refresh_token';
+import { AUTH_TOKEN_KEY, REFRESH_TOKEN_KEY } from '@/utils/constants';
 
 const getStoredTokens = async () => {
   try {

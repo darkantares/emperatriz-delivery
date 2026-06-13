@@ -75,3 +75,5 @@ const styles = StyleSheet.create({
     color: CustomColors.textLight,
   },
 });
+
+export default SummaryCards;

@@ -1,7 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AUTH_TOKEN_KEY } from './authService';
-
-const REFRESH_TOKEN_KEY = 'refresh_token';
+import { AUTH_TOKEN_KEY, REFRESH_TOKEN_KEY } from '@/utils/constants';
 
 /**
  * Captura los nuevos tokens devueltos por el backend en los headers de respuesta

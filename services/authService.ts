@@ -2,10 +2,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LoginResponse, IUserEntity, IRolesAllowedEntity, DeliveryPersonEntity } from '@/interfaces/auth';
 import { api, extractDataFromResponse } from './api';
 import { storeTokens, clearTokens } from './auth-fetch';
+import { AUTH_TOKEN_KEY, REFRESH_TOKEN_KEY } from '@/utils/constants';
+
+// Re-export for backward compatibility
+export { AUTH_TOKEN_KEY };
 
 // Keys para almacenamiento
-export const AUTH_TOKEN_KEY = 'auth_token';
-const REFRESH_TOKEN_KEY = 'refresh_token';
 const USER_DATA_KEY = 'user_data';
 const USER_ROLES_KEY = 'user_roles';
 const CARRIER_DATA_KEY = 'carrier_data';
