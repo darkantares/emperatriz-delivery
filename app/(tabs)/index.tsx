@@ -169,8 +169,6 @@ function TabOneScreenContent() {
     refresh: refreshGanancias,
   } = useGanancias();
  
-  console.log(earnings, paidInvoices, monthlyStats, weeklyStats, deliveryStats, topRoute, recentDeliveries);
-
   const [groupStatusModalVisible, setGroupStatusModalVisible] = useState(false);
   const [groupStatusModalParams, setGroupStatusModalParams] = useState<{
     ids: string[];

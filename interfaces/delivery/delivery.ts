@@ -70,7 +70,9 @@ export interface IDeliveryAssignmentEntity extends IGlobalEntity {
   observations?: string;
   provincia: IProvincia;
   municipio: IMunicipio;
-  additionalDataNominatim: AdditionalDataNominatimEntity;
+  additionalDataNominatimId: number | null;
+  additionalDataNominatimLat: number | null;
+  additionalDataNominatimLng: number | null;
   deliveryStatus: IDeliveryStatusEntity;
   paymentMethod?: IPaymentMethodEntity;
   assignedAt: Date;

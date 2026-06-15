@@ -166,7 +166,7 @@ export function useGroupProgressHandlers({
     }
 
     const filteredDeliveries = freshDeliveries.filter(
-      (d) => d && d.additionalDataNominatim?.lat && d.additionalDataNominatim?.lon,
+      (d) => d && d.additionalDataNominatimLat != null && d.additionalDataNominatimLng != null,
     );
     const nullableCount = freshDeliveries.length - filteredDeliveries.length;
     if (nullableCount > 0) {

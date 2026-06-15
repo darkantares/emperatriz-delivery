@@ -38,15 +38,15 @@ interface RouteProviderProps {
 
 function prepareRouteData(allDeliveries: DeliveryItemAdapter[]) {
   const pendingDeliveries = allDeliveries.filter(delivery => {
-    console.log('delivery: ', delivery.id, 'status: ', delivery.deliveryStatus.title, 'nominatim: ', delivery.additionalDataNominatim);
+    console.log('delivery: ', delivery.id, 'status: ', delivery.deliveryStatus.title, 'nominatim: ', { lat: delivery.additionalDataNominatimLat, lng: delivery.additionalDataNominatimLng });
     
     const isPending = delivery.deliveryStatus.title !== IDeliveryStatus.DELIVERED &&
                      delivery.deliveryStatus.title !== IDeliveryStatus.CANCELLED &&
                      delivery.deliveryStatus.title !== IDeliveryStatus.RETURNED &&
                      delivery.deliveryStatus.title !== IDeliveryStatus.SCHEDULED;
 
-    const hasCoordinates = delivery.additionalDataNominatim?.lat &&
-                          delivery.additionalDataNominatim?.lon;
+    const hasCoordinates = delivery.additionalDataNominatimLat != null &&
+                          delivery.additionalDataNominatimLng != null;
 
     return isPending && hasCoordinates;
   });
@@ -56,8 +56,8 @@ function prepareRouteData(allDeliveries: DeliveryItemAdapter[]) {
   } 
 
   const coordinates = pendingDeliveries.map(delivery => ({
-    latitude: parseFloat(delivery.additionalDataNominatim.lat),
-    longitude: parseFloat(delivery.additionalDataNominatim.lon),
+    latitude: delivery.additionalDataNominatimLat!,
+    longitude: delivery.additionalDataNominatimLng!,
   }));
 
   return { pendingDeliveries, coordinates };
@@ -114,7 +114,10 @@ export const RouteProvider: React.FC<RouteProviderProps> = ({ children }) => {
 
       // Paso 2: Preparar deliveries filtrados
       console.log('[RouteContext] Preparando datos de entregas para mostrar en el mapa...');
+      console.log('allDeliveries: ',allDeliveries);
+      
       let routeData = prepareRouteData(allDeliveries);
+
       if (!routeData) {
         console.warn('[RouteContext] allDeliveries vacío o sin coordenadas; intentando recargar asignaciones desde backend...');
         const refreshedDeliveries = await getDeliveries();
