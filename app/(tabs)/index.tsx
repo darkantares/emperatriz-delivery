@@ -169,6 +169,8 @@ function TabOneScreenContent() {
     refresh: refreshGanancias,
   } = useGanancias();
  
+  console.log(earnings, paidInvoices, monthlyStats, weeklyStats, deliveryStats, topRoute, recentDeliveries);
+
   const [groupStatusModalVisible, setGroupStatusModalVisible] = useState(false);
   const [groupStatusModalParams, setGroupStatusModalParams] = useState<{
     ids: string[];
@@ -179,6 +181,7 @@ function TabOneScreenContent() {
   } | null>(null);
   const [isSocketConnected, setIsSocketConnected] = useState<boolean>(() => socketService.isConnected());
 
+  
   useEffect(() => {
     const handleConnectionChange = (connected: boolean) => {
       setIsSocketConnected(connected);
