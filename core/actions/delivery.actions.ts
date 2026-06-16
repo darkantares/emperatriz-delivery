@@ -27,7 +27,7 @@ export const getDeliveries = (
   return apiAction
     .get<
       IDeliveryAssignmentEntity[]
-    >(`${BackendUrls.DeliveryAssignments}/by-driver/${queryParams}`)
+    >(`${BackendUrls.DeliveryAssignments}/by-driver${queryParams}`)
     .then(adaptDeliveriesToAdapter);
 };
 
