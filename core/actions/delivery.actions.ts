@@ -11,7 +11,7 @@ import {
   DeliveryItemAdapter,
 } from "@/interfaces/delivery/deliveryAdapters";
 
-export const agetDeliveries = (
+export const getDeliveries = async (
   filters?: Partial<IDeliveryAssignmentEntity>,
 ): Promise<DeliveryItemAdapter[]> => {
   let queryParams = "";
