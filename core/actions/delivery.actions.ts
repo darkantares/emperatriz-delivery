@@ -11,7 +11,7 @@ import {
   DeliveryItemAdapter,
 } from "@/interfaces/delivery/deliveryAdapters";
 
-export const getDeliveries = (
+export const agetDeliveries = (
   filters?: Partial<IDeliveryAssignmentEntity>,
 ): Promise<DeliveryItemAdapter[]> => {
   let queryParams = "";
@@ -30,29 +30,6 @@ export const getDeliveries = (
     >(`${BackendUrls.DeliveryAssignments}/by-driver${queryParams}`)
     .then(adaptDeliveriesToAdapter);
 };
-
-const getDeliveryById = (
-  id: number,
-): Promise<IDeliveryAssignmentEntity> =>
-  apiAction.get<IDeliveryAssignmentEntity>(
-    `${BackendUrls.DeliveryAssignments}/${id}`,
-  );
-
-const getDeliveryDestinies = (
-  deliveryId: number,
-): Promise<IDeliveryAssignmentEntity[]> =>
-  apiAction.get<IDeliveryAssignmentEntity[]>(
-    `${BackendUrls.DeliveryAssignments}/${deliveryId}/destinies`,
-  );
-
-const updateDelivery = (
-  id: number,
-  data: IUpdateDelivery,
-): Promise<IDeliveryAssignmentEntity> =>
-  apiAction.put<IDeliveryAssignmentEntity>(
-    `${BackendUrls.DeliveryAssignments}/${id}`,
-    data,
-  );
 
 const updateDeliveryStatus = (
   id: string,
@@ -140,8 +117,8 @@ const updateDeliveryStatusWithImages = (
 export const updateDeliveryStatusUnified = (
   updateData: IUpdateDeliveryStatusData,
 ): Promise<IDeliveryAssignmentEntity> => {
-    console.log('updateDeliveryStatusUnified called with: ', updateData);
-    
+  console.log("updateDeliveryStatusUnified called with: ", updateData);
+
   const {
     id,
     status,
@@ -167,8 +144,7 @@ export const updateDeliveryStatusUnified = (
       formData.append("additionalAmount", additionalAmount.toString());
     if (gpsReadings?.length)
       formData.append("gpsReadings", JSON.stringify(gpsReadings));
-    if (verificationCode)
-      formData.append("verificationCode", verificationCode);
+    if (verificationCode) formData.append("verificationCode", verificationCode);
     if (scheduledAt) formData.append("scheduledAt", scheduledAt);
 
     imageUris.forEach((imageUri, index) => {
@@ -213,16 +189,16 @@ export const updateDeliveryStatusBatch = (
   verificationCode?: string,
   scheduledAt?: string,
 ): Promise<IDeliveryAssignmentEntity[]> => {
-    console.log('updateDeliveryStatusBatch called with: ', {
-      ids,
-      status,
-      note,
-      amountPaid,
-      paymentMethodId,
-      additionalAmount,
-      gpsReadings,
-      imageUris,
-    });
+  console.log("updateDeliveryStatusBatch called with: ", {
+    ids,
+    status,
+    note,
+    amountPaid,
+    paymentMethodId,
+    additionalAmount,
+    gpsReadings,
+    imageUris,
+  });
   if (imageUris && imageUris.length > 0) {
     const formData = new FormData();
     formData.append("ids", JSON.stringify(ids));
@@ -236,8 +212,7 @@ export const updateDeliveryStatusBatch = (
       formData.append("additionalAmount", additionalAmount.toString());
     if (gpsReadings?.length)
       formData.append("gpsReadings", JSON.stringify(gpsReadings));
-    if (verificationCode)
-      formData.append("verificationCode", verificationCode);
+    if (verificationCode) formData.append("verificationCode", verificationCode);
     if (scheduledAt) formData.append("scheduledAt", scheduledAt);
 
     imageUris.forEach((imageUri, index) => {
