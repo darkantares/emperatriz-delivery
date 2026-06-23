@@ -5,7 +5,7 @@ import {
   IUpdateDeliveryStatusData,
 } from "@/interfaces/delivery/delivery";
 import { apiAction } from "@/core/api/apiAction";
-import { BackendUrls } from "@/utils/enum";
+import { ApiEndpoints } from "@/utils/api-endpoints";
 import {
   adaptDeliveriesToAdapter,
   DeliveryItemAdapter,
@@ -27,7 +27,7 @@ export const getDeliveries = async (
   return apiAction
     .get<
       IDeliveryAssignmentEntity[]
-    >(`${BackendUrls.DeliveryAssignments}/by-driver${queryParams}`)
+    >(`${ApiEndpoints.DeliveryAssignmentsByDriver}${queryParams}`)
     .then(adaptDeliveriesToAdapter);
 };
 
@@ -57,7 +57,7 @@ const updateDeliveryStatus = (
   if (gpsReadings?.length) payload.gpsReadings = gpsReadings;
 
   return apiAction.patch<IDeliveryAssignmentEntity>(
-    `${BackendUrls.DeliveryAssignments}/${id}/status`,
+    `${ApiEndpoints.DeliveryAssignmentsStatus}`.replace('{id}', id),
     payload,
   );
 };
@@ -109,7 +109,7 @@ const updateDeliveryStatusWithImages = (
   });
 
   return apiAction.postFormData<IDeliveryAssignmentEntity>(
-    `${BackendUrls.DeliveryAssignments}/${id}/status-with-images`,
+    `${ApiEndpoints.DeliveryAssignmentsStatusWithImages}`.replace('{id}', id),
     formData,
   );
 };
@@ -156,7 +156,7 @@ export const updateDeliveryStatusUnified = (
     });
 
     return apiAction.patchFormData<IDeliveryAssignmentEntity>(
-      `${BackendUrls.DeliveryAssignments}/${id}/status-unified`,
+      `${ApiEndpoints.DeliveryAssignmentsStatusUnified}`.replace('{id}', id),
       formData,
     );
   }
@@ -172,7 +172,7 @@ export const updateDeliveryStatusUnified = (
   if (scheduledAt) payload.scheduledAt = scheduledAt;
 
   return apiAction.patch<IDeliveryAssignmentEntity>(
-    `${BackendUrls.DeliveryAssignments}/${id}/status-unified`,
+    `${ApiEndpoints.DeliveryAssignmentsStatusUnified}`.replace('{id}', id),
     payload,
   );
 };
@@ -224,7 +224,7 @@ export const updateDeliveryStatusBatch = (
     });
 
     return apiAction.patchFormData<IDeliveryAssignmentEntity[]>(
-      `${BackendUrls.DeliveryAssignments}/batch/status-unified`,
+      `${ApiEndpoints.DeliveryAssignmentsBatchStatusUnified}`,
       formData,
     );
   }
@@ -240,7 +240,7 @@ export const updateDeliveryStatusBatch = (
   if (scheduledAt) payload.scheduledAt = scheduledAt;
 
   return apiAction.patch<IDeliveryAssignmentEntity[]>(
-    `${BackendUrls.DeliveryAssignments}/batch/status-unified`,
+    `${ApiEndpoints.DeliveryAssignmentsBatchStatusUnified}`,
     payload,
   );
 };
@@ -250,6 +250,6 @@ export const getOptimizedRoute = (
   currentLocation: { lat: number; lng: number },
 ): Promise<any> =>
   apiAction.post<any>(
-    `${BackendUrls.DeliveryAssignments}/courier/${courierId}/optimized-route`,
+    `${ApiEndpoints.DeliveryAssignmentsOptimizedRoute}`.replace('{courierId}', String(courierId)),
     { currentLocation },
   );

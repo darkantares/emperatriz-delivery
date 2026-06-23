@@ -1,5 +1,5 @@
 import { apiAction } from '@/core/api/apiAction';
-import { BackendUrls } from '@/utils/enum';
+import { ApiEndpoints } from '@/utils/api-endpoints';
 
 export interface Coordinates {
     latitude: number;
@@ -81,7 +81,7 @@ const getOsrmRoute = (params: OsrmRouteParams): Promise<OsrmRouteResult> => {
     if (params.alternatives !== undefined) queryParams.append('alternatives', String(params.alternatives));
     if (params.continue_straight !== undefined) queryParams.append('continue_straight', String(params.continue_straight));
 
-    return apiAction.get<OsrmRouteResult>(`${BackendUrls.OsrmRoute}?${queryParams.toString()}`);
+    return apiAction.get<OsrmRouteResult>(`${ApiEndpoints.OsrmRoute}?${queryParams.toString()}`);
 };
 
 export const getOsrmTrip = (params: OsrmTripParams): Promise<OsrmTripResult> => {
@@ -97,5 +97,5 @@ export const getOsrmTrip = (params: OsrmTripParams): Promise<OsrmTripResult> => 
     if (params.geometries) queryParams.append('geometries', params.geometries);
     if (params.overview) queryParams.append('overview', params.overview);
 
-    return apiAction.get<OsrmTripResult>(`${BackendUrls.OsrmTrip}?${queryParams.toString()}`);
+    return apiAction.get<OsrmTripResult>(`${ApiEndpoints.OsrmTrip}?${queryParams.toString()}`);
 };

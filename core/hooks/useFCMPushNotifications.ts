@@ -8,8 +8,9 @@ import {
   setBackgroundMessageHandler,
   AuthorizationStatus,
 } from '@react-native-firebase/messaging';
-import { api } from '@/services/api';
+import { api, getApiUrl } from '@/services/api';
 import { NotificationType, queueNotification } from '@/services/notificationService';
+import { ApiEndpoints } from '@/utils/api-endpoints';
 
 export function useFCMPushNotifications(userId: number | undefined | null) {
   const registeredRef = useRef(false);
@@ -41,7 +42,7 @@ export function useFCMPushNotifications(userId: number | undefined | null) {
       }
 
       // 3. Register token with backend
-      const result = await api.post('/notifications/token', { userId, token });
+      const result = await api.post(getApiUrl(ApiEndpoints.NotificationsToken), { userId, token });
 
       if (result.error) {
         console.log('[FCM] Token registration failed:', result.error);

@@ -1,5 +1,7 @@
 import * as Linking from 'expo-linking';
 import Constants from 'expo-constants';
+import { getApiUrl } from '@/services/api';
+import { ApiEndpoints } from './api-endpoints';
 
 interface Coordinates {
   latitude: number;
@@ -91,7 +93,7 @@ async function sendCoordinatesToBackend(coordinates: Coordinates): Promise<any> 
     // Por ahora usamos las mismas coordenadas como origen y destino (puedes ajustar según necesites)
     const coordinatesParam = `${coordinates.longitude},${coordinates.latitude};${coordinates.longitude},${coordinates.latitude}`;
     
-    const url = `${apiUrl}/admin/osrm/route?coordinates=${coordinatesParam}&steps=true`;
+    const url = `${getApiUrl(ApiEndpoints.OsrmRoute)}?coordinates=${coordinatesParam}&steps=true`;
     
     console.log('[DeepLink] Sending coordinates to backend:', url);
 

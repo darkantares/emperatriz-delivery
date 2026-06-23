@@ -1,8 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LoginResponse, IUserEntity, IRolesAllowedEntity, DeliveryPersonEntity } from '@/interfaces/auth';
-import { api, extractDataFromResponse } from './api';
+import { api, extractDataFromResponse, getApiUrl } from './api';
 import { storeTokens, clearTokens } from './auth-fetch';
 import { AUTH_TOKEN_KEY, REFRESH_TOKEN_KEY } from '@/utils/constants';
+import { ApiEndpoints } from '../utils/api-endpoints';
+import { validateJwtHasEnterprise, logJwtValidation } from '../utils/jwt-utils';
 
 // Re-export for backward compatibility
 export { AUTH_TOKEN_KEY };
@@ -21,7 +23,7 @@ export const authService = {
         details?: any;
     }> => {
         try {            
-            const response = await api.post<LoginResponse>('auth/login-delivery', { email, password });
+            const response = await api.post<LoginResponse>(getApiUrl(ApiEndpoints.AuthLoginDelivery), { email, password });
 
             if (response.error || !response.data) {
                 return {
@@ -51,6 +53,10 @@ export const authService = {
 
             // Guardar tokens usando el servicio centralizado
             await storeTokens(loginData.access_token, loginData.refresh_token);
+
+            // Validar que el JWT tenga el campo enterprise (defensa contra bugs del backend)
+            validateJwtHasEnterprise(loginData.access_token);
+            logJwtValidation(loginData.access_token, 'login');
 
             await Promise.all([
               AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(loginData.user)),
@@ -129,7 +135,7 @@ export const authService = {
         details?: any;
     }> => {
         try {
-            const response = await api.get<IUserEntity>('auth/whoami');
+            const response = await api.get<IUserEntity>(getApiUrl(ApiEndpoints.AuthWhoami));
 
             if (response.error || !response.data) {
                 return {
@@ -186,7 +192,7 @@ export const authService = {
         details?: any;
     }> => {
         try {
-            const response = await api.post('auth/verify-email', { email, code });
+            const response = await api.post(getApiUrl(ApiEndpoints.AuthVerifyEmail), { email, code });
 
             if (response.error) {
                 return {
@@ -214,7 +220,7 @@ export const authService = {
         details?: any;
     }> => {
         try {
-            const response = await api.post('auth/resend-verification-code', { email });
+            const response = await api.post(getApiUrl(ApiEndpoints.AuthResendVerificationCode), { email });
 
             if (response.error) {
                 return {
@@ -241,7 +247,7 @@ export const authService = {
         error?: string;
     }> => {
         try {
-            const response = await api.patch('auth/change-initial-password', { currentPassword, newPassword, confirmNewPassword });
+            const response = await api.patch(getApiUrl(ApiEndpoints.AuthChangeInitialPassword), { currentPassword, newPassword, confirmNewPassword });
 
             if (response.error) {
                 return {
@@ -265,7 +271,7 @@ export const authService = {
         error?: string;
     }> => {
         try {
-            const response = await api.post('auth/forgot-password', { email });
+            const response = await api.post(getApiUrl(ApiEndpoints.AuthForgotPassword), { email });
 
             if (response.error) {
                 return {
@@ -289,7 +295,7 @@ export const authService = {
         error?: string;
     }> => {
         try {
-            const response = await api.patch('auth/reset-password', { token, password, confirmPassword });
+            const response = await api.patch(getApiUrl(ApiEndpoints.AuthResetPassword), { token, password, confirmPassword });
 
             if (response.error) {
                 return {

@@ -21,10 +21,11 @@ interface LoginResult {
 import { CustomColors } from '@/constants/CustomColors';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { API_URL, checkApiConnectivity } from '@/services/api';
+import { API_URL, checkApiConnectivity, getApiUrl } from '@/services/api';
 import { FontAwesome } from '@expo/vector-icons';
 import { authService } from '@/services/authService';
 import { router } from 'expo-router';
+import { ApiEndpoints } from '@/utils/api-endpoints';
 
 export default function LoginScreen() {
     const [email, setEmail] = useState('');
@@ -56,7 +57,7 @@ export default function LoginScreen() {
 
         checkConnection();
 
-        fetch(`${API_URL}/app-version/delivery`, { signal: controller.signal })
+        fetch(getApiUrl(ApiEndpoints.AppVersionDelivery), { signal: controller.signal })
             .then((res) => res.json())
             .then((data) => {
                 if (!controller.signal.aborted) {

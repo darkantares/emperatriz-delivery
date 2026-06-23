@@ -1,12 +1,14 @@
 import { io, Socket } from 'socket.io-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getBaseUrl, API_URL } from './api';
+import { getBaseUrl, API_URL, getApiUrl } from './api';
 // Importar el servicio de notificaciones
 import { queueNotification, NotificationType } from './notificationService';
 import { IEnterpriseEntity, IUserEntity } from '@/interfaces/auth';
 import { IDeliveryAssignmentEntity } from '@/interfaces/delivery/delivery';
 import { adaptDeliveriesToAdapter } from '@/interfaces/delivery/deliveryAdapters';
 import { getStoredTokens, storeTokens } from './auth-fetch';
+import { ApiEndpoints } from '../utils/api-endpoints';
+import { validateJwtHasEnterprise, logJwtValidation } from '../utils/jwt-utils';
 
 const SOCKET_URL = getBaseUrl();
 
@@ -245,7 +247,7 @@ class SocketService {
    */
   private async refreshViaBackend(expiredToken: string, refreshToken: string): Promise<string | null> {
     try {
-      const response = await fetch(`${API_URL}/auth/whoami`, {
+      const response = await fetch(getApiUrl(ApiEndpoints.AuthWhoami), {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -264,6 +266,9 @@ class SocketService {
 
       if (newAccessToken) {
         await storeTokens(newAccessToken, newRefreshToken || refreshToken);
+        // Validar que el token refrescado tenga enterprise (defensa contra bugs del backend)
+        validateJwtHasEnterprise(newAccessToken);
+        logJwtValidation(newAccessToken, 'refresh');
         return newAccessToken;
       }
 

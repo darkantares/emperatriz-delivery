@@ -5,6 +5,7 @@ import { Platform } from 'react-native';
 import { findSchema } from '@/src/api/schemaRegistry';
 import { getStoredTokens } from './auth-fetch';
 import { captureTokensFromHeaders } from './token-refresh-response';
+import { ApiEndpoints } from '../utils/api-endpoints';
 
 // Keys para almacenamiento
 const AUTH_TOKEN_KEY = 'auth_token';
@@ -30,7 +31,7 @@ export const getBaseUrl = () => {
             url = API_URLS.PROD;
         }
         return url.endsWith('/') ? url.slice(0, -1) : url;
-    } catch (error:any) {
+    } catch (error:unknown) {
         console.log('Error al obtener URL base:', error);
         return API_URLS.DEFAULT;
     }
@@ -50,6 +51,32 @@ const getProductImageUrl = () => {
 // URL base para todas las peticiones
 export const API_URL = getApiBaseUrl();
 const PRODUCT_IMAGE_URL = getProductImageUrl();
+
+/**
+ * Construye la URL completa de un endpoint de la API.
+ *
+ * @param endpoint - Enum del endpoint (ej: ApiEndpoints.DeliveryStatus)
+ * @param params - Parámetros de ruta opcionales (ej: { id: '123' })
+ * @returns URL completa del endpoint
+ *
+ * @example
+ * // Sin parámetros:
+ * getApiUrl(ApiEndpoints.DeliveryStatus)
+ * // → "http://localhost:5000/api/delivery-status"
+ *
+ * // Con parámetros:
+ * getApiUrl(ApiEndpoints.DeliveryAssignmentsStatus, { id: '123' })
+ * // → "http://localhost:5000/api/delivery-assignments/123/status"
+ */
+export const getApiUrl = (endpoint: ApiEndpoints, params?: Record<string, string | number>): string => {
+    let path: string = endpoint;
+    if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+            path = path.replace(`{${key}}`, String(value));
+        });
+    }
+    return `${API_URL}/${path}`;
+};
 
 // Opciones por defecto para fetch
 const defaultOptions = {
@@ -221,25 +248,38 @@ const apiRequest = async <T>(endpoint: string, options: ApiOptions = {}): Promis
     }
 };
 
+// Extrae el path relativo de una URL completa o devuelve el endpoint tal cual
+const extractPath = (endpoint: string): string => {
+    if (endpoint.startsWith('http')) {
+        // Si es una URL completa (de getApiUrl), extraer solo el path después de /api
+        const apiUrlPrefix = `${API_URL}/`;
+        if (endpoint.startsWith(apiUrlPrefix)) {
+            return endpoint.slice(apiUrlPrefix.length);
+        }
+        return endpoint;
+    }
+    return endpoint;
+};
+
 // Métodos específicos para cada tipo de petición
 export const api = {
     get: <T>(endpoint: string, options = {}) =>
-        apiRequest<T>(endpoint, { ...options, method: 'GET' }),
+        apiRequest<T>(extractPath(endpoint), { ...options, method: 'GET' }),
 
     post: <T>(endpoint: string, data: any, options = {}) =>
-        apiRequest<T>(endpoint, {
+        apiRequest<T>(extractPath(endpoint), {
             ...options,
             method: 'POST',
             body: JSON.stringify(data)
         }),
 
-    put: <T>(endpoint: string, data: any, options = {}) => apiRequest<T>(endpoint, {
+    put: <T>(endpoint: string, data: any, options = {}) => apiRequest<T>(extractPath(endpoint), {
         ...options,
         method: 'PUT',
         body: JSON.stringify(data)
     }),
     patch: <T>(endpoint: string, data: any, options = {}) => {
-        return apiRequest<T>(endpoint, {
+        return apiRequest<T>(extractPath(endpoint), {
             ...options,
             method: 'PATCH',
             headers: {
@@ -251,17 +291,17 @@ export const api = {
     },
 
     delete: <T>(endpoint: string, options = {}) =>
-        apiRequest<T>(endpoint, { ...options, method: 'DELETE' }),
+        apiRequest<T>(extractPath(endpoint), { ...options, method: 'DELETE' }),
 
     postFormData: <T>(endpoint: string, formData: FormData, options = {}) =>
-        apiRequest<T>(endpoint, {
+        apiRequest<T>(extractPath(endpoint), {
             ...options,
             method: 'POST',
             body: formData
         }),
 
     patchFormData: <T>(endpoint: string, formData: FormData, options = {}) =>
-        apiRequest<T>(endpoint, {
+        apiRequest<T>(extractPath(endpoint), {
             ...options,
             method: 'PATCH',
             body: formData

@@ -12,10 +12,11 @@ import {
 import { Text } from '@/components/Themed';
 import { CustomColors } from '@/constants/CustomColors';
 import { Ionicons } from '@expo/vector-icons';
-import { api, extractDataFromResponse } from '@/services/api';
+import { api, extractDataFromResponse, getApiUrl } from '@/services/api';
 import { useToast } from 'react-native-toast-notifications';
 import { ProviderCard, type FacturaCXP, type ProveedorRow } from './ProviderCard';
 import { SummaryCards } from './SummaryCards';
+import { ApiEndpoints } from '@/utils/api-endpoints';
 
 type FilterValue = 'todas' | 'vencidas' | 'por_vencer' | 'vigentes';
 
@@ -78,7 +79,7 @@ export function GestionesContent() {
 
   const loadInvoices = useCallback(async () => {
     try {
-      const result = await api.get<FacturaCXP[]>('cxp-invoices');
+      const result = await api.get<FacturaCXP[]>(getApiUrl(ApiEndpoints.CxpInvoices));
       const data = extractDataFromResponse<FacturaCXP[]>(result) || [];
       setInvoices(data);
       computeStats(data);
@@ -154,13 +155,13 @@ export function GestionesContent() {
     try {
       if (pendingInvoices.length === 1) {
         const invoiceId = pendingInvoices[0].id;
-        const result = await api.patch(`cxp-invoices/${invoiceId}/pay`, {});
+        const result = await api.patch(getApiUrl(ApiEndpoints.CxpInvoicesPay, { id: String(invoiceId) }), {});
         if (!result.error) {
           toast.show(`Se ha pagado la factura del proveedor ${providerData.provider}`, { type: 'success', duration: 3000 });
         }
       } else {
         const invoiceIds = pendingInvoices.map(inv => inv.id);
-        const result = await api.post('cxp-invoices/bulk-pay', invoiceIds);
+        const result = await api.post(getApiUrl(ApiEndpoints.CxpInvoicesBulkPay), invoiceIds);
         if (!result.error) {
           toast.show(`Se han pagado ${invoiceIds.length} facturas de ${providerData.provider}`, { type: 'success', duration: 3000 });
         }
@@ -188,7 +189,7 @@ export function GestionesContent() {
 
     setIsSaving(true);
     try {
-      const result = await api.post('cxp-invoices/bulk-pay', pendingIds);
+      const result = await api.post(getApiUrl(ApiEndpoints.CxpInvoicesBulkPay), pendingIds);
       if (!result.error) {
         toast.show(`Se han pagado ${pendingIds.length} facturas`, { type: 'success', duration: 3000 });
         loadInvoices();
@@ -237,7 +238,7 @@ export function GestionesContent() {
 
     setIsSaving(true);
     try {
-      const result = await api.post(`cxp-credit-notes/for-invoice/${pendingInvoice.id}`, {
+      const result = await api.post(getApiUrl(ApiEndpoints.CxpCreditNotesForInvoice, { invoiceId: String(pendingInvoice.id) }), {
         amount: Number(creditNoteAmount),
         description: creditNoteDescription || `Nota de crédito para proveedor ${selectedProviderForCN.provider}`,
       });

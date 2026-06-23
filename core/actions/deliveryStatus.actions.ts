@@ -1,9 +1,9 @@
 import { IDeliveryStatusEntity } from '@/interfaces/delivery/delivery';
 import { apiAction } from '@/core/api/apiAction';
-import { BackendUrls } from '@/utils/enum';
+import { ApiEndpoints } from '@/utils/api-endpoints';
 
 export const getDeliveryStatuses = (): Promise<IDeliveryStatusEntity[]> =>
-    apiAction.get<IDeliveryStatusEntity[]>(`${BackendUrls.DeliveryStatus}`);
+    apiAction.get<IDeliveryStatusEntity[]>(`${ApiEndpoints.DeliveryStatus}`);
 
 const getDeliveryStatusById = (id: number): Promise<IDeliveryStatusEntity> =>
-    apiAction.get<IDeliveryStatusEntity>(`${BackendUrls.DeliveryStatus}/${id}`);
+    apiAction.get<IDeliveryStatusEntity>(`${ApiEndpoints.DeliveryStatusById}`.replace('{id}', String(id)));
