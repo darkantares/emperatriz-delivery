@@ -3,12 +3,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ResponseAPI, FetchResponse } from '@/interfaces/global';
 import { Platform } from 'react-native';
 import { findSchema } from '@/src/api/schemaRegistry';
-import { getStoredTokens } from './auth-fetch';
-import { captureTokensFromHeaders } from './token-refresh-response';
+import { getStoredRefreshToken } from './auth-fetch';
+import { authStore } from '@/stores/authStore';
 import { ApiEndpoints } from '../utils/api-endpoints';
-
-// Keys para almacenamiento
-const AUTH_TOKEN_KEY = 'auth_token';
 
 let authFailureHandler: (() => void | Promise<void>) | null = null;
 
@@ -88,25 +85,27 @@ const defaultOptions = {
 // Función para añadir token de autorización a las opciones (usa tokens centralizados)
 const getAuthOptions = async (options: Record<string, any> = {}): Promise<RequestInit> => {
     try {
-        const { accessToken, refreshToken } = await getStoredTokens();
-        if (!accessToken) {
-            return options;
-        }
+        const accessToken = authStore.getAccessToken();
         const headers: Record<string, string> = {
             ...(options.headers || {}),
-            Authorization: `Bearer ${accessToken}`,
         };
-        
-        // Agregar el refresh token si existe (lo requiere el middleware de token refresh del backend)
-        if (refreshToken) {
-            headers['x-refresh-token'] = refreshToken;
+
+        // Agregar Authorization header si hay access token
+        if (accessToken) {
+            headers['Authorization'] = `Bearer ${accessToken}`;
         }
-        
+
+        // Agregar CSRF token para mutaciones (POST, PUT, PATCH, DELETE)
+        const csrfToken = authStore.getCsrfToken();
+        if (csrfToken && !['GET', 'HEAD', 'OPTIONS'].includes(options.method || 'GET')) {
+            headers['X-CSRF-Token'] = csrfToken;
+        }
+
         return {
             ...options,
             headers,
         };
-    } catch (error:any) {
+    } catch (error: any) {
         console.log('Error al obtener token de autenticación:', error);
         return options;
     }
@@ -216,10 +215,6 @@ const apiRequest = async <T>(endpoint: string, options: ApiOptions = {}): Promis
 
         // Procesar la respuesta exitosa
         const fetchResult = await handleSuccessResponse<T>(response);
-
-        // Capturar los nuevos tokens devueltos por el backend en los headers
-        // El backend refresca automáticamente el token en el middleware
-        await captureTokensFromHeaders(response);
 
         // Validate the parsed data against any registered Zod schema for this endpoint
         const schema = findSchema(formattedEndpoint);

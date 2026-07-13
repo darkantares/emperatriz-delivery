@@ -1,15 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LoginResponse, IUserEntity, IRolesAllowedEntity, DeliveryPersonEntity } from '@/interfaces/auth';
 import { api, extractDataFromResponse, getApiUrl } from './api';
-import { storeTokens, clearTokens } from './auth-fetch';
-import { AUTH_TOKEN_KEY, REFRESH_TOKEN_KEY } from '@/utils/constants';
+import { storeRefreshToken, clearRefreshToken, getStoredRefreshToken } from './auth-fetch';
+import { authStore } from '@/stores/authStore';
 import { ApiEndpoints } from '../utils/api-endpoints';
 import { validateJwtHasEnterprise, logJwtValidation } from '../utils/jwt-utils';
 
-// Re-export for backward compatibility
-export { AUTH_TOKEN_KEY };
-
-// Keys para almacenamiento
+// Keys para almacenamiento de datos de usuario (no sensibles)
 const USER_DATA_KEY = 'user_data';
 const USER_ROLES_KEY = 'user_roles';
 const CARRIER_DATA_KEY = 'carrier_data';
@@ -22,7 +19,7 @@ export const authService = {
         error?: string;
         details?: any;
     }> => {
-        try {            
+        try {
             const response = await api.post<LoginResponse>(getApiUrl(ApiEndpoints.AuthLoginDelivery), { email, password });
 
             if (response.error || !response.data) {
@@ -35,7 +32,7 @@ export const authService = {
 
             // Backend returns an OkResult serialized as { value: LoginResponse }
             const loginData = (response.data as unknown as { value: LoginResponse }).value;
-            
+
             if (!loginData) {
                 console.log('Error parsing login response data structure from API:', response);
                 return {
@@ -51,18 +48,30 @@ export const authService = {
             const normalizedRoles = loginData.roles ?? loginData.user?.userRoles ?? [];
             const normalizedCarrier = loginData.carrier ?? null;
 
-            // Guardar tokens usando el servicio centralizado
-            await storeTokens(loginData.access_token, loginData.refresh_token);
+            // Guardar access_token y csrf_token en memoria
+            authStore.setAccessToken(loginData.access_token);
+            if ((loginData as any).csrf_token) {
+                authStore.setCsrfToken((loginData as any).csrf_token);
+            }
+
+            // Guardar refresh_token en SecureStore (encriptado)
+            await storeRefreshToken(loginData.refresh_token);
 
             // Validar que el JWT tenga el campo enterprise (defensa contra bugs del backend)
             validateJwtHasEnterprise(loginData.access_token);
             logJwtValidation(loginData.access_token, 'login');
 
+            // Guardar datos de usuario en AsyncStorage (no sensibles)
             await Promise.all([
-              AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(loginData.user)),
-              AsyncStorage.setItem(USER_ROLES_KEY, JSON.stringify(normalizedRoles)),
-              AsyncStorage.setItem(CARRIER_DATA_KEY, JSON.stringify(normalizedCarrier)),
+                AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(loginData.user)),
+                AsyncStorage.setItem(USER_ROLES_KEY, JSON.stringify(normalizedRoles)),
+                AsyncStorage.setItem(CARRIER_DATA_KEY, JSON.stringify(normalizedCarrier)),
             ]);
+
+            // Guardar en authStore también
+            authStore.setUser(loginData.user);
+            authStore.setCarrier(normalizedCarrier);
+            authStore.setRoles(normalizedRoles);
 
             return {
                 success: true,
@@ -73,7 +82,7 @@ export const authService = {
                     carrier: normalizedCarrier,
                 }
             };
-        } catch (error:any) {
+        } catch (error: any) {
             console.log('Login error:', error);
             return {
                 success: false,
@@ -83,8 +92,11 @@ export const authService = {
     },
 
     logout: async () => {
-        // Eliminar todos los datos de autenticación
-        await clearTokens();
+        // Limpiar tokens
+        authStore.clearSession();
+        await clearRefreshToken();
+
+        // Limpiar datos de usuario de AsyncStorage
         await AsyncStorage.multiRemove([
             USER_DATA_KEY,
             USER_ROLES_KEY,
@@ -93,9 +105,10 @@ export const authService = {
         return { success: true };
     },
 
-    isAuthenticated: async () => {
-        const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
-        return !!token;
+    isAuthenticated: async (): Promise<boolean> => {
+        // Verificar si hay refresh token en SecureStore
+        const refreshToken = await getStoredRefreshToken();
+        return Boolean(refreshToken);
     },
 
     getAuthData: async (): Promise<{
@@ -105,22 +118,126 @@ export const authService = {
         token: string | null;
     }> => {
         try {
-            const [userJson, rolesJson, carrierJson, token] = await Promise.all([
+            // Primero intentar obtener del authStore (memoria)
+            const memoryUser = authStore.getUser();
+            if (memoryUser) {
+                return {
+                    user: authStore.getUser(),
+                    roles: authStore.getRoles(),
+                    carrier: authStore.getCarrier(),
+                    token: authStore.getAccessToken(),
+                };
+            }
+
+            // Fallback a AsyncStorage (para datos de usuario)
+            const [userJson, rolesJson, carrierJson] = await Promise.all([
                 AsyncStorage.getItem(USER_DATA_KEY),
                 AsyncStorage.getItem(USER_ROLES_KEY),
                 AsyncStorage.getItem(CARRIER_DATA_KEY),
-                AsyncStorage.getItem(AUTH_TOKEN_KEY)
             ]);
 
             return {
                 user: userJson ? JSON.parse(userJson) : null,
                 roles: rolesJson ? JSON.parse(rolesJson) : null,
                 carrier: carrierJson ? JSON.parse(carrierJson) : null,
-                token
+                token: authStore.getAccessToken(),
             };
-        } catch (error:any) {
+        } catch (error: any) {
             console.log('Error getting auth data:', error);
             return { user: null, roles: null, carrier: null, token: null };
+        }
+    },
+
+    /**
+     * Refresca la sesión usando el refresh token de SecureStore.
+     * Llama a /auth/refresh-token con el refresh token en el body.
+     */
+    refreshSession: async (): Promise<{
+        success: boolean;
+        data?: {
+            user: IUserEntity;
+            roles: IRolesAllowedEntity[];
+            carrier: DeliveryPersonEntity | null;
+        };
+        error?: string;
+    }> => {
+        try {
+            const refreshToken = await getStoredRefreshToken();
+            if (!refreshToken) {
+                return { success: false, error: 'No hay refresh token disponible' };
+            }
+
+            const response = await api.post<{ access_token: string; csrf_token: string; user: IUserEntity; refresh_token: string }>(
+                getApiUrl(ApiEndpoints.AuthRefreshToken),
+                { refresh_token: refreshToken }
+            );
+
+            if (response.error || !response.data) {
+                return {
+                    success: false,
+                    error: response.error || 'Error al refrescar la sesión',
+                };
+            }
+
+            const refreshData = (response.data as unknown as { value: any }).value ?? response.data;
+
+            if (!refreshData?.access_token) {
+                return {
+                    success: false,
+                    error: 'Respuesta inválida del endpoint refresh-token',
+                };
+            }
+
+            // Actualizar tokens en memoria
+            authStore.setAccessToken(refreshData.access_token);
+            if (refreshData.csrf_token) {
+                authStore.setCsrfToken(refreshData.csrf_token);
+            }
+
+            // Actualizar refresh token en SecureStore
+            if (refreshData.refresh_token) {
+                await storeRefreshToken(refreshData.refresh_token);
+            }
+
+            // Validar token
+            validateJwtHasEnterprise(refreshData.access_token);
+            logJwtValidation(refreshData.access_token, 'refresh');
+
+            // Obtener datos del usuario
+            const userData = refreshData.user;
+            if (userData) {
+                const normalizedRoles = userData.userRoles ?? [];
+                const normalizedCarrier = userData.carrier ?? null;
+
+                // Guardar en memoria
+                authStore.setUser(userData);
+                authStore.setCarrier(normalizedCarrier);
+                authStore.setRoles(normalizedRoles);
+
+                // Guardar en AsyncStorage (fallback)
+                await Promise.all([
+                    AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(userData)),
+                    AsyncStorage.setItem(USER_ROLES_KEY, JSON.stringify(normalizedRoles)),
+                    AsyncStorage.setItem(CARRIER_DATA_KEY, JSON.stringify(normalizedCarrier)),
+                ]);
+
+                return {
+                    success: true,
+                    data: {
+                        user: userData,
+                        roles: normalizedRoles,
+                        carrier: normalizedCarrier,
+                    },
+                };
+            }
+
+            return { success: false, error: 'No se pudo obtener la información del usuario' };
+        } catch (error: any) {
+            console.log('Error refreshing session:', error);
+            return {
+                success: false,
+                error: 'Error al refrescar la sesión',
+            };
         }
     },
 
@@ -158,14 +275,19 @@ export const authService = {
             const normalizedRoles = userData.userRoles ?? [];
             const normalizedCarrier = userData.carrier ?? null;
 
+            // Actualizar authStore
+            authStore.setUser(userData);
+            authStore.setCarrier(normalizedCarrier);
+            authStore.setRoles(normalizedRoles);
+
+            // Actualizar AsyncStorage
             await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(userData));
             await AsyncStorage.setItem(USER_ROLES_KEY, JSON.stringify(normalizedRoles));
-            // Only persist carrier if the backend returned it to avoid overwriting a valid stored value
             if (normalizedCarrier !== null) {
                 await AsyncStorage.setItem(CARRIER_DATA_KEY, JSON.stringify(normalizedCarrier));
             }
 
-            // Resolve carrier: prefer fresh data from backend, fall back to stored value
+            // Resolve carrier
             const storedCarrierJson = await AsyncStorage.getItem(CARRIER_DATA_KEY);
             const resolvedCarrier = normalizedCarrier ?? (storedCarrierJson ? JSON.parse(storedCarrierJson) : null);
 
@@ -177,7 +299,7 @@ export const authService = {
                     carrier: resolvedCarrier,
                 },
             };
-        } catch (error:any) {
+        } catch (error: any) {
             console.log('Error fetching whoami:', error);
             return {
                 success: false,
@@ -202,10 +324,8 @@ export const authService = {
                 };
             }
 
-            return {
-                success: true,
-            };
-        } catch (error:any) {
+            return { success: true };
+        } catch (error: any) {
             console.log('Error verifying email code:', error);
             return {
                 success: false,
@@ -230,10 +350,8 @@ export const authService = {
                 };
             }
 
-            return {
-                success: true,
-            };
-        } catch (error:any) {
+            return { success: true };
+        } catch (error: any) {
             console.log('Error resending verification code:', error);
             return {
                 success: false,
@@ -314,4 +432,3 @@ export const authService = {
         }
     },
 };
-

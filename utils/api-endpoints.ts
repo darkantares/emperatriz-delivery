@@ -27,6 +27,7 @@ export enum ApiEndpoints {
   // ==========================================================================
   AuthLoginDelivery = 'auth/login-delivery',
   AuthWhoami = 'auth/whoami',
+  AuthRefreshToken = 'auth/refresh-token',
   AuthVerifyEmail = 'auth/verify-email',
   AuthResendVerificationCode = 'auth/resend-verification-code',
   AuthChangeInitialPassword = 'auth/change-initial-password',

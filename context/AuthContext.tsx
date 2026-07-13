@@ -48,26 +48,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (cancelled) return;
 
         if (isAuth) {
-          // Sincronizar usuario con backend en cada carga/recarga.
-          // fetchWhoami sends both the (possibly expired) access token and the
-          // refresh token; the backend TokenRefreshMiddleware transparently
-          // refreshes the access token when it is expired.
-          const whoami = await authService.fetchWhoami();
+          // Refrescar sesión usando el refresh token de SecureStore
+          // Esto llama a /auth/refresh-token con el refresh token en el body
+          const refreshResult = await authService.refreshSession();
 
-          if (whoami.success && whoami.data) {
+          if (refreshResult.success && refreshResult.data) {
             setIsAuthenticated(true);
-            setUser(whoami.data.user);
-            // If whoami didn't include carrier (backend relation missing), fall back to stored value
-            const resolvedCarrier = whoami.data.carrier ?? (await authService.getAuthData()).carrier ?? null;
-            setCarrier(resolvedCarrier);
-            setRoles(whoami.data.roles || []);
+            setUser(refreshResult.data.user);
+            setCarrier(refreshResult.data.carrier ?? null);
+            setRoles(refreshResult.data.roles || []);
 
             // Conectar WebSocket al inicio si el usuario ya estaba autenticado
             await socketService.connect();
           } else {
-            // whoami failed — auth tokens are likely fully expired / invalid.
-            // Do NOT keep the user logged-in; clear state and force re-login.
-            console.log('[AuthContext] whoami falló, cerrando sesión:', whoami.error);
+            // Refresh falló — tokens inválidos/expirados
+            console.log('[AuthContext] refresh falló, cerrando sesión:', refreshResult.error);
             await authService.logout();
             setIsAuthenticated(false);
             setUser(null);
@@ -77,7 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else {
           setIsAuthenticated(false);
         }
-      } catch (error:any) {
+      } catch (error: any) {
         console.log('Error checking authentication:', error);
         setIsAuthenticated(false);
         setUser(null);
@@ -208,11 +203,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const refreshUser = useCallback(async () => {
-    const whoami = await authService.fetchWhoami();
-    if (whoami.success && whoami.data) {
-      setUser(whoami.data.user);
-      setCarrier(whoami.data.carrier ?? null);
-      setRoles(whoami.data.roles || []);
+    const refreshResult = await authService.refreshSession();
+    if (refreshResult.success && refreshResult.data) {
+      setUser(refreshResult.data.user);
+      setCarrier(refreshResult.data.carrier ?? null);
+      setRoles(refreshResult.data.roles || []);
     }
   }, []);
 
