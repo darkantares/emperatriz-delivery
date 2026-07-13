@@ -4,8 +4,18 @@ import { OkResultOf } from "./global.schema";
 const EnterpriseSchema = z
   .object({
     id: z.number(),
-    title: z.string(),
-    email: z.string(),
+    title: z.string().optional().nullable(),
+    email: z.string().optional().nullable(),
+    files: z.string().optional().nullable(),
+    document_verification: z.string().optional().nullable(),
+  })
+  .loose();
+
+const BranchSchema = z
+  .object({
+    id: z.number(),
+    title: z.string().optional().nullable(),
+    phone: z.string().optional().nullable(),
   })
   .loose();
 
@@ -23,24 +33,26 @@ const RoleSchema = z
   .object({
     id: z.number(),
     title: z.string(),
-    order: z.number(),
+    order: z.number().optional(),
   })
   .loose();
 
 const UserEntitySchema = z
   .object({
     id: z.number(),
-    isActive: z.boolean(),
-    isAuthenticated: z.boolean(),
-    password: z.string(),
-    phone: z.string(),
-    firstname: z.string(),
-    lastname: z.string(),
+    isActive: z.boolean().optional(),
+    isAuthenticated: z.boolean().optional(),
+    phone: z.string().optional().nullable(),
+    firstname: z.string().optional().nullable(),
+    lastname: z.string().optional().nullable(),
     name: z.string().nullable().optional(),
     email: z.string().nullable().optional(),
     avatar: z.string().nullable().optional(),
-    // userRoles: z.array(z.string()),
-    enterprise: EnterpriseSchema,
+    enterprise: EnterpriseSchema.optional().nullable(),
+    userRoles: z.array(RoleSchema).optional(),
+    isEmailVerified: z.boolean().optional(),
+    mustChangePassword: z.boolean().optional(),
+    permissions: z.array(z.any()).optional(),
   })
   .loose();
 
@@ -49,7 +61,6 @@ const LoginResponseSchema = z
     user: UserEntitySchema,
     access_token: z.string(),
     refresh_token: z.string(),
-    // roles: z.array(RoleSchema).optional(),
     carrier: DeliveryPersonSchema.nullable().optional(),
   })
   .loose();

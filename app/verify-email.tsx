@@ -68,13 +68,18 @@ export default function VerifyEmailScreen() {
             const result = await authService.verifyEmailCode(email, code);
 
             if (result.success) {
-                // Refresh AuthContext so the route guard sees isEmailVerified=true
-                // and auto-redirects to change-initial-password or (tabs).
+                // Refrescar sesión para obtener datos actualizados del usuario
                 await refreshUser();
+
                 Alert.alert(
                     'Éxito',
                     'Tu correo ha sido verificado correctamente',
-                    [{ text: 'Continuar', onPress: () => setCode('') }]
+                    [{ text: 'Continuar', onPress: () => {
+                        // Forzar navegación a cambio de contraseña después de verificar
+                        // El route guard podría no detectar el cambio de isEmailVerified
+                        // a tiempo si refreshSession devuelve datos del JWT anterior
+                        router.replace('/change-initial-password');
+                    }}]
                 );
             } else {
                 Alert.alert('Error de verificación', result.error || 'Código inválido');

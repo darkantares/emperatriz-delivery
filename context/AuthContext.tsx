@@ -49,7 +49,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (isAuth) {
           // Refrescar sesión usando el refresh token de SecureStore
-          // Esto llama a /auth/refresh-token con el refresh token en el body
           const refreshResult = await authService.refreshSession();
 
           if (refreshResult.success && refreshResult.data) {
@@ -61,13 +60,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Conectar WebSocket al inicio si el usuario ya estaba autenticado
             await socketService.connect();
           } else {
-            // Refresh falló — tokens inválidos/expirados
-            console.log('[AuthContext] refresh falló, cerrando sesión:', refreshResult.error);
-            await authService.logout();
-            setIsAuthenticated(false);
-            setUser(null);
-            setCarrier(null);
-            setRoles(null);
+            // Fallback: intentar fetchWhoami con el access_token actual
+            console.log('[AuthContext] refresh falló, intentando fetchWhoami como fallback');
+            const whoami = await authService.fetchWhoami();
+
+            if (whoami.success && whoami.data) {
+              setIsAuthenticated(true);
+              setUser(whoami.data.user);
+              setCarrier(whoami.data.carrier ?? null);
+              setRoles(whoami.data.roles || []);
+              await socketService.connect();
+            } else {
+              // Ambos fallaron — cerrar sesión
+              console.log('[AuthContext] whoami también falló, cerrando sesión');
+              await authService.logout();
+              setIsAuthenticated(false);
+              setUser(null);
+              setCarrier(null);
+              setRoles(null);
+            }
           }
         } else {
           setIsAuthenticated(false);
@@ -203,11 +214,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const refreshUser = useCallback(async () => {
+    // Intentar refreshSession primero (refresca access_token + datos del usuario)
     const refreshResult = await authService.refreshSession();
     if (refreshResult.success && refreshResult.data) {
       setUser(refreshResult.data.user);
       setCarrier(refreshResult.data.carrier ?? null);
       setRoles(refreshResult.data.roles || []);
+      return;
+    }
+
+    // Fallback: si refreshSession falla, intentar fetchWhoami con el access_token actual
+    const whoami = await authService.fetchWhoami();
+    if (whoami.success && whoami.data) {
+      setUser(whoami.data.user);
+      setCarrier(whoami.data.carrier ?? null);
+      setRoles(whoami.data.roles || []);
     }
   }, []);
 
