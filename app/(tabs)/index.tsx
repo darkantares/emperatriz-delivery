@@ -5,6 +5,8 @@ import {
   Text,
   ScrollView,
   View as RNView,
+  ActivityIndicator,
+  Modal,
 } from "react-native";
 import { View } from "@/components/Themed";
 import { socketService, SocketEventType } from "@/services/websocketService";
@@ -343,6 +345,16 @@ function TabOneScreenContent() {
             </RNView>
           )}
         </SafeAreaView>
+
+        {/* Spinner bloqueante para "Iniciar Rutas" */}
+        <Modal transparent visible={tripLoading} animationType="fade">
+          <View style={styles.loadingOverlay}>
+            <View style={styles.loadingBox}>
+              <ActivityIndicator size="large" color={CustomColors.primary} />
+              <Text style={styles.loadingText}>Calculando ruta optimizada...</Text>
+            </View>
+          </View>
+        </Modal>
       </View>
     </GestureHandlerRootView>
   );
@@ -446,5 +458,25 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "bold",
     fontSize: 16,
+  },
+  loadingOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loadingBox: {
+    backgroundColor: CustomColors.backgroundDark,
+    borderRadius: 16,
+    padding: 32,
+    alignItems: "center",
+    gap: 16,
+    borderWidth: 1,
+    borderColor: CustomColors.divider,
+  },
+  loadingText: {
+    color: CustomColors.textLight,
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
