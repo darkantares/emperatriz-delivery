@@ -207,7 +207,7 @@ export const authService = {
             const userData = refreshData.user;
             if (userData) {
                 const normalizedRoles = userData.userRoles ?? [];
-                const normalizedCarrier = userData.carrier ?? null;
+                const normalizedCarrier = refreshData.carrier ?? userData.carrier ?? null;
 
                 // Guardar en memoria
                 authStore.setUser(userData);

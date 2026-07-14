@@ -5,7 +5,6 @@ import {
   Text,
   ScrollView,
   View as RNView,
-  Dimensions,
 } from "react-native";
 import { View } from "@/components/Themed";
 import { socketService, SocketEventType } from "@/services/websocketService";
@@ -266,10 +265,6 @@ function TabOneScreenContent() {
                   ]}
                 />
               </RNView>
-              {/* <RNView style={styles.liveRow}>
-                <RNView style={styles.liveDot} />
-                <Text style={styles.liveText}>En tiempo real</Text>
-              </RNView> */}
             </RNView>
             <Pressable style={styles.refreshButton} onPress={() => { fetchDeliveries(); refreshGanancias(); }}>
               <Ionicons name="refresh-outline" size={20} color={CustomColors.textLight} />

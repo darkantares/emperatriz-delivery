@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     StyleSheet,
     TextInput,
@@ -9,6 +9,7 @@ import {
     Alert,
     ScrollView,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
 import { Text, View } from '@/components/Themed';
 import { useAuth } from '@/context/AuthContext';
@@ -27,11 +28,15 @@ import { authService } from '@/services/authService';
 import { router } from 'expo-router';
 import { ApiEndpoints } from '@/utils/api-endpoints';
 
+const REMEMBER_EMAIL_KEY = 'remembered_email';
+const REMEMBER_ME_KEY = 'remember_me_enabled';
+
 export default function LoginScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [rememberMe, setRememberMe] = useState(false);
     const [appVersion, setAppVersion] = useState('');
     const [apiStatus, setApiStatus] = useState<{ connected: boolean, message: string }>({
         connected: true,
@@ -67,6 +72,23 @@ export default function LoginScreen() {
             .catch(() => {});
 
         return () => controller.abort();
+    }, []);
+
+    // Cargar email recordado al iniciar
+    useEffect(() => {
+        const loadRememberedEmail = async () => {
+            try {
+                const [savedEmail, savedRememberMe] = await Promise.all([
+                    AsyncStorage.getItem(REMEMBER_EMAIL_KEY),
+                    AsyncStorage.getItem(REMEMBER_ME_KEY),
+                ]);
+                if (savedRememberMe === 'true' && savedEmail) {
+                    setEmail(savedEmail);
+                    setRememberMe(true);
+                }
+            } catch {}
+        };
+        loadRememberedEmail();
     }, []);
 
     const checkServerConnection = async () => {
@@ -129,6 +151,16 @@ export default function LoginScreen() {
                 Alert.alert('Error de inicio de sesión', errorMessage);
             } else {
                 console.log('Inicio de sesión exitoso');
+
+                // Guardar email recordado si "Recuérdame" está activado
+                if (rememberMe) {
+                    await AsyncStorage.setItem(REMEMBER_EMAIL_KEY, email);
+                    await AsyncStorage.setItem(REMEMBER_ME_KEY, 'true');
+                } else {
+                    await AsyncStorage.removeItem(REMEMBER_EMAIL_KEY);
+                    await AsyncStorage.removeItem(REMEMBER_ME_KEY);
+                }
+
                 // Verificar si el usuario necesita verificar su email
                 const authData = await authService.getAuthData();
                 if (authData.user && !authData.user.isEmailVerified) {
@@ -235,6 +267,18 @@ export default function LoginScreen() {
                                 </Pressable>
                             </View>
                         </View>
+
+                        <Pressable
+                            style={styles.rememberMeContainer}
+                            onPress={() => setRememberMe(!rememberMe)}
+                        >
+                            <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+                                {rememberMe && (
+                                    <FontAwesome name="check" size={12} color={CustomColors.textLight} />
+                                )}
+                            </View>
+                            <Text style={styles.rememberMeText}>Recuérdame</Text>
+                        </Pressable>
 
                         <Pressable
                             style={styles.loginButton}
@@ -360,7 +404,7 @@ const styles = StyleSheet.create({
         padding: 15,
         borderRadius: 8,
         alignItems: 'center',
-        marginTop: 10,
+        marginTop: 20,
         boxShadow: '0px 2px 3.84px rgba(0,0,0,0.25)',
     },
     loginButtonText: {
@@ -375,6 +419,30 @@ const styles = StyleSheet.create({
     },
     forgotPasswordText: {
         color: CustomColors.secondary,
+        fontSize: 14,
+    },
+    rememberMeContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 15,
+        backgroundColor: 'transparent',
+    },
+    checkbox: {
+        width: 20,
+        height: 20,
+        borderRadius: 4,
+        borderWidth: 2,
+        borderColor: CustomColors.neutralLight,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 10,
+    },
+    checkboxChecked: {
+        backgroundColor: CustomColors.primary,
+        borderColor: CustomColors.primary,
+    },
+    rememberMeText: {
+        color: CustomColors.textLight,
         fontSize: 14,
     },
     versionText: {
