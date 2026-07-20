@@ -374,6 +374,11 @@ export const authService = {
                 };
             }
 
+            const currentUser = authStore.getUser();
+            if (currentUser) {
+                authStore.setUser({ ...currentUser, mustChangePassword: false });
+            }
+
             return { success: true };
         } catch (error: any) {
             console.log('Error changing initial password:', error);
