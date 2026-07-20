@@ -32,6 +32,7 @@ export enum ApiEndpoints {
   AuthResendVerificationCode = 'auth/resend-verification-code',
   AuthChangeInitialPassword = 'auth/change-initial-password',
   AuthForgotPassword = 'auth/forgot-password',
+  AuthForgotPasswordMobile = 'auth/forgot-password-mobile',
   AuthResetPassword = 'auth/reset-password',
 
   // ==========================================================================

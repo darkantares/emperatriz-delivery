@@ -389,7 +389,7 @@ export const authService = {
         error?: string;
     }> => {
         try {
-            const response = await api.post(getApiUrl(ApiEndpoints.AuthForgotPassword), { email });
+            const response = await api.post(getApiUrl(ApiEndpoints.AuthForgotPasswordMobile), { email });
 
             if (response.error) {
                 return {

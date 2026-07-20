@@ -15,6 +15,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authService } from '@/services/authService';
 import {
     getRecoveryState,
@@ -43,6 +44,12 @@ export default function ForgotPasswordScreen() {
                 setStep('login_with_temp');
                 setRecoveryEmail(state.email);
             }
+        });
+    }, []);
+
+    useEffect(() => {
+        AsyncStorage.getItem('remembered_email').then((savedEmail) => {
+            if (savedEmail) setEmail(savedEmail);
         });
     }, []);
 
