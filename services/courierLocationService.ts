@@ -64,6 +64,8 @@ class CourierLocationTrackingService {
   private appStateSubscription: { remove(): void } | null = null;
   private lastBackgroundTime: number = 0;
   private fallbackTimerId: ReturnType<typeof setInterval> | null = null;
+  private lastGpsCallbackAt: number = 0;
+  private permissionCheckTimerId: ReturnType<typeof setInterval> | null = null;
   private userId: number | null = null;
 
   /**
@@ -216,6 +218,12 @@ class CourierLocationTrackingService {
         },
         (location) => {
           console.log('[LocationTracking] 📍 GPS callback fired');
+          this.lastGpsCallbackAt = Date.now();
+          // Deduplicación: reiniciar fallback timer si el GPS se disparó
+          if (this.fallbackTimerId !== null) {
+            this.stopFallbackTimer();
+            this.startFallbackTimer();
+          }
           this.handleLocationUpdate(location);
         },
       );
@@ -230,6 +238,9 @@ class CourierLocationTrackingService {
       if (!this.appStateSubscription) {
         this.appStateSubscription = AppState.addEventListener('change', this.handleAppStateChange);
       }
+
+      // Verificar permisos periódicamente
+      this.startPermissionCheck();
 
       return true;
     } catch (error: any) {
@@ -259,6 +270,7 @@ class CourierLocationTrackingService {
       }
 
       this.stopFallbackTimer();
+      this.stopPermissionCheck();
 
       this.isTracking = false;
       this.lastSentLocation = null;
@@ -286,6 +298,10 @@ class CourierLocationTrackingService {
    */
   private handleAppStateChange = async (state: AppStateStatus) => {
     if (state === "active") {
+      // Reanudar fallback timer si estaba pausado
+      if (this.isTracking && this.fallbackTimerId === null) {
+        this.startFallbackTimer();
+      }
       const timeInBackground = Date.now() - this.lastBackgroundTime;
       if (this.isTracking && timeInBackground > 30000) {
         console.log(
@@ -295,6 +311,8 @@ class CourierLocationTrackingService {
       }
     } else if (state === "background") {
       this.lastBackgroundTime = Date.now();
+      // Pausar fallback timer en background
+      this.stopFallbackTimer();
     }
   };
 
@@ -324,6 +342,32 @@ class CourierLocationTrackingService {
     if (this.fallbackTimerId !== null) {
       clearInterval(this.fallbackTimerId);
       this.fallbackTimerId = null;
+    }
+  }
+
+  /**
+   * Verifica periódicamente si los permisos de ubicación siguen otorgados
+   */
+  private startPermissionCheck(): void {
+    this.stopPermissionCheck();
+    this.permissionCheckTimerId = setInterval(async () => {
+      if (!this.isTracking) return;
+      const hasPermissions = await this.hasPermissions();
+      if (!hasPermissions) {
+        console.warn('[LocationTracking] ⚠️ Permisos de ubicación revocados, intentando re-solicitar');
+        const regranted = await this.requestPermissions();
+        if (!regranted) {
+          console.error('[LocationTracking] ❌ Permisos denegados definitivamente, deteniendo tracking');
+          this.stopTracking();
+        }
+      }
+    }, 60000);
+  }
+
+  private stopPermissionCheck(): void {
+    if (this.permissionCheckTimerId !== null) {
+      clearInterval(this.permissionCheckTimerId);
+      this.permissionCheckTimerId = null;
     }
   }
 
@@ -480,17 +524,24 @@ class CourierLocationTrackingService {
     try {
       const hasPermissions = await this.hasPermissions();
       if (!hasPermissions) {
-        // console.warn('[LocationTracking] ❌ No hay permisos para obtener ubicación');
+        console.warn('[LocationTracking] ❌ No hay permisos para obtener ubicación');
         return null;
       }
 
-      const location = await Location.getCurrentPositionAsync({
+      const GPS_TIMEOUT_MS = 10000;
+      const locationPromise = Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
       });
+      const timeoutPromise = new Promise<null>((resolve) =>
+        setTimeout(() => {
+          console.warn('[LocationTracking] ⏰ getCurrentPositionAsync timeout');
+          resolve(null);
+        }, GPS_TIMEOUT_MS),
+      );
 
-      return location;
+      return await Promise.race([locationPromise, timeoutPromise]);
     } catch (error: any) {
-      // console.error('[LocationTracking] Error al obtener ubicación actual:', error);
+      console.error('[LocationTracking] Error al obtener ubicación actual:', error);
       return null;
     }
   }

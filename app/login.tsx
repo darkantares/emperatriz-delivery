@@ -7,7 +7,6 @@ import {
     KeyboardAvoidingView,
     Platform,
     Alert,
-    ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
@@ -193,7 +192,7 @@ export default function LoginScreen() {
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={styles.container}
             >
-                <ScrollView contentContainerStyle={styles.scrollView}>
+                <View style={styles.content}>
                     <View style={styles.header}>
                         <Image
                             source={require('@/assets/images/screen.png')}
@@ -295,7 +294,7 @@ export default function LoginScreen() {
                             <Text style={styles.forgotPasswordText}>¿Olvidaste tu contraseña?</Text>
                         </Pressable>
                     </View>
-                </ScrollView>
+                </View>
             </KeyboardAvoidingView>
             {appVersion ? (
                 <Text style={styles.versionText}>v{appVersion}</Text>
@@ -315,10 +314,9 @@ const styles = StyleSheet.create({
         padding: 20,
         backgroundColor: 'transparent',
     },
-    scrollView: {
-        flexGrow: 1,
+    content: {
+        flex: 1,
         justifyContent: 'center',
-        paddingVertical: 20,
     },
     header: {
         alignItems: 'center',
