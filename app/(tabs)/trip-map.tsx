@@ -236,12 +236,17 @@ export default function TripMapScreen() {
   }
 
   // Determine current group status for the control button
-  const currentGroup = groupedWaypoints[progression.currentTargetGroupIndex];
+  // Clamp index: after a delivery completion, currentTargetGroupIndex can exceed
+  // groupedWaypoints bounds because groupedWaypoints is recomputed from the new
+  // tripDeliveries (which may be shorter) while the index was incremented from
+  // the old closure value. Clamping prevents the button from being disabled.
+  const safeIndex = Math.min(progression.currentTargetGroupIndex, Math.max(0, groupedWaypoints.length - 1));
+  const currentGroup = groupedWaypoints[safeIndex];
   if (!currentGroup) {
-    console.log("[TripMapScreen][DEBUG] render: currentGroup null para index", progression.currentTargetGroupIndex, "total grupos:", groupedWaypoints.length);
+    console.log("[TripMapScreen][DEBUG] render: currentGroup null para index", safeIndex, "total grupos:", groupedWaypoints.length);
   }
   if (currentGroup && (!currentGroup.deliveries || currentGroup.deliveries.length === 0)) {
-    console.log("[TripMapScreen][DEBUG] render: currentGroup.deliveries vacío para index", progression.currentTargetGroupIndex);
+    console.log("[TripMapScreen][DEBUG] render: currentGroup.deliveries vacío para index", safeIndex);
   }
 
   const currentGroupStatus = currentGroup
