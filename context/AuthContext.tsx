@@ -141,15 +141,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       socketService.onConnectionChange(handleConnectionChange);
       console.log('[AuthContext] Listener de conexión registrado');
 
-      // Si ya está conectado, iniciar tracking inmediatamente
-      const isConnected = socketService.isConnected();
-      console.log('[AuthContext] WebSocket connected status:', isConnected);
-      
-      if (isConnected) {
-        console.log('[AuthContext] WebSocket ya conectado, iniciando tracking inmediatamente');
-        handleConnectionChange(true);
-      }
-
       // Cleanup
       return () => {
         console.log('[AuthContext] Limpiando listeners y deteniendo tracking');

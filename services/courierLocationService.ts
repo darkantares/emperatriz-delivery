@@ -1,5 +1,6 @@
-import * as Location from 'expo-location';
-import { socketService } from './websocketService';
+import * as Location from "expo-location";
+import { AppState, AppStateStatus } from "react-native";
+import { socketService } from "./websocketService";
 
 /**
  * Interface para la ubicación del mensajero
@@ -47,7 +48,7 @@ const DEFAULT_CONFIG: LocationTrackingConfig = {
 /**
  * Servicio para gestionar el tracking de ubicación del mensajero
  * Obtiene la ubicación GPS y la envía al backend vía WebSocket
- * 
+ *
  * Características:
  * - Throttling para evitar consumo excesivo de batería
  * - Solo envía si el WebSocket está conectado
@@ -60,6 +61,9 @@ class CourierLocationTrackingService {
   private lastSentTime: number = 0;
   private config: LocationTrackingConfig = DEFAULT_CONFIG;
   private locationSubscription: Location.LocationSubscription | null = null;
+  private appStateSubscription: { remove(): void } | null = null;
+  private lastBackgroundTime: number = 0;
+  private fallbackTimerId: ReturnType<typeof setInterval> | null = null;
   private userId: number | null = null;
 
   /**
@@ -68,19 +72,35 @@ class CourierLocationTrackingService {
   initialize(config?: Partial<LocationTrackingConfig>) {
     this.config = { ...DEFAULT_CONFIG, ...config };
     // console.log('[LocationTracking] Inicializado con config:', this.config);
-    
+
     // Registrar listeners para respuestas del backend
-    socketService.on('courier.location.ack', (data: any) => {
+    socketService.on("courier.location.ack", (data: any) => {
       // console.log('[LocationTracking] ✅ ACK recibido del backend:', data);
     });
-    
-    socketService.on('courier.location.error', (error: any) => {
+
+    socketService.on("courier.location.error", (error: any) => {
       // console.error('[LocationTracking] ❌ Error recibido del backend:', error);
     });
 
     // Escuchar solicitudes de refresco de ubicación del backend (para asignación automática)
-    socketService.on('courier.location.refresh', async (_payload: any) => {
-      console.log('[LocationTracking] 🔄 Solicitud de refresco de ubicación recibida del backend');
+    socketService.on("courier.location.refresh", async (_payload: any) => {
+      console.log(
+        "[LocationTracking] 🔄 Solicitud de refresco de ubicación recibida del backend",
+      );
+      // Enviar última ubicación conocida inmediatamente
+      if (this.lastSentLocation && this.userId) {
+        const cachedPayload: CourierLocation = {
+          courierId: this.userId,
+          lat: this.lastSentLocation.coords.latitude,
+          lng: this.lastSentLocation.coords.longitude,
+          accuracy: this.lastSentLocation.coords.accuracy || 0,
+          timestamp: new Date(this.lastSentLocation.timestamp).toISOString(),
+          speed: this.lastSentLocation.coords.speed ?? undefined,
+          heading: this.lastSentLocation.coords.heading ?? undefined,
+        };
+        socketService.emit("courier.location.update", cachedPayload);
+      }
+      // Luego intentar fresh GPS
       const location = await this.getCurrentLocation();
       if (location) {
         this.sendLocationToBackend(location);
@@ -104,16 +124,17 @@ class CourierLocationTrackingService {
     try {
       // console.log('[LocationTracking] Solicitando permisos de ubicación...');
 
-      const { status: foregroundStatus } = await Location.requestForegroundPermissionsAsync();
+      const { status: foregroundStatus } =
+        await Location.requestForegroundPermissionsAsync();
 
-      if (foregroundStatus !== 'granted') {
+      if (foregroundStatus !== "granted") {
         // console.warn('[LocationTracking] Permisos de ubicación denegados');
         return false;
       }
 
       // console.log('[LocationTracking] Permisos de ubicación otorgados');
       return true;
-    } catch (error:any) {
+    } catch (error: any) {
       // console.error('[LocationTracking] Error al solicitar permisos:', error);
       return false;
     }
@@ -125,8 +146,8 @@ class CourierLocationTrackingService {
   async hasPermissions(): Promise<boolean> {
     try {
       const { status } = await Location.getForegroundPermissionsAsync();
-      return status === 'granted';
-    } catch (error:any) {
+      return status === "granted";
+    } catch (error: any) {
       // console.error('[LocationTracking] Error al verificar permisos:', error);
       return false;
     }
@@ -138,7 +159,7 @@ class CourierLocationTrackingService {
   async startTracking(): Promise<boolean> {
     try {
       // console.log('[LocationTracking] startTracking() llamado');
-      
+
       if (this.isTracking) {
         // console.log('[LocationTracking] Ya está en tracking');
         return true;
@@ -153,7 +174,7 @@ class CourierLocationTrackingService {
       // Verificar permisos
       const hasPermissions = await this.hasPermissions();
       // console.log('[LocationTracking] hasPermissions:', hasPermissions);
-      
+
       if (!hasPermissions) {
         // console.log('[LocationTracking] Solicitando permisos...');
         const granted = await this.requestPermissions();
@@ -167,7 +188,7 @@ class CourierLocationTrackingService {
       // Verificar que el WebSocket esté conectado
       const isSocketConnected = socketService.isConnected();
       // console.log('[LocationTracking] WebSocket conectado:', isSocketConnected);
-      
+
       if (!isSocketConnected) {
         // console.warn('[LocationTracking] ❌ WebSocket no conectado, no se inicia tracking');
         return false;
@@ -181,22 +202,37 @@ class CourierLocationTrackingService {
       // });
 
       // Iniciar tracking de ubicación
+      // Limpiar suscripción anterior si existe (prevenir leak por race condition)
+      if (this.locationSubscription) {
+        this.locationSubscription.remove();
+        this.locationSubscription = null;
+      }
+
       this.locationSubscription = await Location.watchPositionAsync(
         {
-          accuracy: Location.Accuracy.Balanced, // Balance entre precisión y batería
+          accuracy: Location.Accuracy.Balanced,
           timeInterval: this.config.updateInterval,
-          distanceInterval: this.config.minDistance, // 0 en dev = se dispara solo por tiempo
+          distanceInterval: this.config.minDistance,
         },
         (location) => {
-          // console.log('[LocationTracking] 📍 Nueva ubicación recibida del GPS');
+          console.log('[LocationTracking] 📍 GPS callback fired');
           this.handleLocationUpdate(location);
-        }
+        },
       );
+
+      // Fallback timer: si el GPS no dispara en 20s, fetch manual
+      this.startFallbackTimer();
 
       this.isTracking = true;
       // console.log('[LocationTracking] ✅ Tracking iniciado correctamente');
+
+      // Registrar listener de AppState para manejar foreground/background
+      if (!this.appStateSubscription) {
+        this.appStateSubscription = AppState.addEventListener('change', this.handleAppStateChange);
+      }
+
       return true;
-    } catch (error:any) {
+    } catch (error: any) {
       // console.error('[LocationTracking] ❌ Error al iniciar tracking:', error);
       this.isTracking = false;
       return false;
@@ -209,24 +245,85 @@ class CourierLocationTrackingService {
   async stopTracking(): Promise<void> {
     try {
       if (!this.isTracking) {
-        // console.log('[LocationTracking] No hay tracking activo');
         return;
       }
-
-      // console.log('[LocationTracking] Deteniendo tracking de ubicación...');
 
       if (this.locationSubscription) {
         this.locationSubscription.remove();
         this.locationSubscription = null;
       }
 
+      if (this.appStateSubscription) {
+        this.appStateSubscription.remove();
+        this.appStateSubscription = null;
+      }
+
+      this.stopFallbackTimer();
+
       this.isTracking = false;
       this.lastSentLocation = null;
       this.lastSentTime = 0;
-
-      // console.log('[LocationTracking] Tracking detenido');
-    } catch (error:any) {
+    } catch (error: any) {
       // console.error('[LocationTracking] Error al detener tracking:', error);
+    }
+  }
+
+  /**
+   * Reinicia el tracking de ubicación (limpiar + re-crear suscripción GPS)
+   */
+  async restartTracking(): Promise<boolean> {
+    if (this.locationSubscription) {
+      this.locationSubscription.remove();
+      this.locationSubscription = null;
+    }
+    this.isTracking = false;
+    await new Promise((r) => setTimeout(r, 500));
+    return this.startTracking();
+  }
+
+  /**
+   * Maneja cambios de estado de la app (foreground/background)
+   */
+  private handleAppStateChange = async (state: AppStateStatus) => {
+    if (state === "active") {
+      const timeInBackground = Date.now() - this.lastBackgroundTime;
+      if (this.isTracking && timeInBackground > 30000) {
+        console.log(
+          "[LocationTracking] App volvió a foreground, reiniciando tracking",
+        );
+        await this.restartTracking();
+      }
+    } else if (state === "background") {
+      this.lastBackgroundTime = Date.now();
+    }
+  };
+
+  /**
+   * Inicia timer de fallback para enviar ubicación periódicamente
+   * incluso si watchPositionAsync no dispara callbacks
+   */
+  private startFallbackTimer(): void {
+    this.stopFallbackTimer();
+    this.fallbackTimerId = setInterval(async () => {
+      if (!this.isTracking || !socketService.isConnected()) return;
+      const now = Date.now();
+      const timeSinceLastSent = now - this.lastSentTime;
+      if (timeSinceLastSent >= this.config.updateInterval) {
+        console.log('[LocationTracking] ⏰ Fallback timer disparado, enviando ubicación');
+        const location = await this.getCurrentLocation();
+        if (location) {
+          this.sendLocationToBackend(location);
+          this.lastSentLocation = location;
+          this.lastSentTime = now;
+        }
+      }
+    }, this.config.updateInterval);
+  }
+
+  private stopFallbackTimer(): void {
+    if (this.fallbackTimerId !== null) {
+      clearInterval(this.fallbackTimerId);
+      this.fallbackTimerId = null;
     }
   }
 
@@ -241,7 +338,7 @@ class CourierLocationTrackingService {
       //   lng: location.coords.longitude.toFixed(6),
       //   accuracy: location.coords.accuracy?.toFixed(1)
       // });
-      
+
       // Verificar que el WebSocket esté conectado
       if (!socketService.isConnected()) {
         // console.log('[LocationTracking] ⚠️ WebSocket desconectado, no se envía ubicación');
@@ -263,7 +360,7 @@ class CourierLocationTrackingService {
           this.lastSentLocation.coords.latitude,
           this.lastSentLocation.coords.longitude,
           location.coords.latitude,
-          location.coords.longitude
+          location.coords.longitude,
         );
 
         // console.log('[LocationTracking] Verificando distancia:', {
@@ -272,7 +369,8 @@ class CourierLocationTrackingService {
         // });
       }
 
-      const shouldSendByDistance = !this.lastSentLocation || distance >= this.config.minDistance;
+      const shouldSendByDistance =
+        !this.lastSentLocation || distance >= this.config.minDistance;
       const shouldSendByTime = timeSinceLastSent >= this.config.updateInterval;
 
       if (!shouldSendByDistance && !shouldSendByTime) {
@@ -287,7 +385,7 @@ class CourierLocationTrackingService {
       // Actualizar estado
       this.lastSentLocation = location;
       this.lastSentTime = now;
-    } catch (error:any) {
+    } catch (error: any) {
       // console.error('[LocationTracking] ❌ Error al manejar actualización de ubicación:', error);
     }
   }
@@ -298,7 +396,7 @@ class CourierLocationTrackingService {
   private sendLocationToBackend(location: Location.LocationObject) {
     try {
       // console.log('[LocationTracking] 📤 sendLocationToBackend() llamado');
-      
+
       if (!this.userId) {
         // console.warn('[LocationTracking] ❌ No se puede enviar ubicación sin userId');
         return;
@@ -314,20 +412,22 @@ class CourierLocationTrackingService {
         heading: location.coords.heading ?? undefined,
       };
 
-      // console.log('[LocationTracking] Payload preparado:', payload);
-      // console.log('[LocationTracking] Emitiendo evento courier.location.update...');
+      console.log("[LocationTracking] Payload preparado:", payload);
+      console.log(
+        "[LocationTracking] Emitiendo evento courier.location.update...",
+      );
 
-      const sent = socketService.emit('courier.location.update', payload);
+      const sent = socketService.emit("courier.location.update", payload);
 
       if (sent) {
         console.log(
           // `[LocationTracking] ✅ Ubicación enviada exitosamente: (${payload.lat.toFixed(6)}, ${payload.lng.toFixed(6)}) ` +
-          `accuracy: ${payload.accuracy.toFixed(1)}m`
+          `accuracy: ${payload.accuracy.toFixed(1)}m`,
         );
       } else {
         // console.warn('[LocationTracking] ⚠️ No se pudo enviar ubicación (emit retornó false)');
       }
-    } catch (error:any) {
+    } catch (error: any) {
       // console.error('[LocationTracking] ❌ Error al enviar ubicación:', error);
     }
   }
@@ -339,7 +439,7 @@ class CourierLocationTrackingService {
     lat1: number,
     lon1: number,
     lat2: number,
-    lon2: number
+    lon2: number,
   ): number {
     const R = 6371e3; // Radio de la Tierra en metros
     const φ1 = (lat1 * Math.PI) / 180;
@@ -389,7 +489,7 @@ class CourierLocationTrackingService {
       });
 
       return location;
-    } catch (error:any) {
+    } catch (error: any) {
       // console.error('[LocationTracking] Error al obtener ubicación actual:', error);
       return null;
     }

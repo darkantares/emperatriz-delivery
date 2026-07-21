@@ -56,6 +56,7 @@ class SocketService {
   private _connected: boolean = false;
   private _connecting: boolean = false;
   private proactiveRefreshTimer: ReturnType<typeof setInterval> | null = null;
+  private proactiveRefreshAttempt = 0;
 
   private options = {
     reconnection: true,
@@ -396,10 +397,12 @@ class SocketService {
    */
   private startProactiveRefresh(): void {
     this.stopProactiveRefresh();
+    this.proactiveRefreshAttempt = 0;
     this.proactiveRefreshTimer = setInterval(async () => {
+      this.proactiveRefreshAttempt++;
       const accessToken = authStore.getAccessToken();
       if (accessToken && this.isTokenExpired(accessToken)) {
-        console.log('[SocketService] Token expirando, refrescando proactivamente...');
+        console.log(`[SocketService] Token expirando, refrescando proactivamente... (intento #${this.proactiveRefreshAttempt})`);
         await this.ensureFreshToken();
       }
     }, 60_000);
