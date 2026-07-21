@@ -67,6 +67,7 @@ class CourierLocationTrackingService {
   private lastGpsCallbackAt: number = 0;
   private permissionCheckTimerId: ReturnType<typeof setInterval> | null = null;
   private userId: number | null = null;
+  private isFetchingLocation: boolean = false;
 
   /**
    * Inicializa el servicio con la configuración
@@ -518,31 +519,82 @@ class CourierLocationTrackingService {
   }
 
   /**
-   * Obtiene la ubicación actual sin iniciar tracking continuo
+   * Obtiene la ubicación actual sin iniciar tracking continuo.
+   * Incluye: guarda contra superposición, solicitud de permisos,
+   * fallback a última posición conocida, y reintento simple.
    */
   async getCurrentLocation(): Promise<Location.LocationObject | null> {
+    // Guarda contra superposición de llamadas simultáneas
+    if (this.isFetchingLocation) {
+      console.warn('[LocationTracking] ⏳ Ya hay una solicitud de ubicación en curso, ignorando');
+      return this.lastSentLocation;
+    }
+
+    this.isFetchingLocation = true;
     try {
-      const hasPermissions = await this.hasPermissions();
+      // Solicitar permisos si no están otorgados (en vez de solo verificar)
+      let hasPermissions = await this.hasPermissions();
       if (!hasPermissions) {
-        console.warn('[LocationTracking] ❌ No hay permisos para obtener ubicación');
-        return null;
+        console.log('[LocationTracking] Permisos no otorgados, solicitando...');
+        const granted = await this.requestPermissions();
+        if (!granted) {
+          console.warn('[LocationTracking] ❌ Permisos de ubicación denegados');
+          return null;
+        }
       }
 
-      const GPS_TIMEOUT_MS = 10000;
-      const locationPromise = Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-      const timeoutPromise = new Promise<null>((resolve) =>
-        setTimeout(() => {
-          console.warn('[LocationTracking] ⏰ getCurrentPositionAsync timeout');
-          resolve(null);
-        }, GPS_TIMEOUT_MS),
-      );
+      const GPS_TIMEOUT_MS = 20_000;
+      const MAX_RETRIES = 1;
 
-      return await Promise.race([locationPromise, timeoutPromise]);
+      // Intentar obtener ubicaciónGPS con timeout y reintento
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        if (attempt > 0) {
+          console.log(`[LocationTracking] Reintento #${attempt} de obtención GPS...`);
+          await new Promise(r => setTimeout(r, 2000));
+        }
+
+        try {
+          const locationPromise = Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+          });
+          const timeoutPromise = new Promise<null>((resolve) =>
+            setTimeout(() => {
+              console.warn('[LocationTracking] ⏰ getCurrentPositionAsync timeout');
+              resolve(null);
+            }, GPS_TIMEOUT_MS),
+          );
+
+          const location = await Promise.race([locationPromise, timeoutPromise]);
+          if (location) {
+            return location;
+          }
+        } catch (gpsError: any) {
+          console.warn('[LocationTracking] Error en getCurrentPositionAsync:', gpsError?.message || gpsError);
+        }
+      }
+
+      // Fallback: usar última posición conocida si existe y es reciente (<60s)
+      try {
+        const lastKnown = await Location.getLastKnownPositionAsync();
+        if (lastKnown && lastKnown.coords) {
+          const age = Date.now() - lastKnown.timestamp;
+          if (age < 60_000) {
+            console.log(`[LocationTracking] Usando última posición conocida (edad: ${(age / 1000).toFixed(1)}s)`);
+            return lastKnown;
+          }
+          console.log(`[LocationTracking] Última posición conocida muy antigua (${(age / 1000).toFixed(0)}s), descartando`);
+        }
+      } catch (fallbackError: any) {
+        console.warn('[LocationTracking] Error al obtener última posición conocida:', fallbackError?.message || fallbackError);
+      }
+
+      console.warn('[LocationTracking] ❌ No se pudo obtener ubicación tras todos los intentos');
+      return null;
     } catch (error: any) {
       console.error('[LocationTracking] Error al obtener ubicación actual:', error);
       return null;
+    } finally {
+      this.isFetchingLocation = false;
     }
   }
 }
