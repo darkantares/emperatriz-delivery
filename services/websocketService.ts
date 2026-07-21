@@ -55,6 +55,7 @@ class SocketService {
   private connectionListeners: Set<Function> = new Set();
   private _connected: boolean = false;
   private _connecting: boolean = false;
+  private _reconnecting: boolean = false;
   private proactiveRefreshTimer: ReturnType<typeof setInterval> | null = null;
   private proactiveRefreshAttempt = 0;
 
@@ -91,7 +92,7 @@ class SocketService {
       console.log('[SocketService] Iniciando conexión Socket.IO...');
 
       // Obtener token fresco
-      const freshToken = await this.ensureFreshToken();
+      const { token: freshToken } = await this.ensureFreshToken();
       if (!freshToken) {
         console.log('[SocketService] Sin token disponible. No se puede conectar.');
         this._connecting = false;
@@ -205,38 +206,39 @@ class SocketService {
 
   /**
    * Returns a valid access token. If the stored token is expired and a
-   * refresh token is available, it sends a request to the backend that
-   * triggers the TokenRefreshMiddleware, which refreshes both tokens and
-   * returns them via X-New-Access-Token / X-New-Refresh-Token headers.
+   * refresh token is available, it refreshes both tokens via the backend.
+   *
+   * @returns Object with the token and whether a refresh occurred, so the
+   *          caller can decide whether to reconnect the socket.
    */
-  private async ensureFreshToken(): Promise<string | null> {
+  private async ensureFreshToken(): Promise<{ token: string | null; refreshed: boolean }> {
     try {
       const accessToken = authStore.getAccessToken();
       const refreshToken = await getStoredRefreshToken();
 
-      if (!accessToken && !refreshToken) return null;
+      if (!accessToken && !refreshToken) return { token: null, refreshed: false };
 
       // Token is still valid — use it directly
       if (accessToken && !this.isTokenExpired(accessToken)) {
-        return accessToken;
+        return { token: accessToken, refreshed: false };
       }
 
       // Token expired or missing — try to refresh via the backend
       if (refreshToken) {
-        console.log('[SocketService] Token expirado, intentando refresh antes de conectar...');
+        console.log('[SocketService] Token expirado, intentando refresh...');
         const expiredToken = accessToken || '';
         const newToken = await this.refreshViaBackend(expiredToken, refreshToken);
         if (newToken) {
-          console.log('[SocketService] Token refrescado, conectando con token nuevo');
-          return newToken;
+          console.log('[SocketService] Token refrescado exitosamente');
+          return { token: newToken, refreshed: true };
         }
         console.log('[SocketService] Refresh falló, no se puede conectar');
       }
 
-      return null;
+      return { token: null, refreshed: false };
     } catch (error: any) {
       console.log('[SocketService] Error en ensureFreshToken:', error);
-      return null;
+      return { token: null, refreshed: false };
     }
   }
 
@@ -379,11 +381,51 @@ class SocketService {
   disconnect() {
     this.stopProactiveRefresh();
     this._connecting = false;
+    this._reconnecting = false;
     if (this.socket) {
       console.log('[SocketService] Desconectando Socket.IO...');
       this.socket.disconnect();
       this._connected = false;
       this.notifyConnectionListeners();
+    }
+  }
+
+  /**
+   * Reconecta el socket con un token nuevo después de un refresh proactivo.
+   * Desconecta la conexión actual y crea una nueva que leerá el token
+   * actualizado de authStore via el callback `auth`.
+   */
+  private async reconnectWithNewToken(): Promise<void> {
+    if (this._reconnecting) {
+      console.log('[SocketService] Reconexión ya en progreso, ignorando.');
+      return;
+    }
+    if (!this._connected || !this.socket) {
+      console.log('[SocketService] Socket no conectado, no es necesario reconectar.');
+      return;
+    }
+
+    this._reconnecting = true;
+    console.log('[SocketService] Reconectando socket con token fresco...');
+
+    try {
+      // Desconectar socket actual
+      this.socket.removeAllListeners();
+      this.socket.disconnect();
+      this.socket = null;
+      this._connected = false;
+      this.notifyConnectionListeners();
+
+      // Pequeña delay para evitar reconexiones demasiado rápidas
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Reconectar — connect() leerá el token nuevo de authStore
+      await this.connect();
+      console.log('[SocketService] Reconexión exitosa con token fresco');
+    } catch (error: any) {
+      console.log('[SocketService] Error durante reconexión con token fresco:', error);
+    } finally {
+      this._reconnecting = false;
     }
   }
 
@@ -403,7 +445,12 @@ class SocketService {
       const accessToken = authStore.getAccessToken();
       if (accessToken && this.isTokenExpired(accessToken)) {
         console.log(`[SocketService] Token expirando, refrescando proactivamente... (intento #${this.proactiveRefreshAttempt})`);
-        await this.ensureFreshToken();
+        const { refreshed } = await this.ensureFreshToken();
+        // Si el token se refrescó y el socket está conectado, reconectar con el nuevo token
+        if (refreshed && this._connected) {
+          console.log('[SocketService] Token refrescado proactivamente, reconectando socket...');
+          await this.reconnectWithNewToken();
+        }
       }
     }, 60_000);
   }
