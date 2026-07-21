@@ -1,11 +1,16 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { useToast } from 'react-native-toast-notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { IUserEntity, IRolesAllowedEntity, DeliveryPersonEntity } from '@/interfaces/auth';
 import { authService } from '@/services/authService';
 import { socketService } from '@/services/websocketService';
 import { courierLocationTracking } from '@/services/courierLocationService';
 import { setAuthFailureHandler } from '@/services/api';
+import { getRefreshInProgressFlag, refreshAccessToken } from '@/services/tokenManager';
+
+const SESSION_TIMESTAMP_KEY = 'session_last_login';
+const MAX_SESSION_DURATION_MS = 24 * 60 * 60 * 1000; // 24 horas
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -48,6 +53,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (cancelled) return;
 
         if (isAuth) {
+          // Verificar si la sesión es demasiado antigua (>24h) → forzar re-login
+          const lastLoginTs = await AsyncStorage.getItem(SESSION_TIMESTAMP_KEY);
+          if (lastLoginTs) {
+            const elapsed = Date.now() - parseInt(lastLoginTs, 10);
+            if (elapsed > MAX_SESSION_DURATION_MS) {
+              console.log('[AuthContext] Sesión expirada por tiempo (>24h), forzando re-login');
+              await authService.logout();
+              setIsAuthenticated(false);
+              setUser(null);
+              setCarrier(null);
+              setRoles(null);
+              return;
+            }
+          }
+
+          // Check if a refresh was in progress when the app was killed.
+          // If so, retry immediately — the backend's grace window will return
+          // the same token pair idempotently.
+          const refreshFlag = await getRefreshInProgressFlag();
+          if (refreshFlag) {
+            console.log(`[AuthContext] Refresh in progress flag found (started ${Date.now() - refreshFlag.startedAt}ms ago), retrying...`);
+            const retryResult = await refreshAccessToken();
+            if (retryResult) {
+              console.log('[AuthContext] Retry from in-progress flag succeeded');
+              setIsAuthenticated(true);
+              setUser(retryResult.user ?? null);
+              setCarrier(retryResult.carrier ?? null);
+              setRoles(retryResult.user?.userRoles?.map((r: any) => r.title) ?? []);
+              await socketService.connect();
+              return;
+            }
+            console.log('[AuthContext] Retry from in-progress flag failed, continuing normal flow...');
+          }
+
           // Refrescar sesión usando el refresh token de SecureStore
           const refreshResult = await authService.refreshSession();
 
@@ -71,13 +110,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               setRoles(whoami.data.roles || []);
               await socketService.connect();
             } else {
-              // Ambos fallaron — cerrar sesión
-              console.log('[AuthContext] whoami también falló, cerrando sesión');
-              await authService.logout();
-              setIsAuthenticated(false);
-              setUser(null);
-              setCarrier(null);
-              setRoles(null);
+              // Check if the refresh token still exists — if so, the failure
+              // was likely a network error, NOT an invalid session.
+              const { getStoredRefreshToken } = await import('@/services/auth-fetch');
+              const stillHasToken = await getStoredRefreshToken();
+
+              if (stillHasToken) {
+                // Token exists but both refresh and whoami failed — likely network issue.
+                // Keep the user in a "connected" state; the app will retry on next interaction.
+                console.log('[AuthContext] Refresh y whoami fallaron pero token existe, probablemente error de red — manteniendo sesión');
+                setIsAuthenticated(true);
+                // Try to connect WebSocket anyway — it may succeed
+                socketService.connect().catch(() => {});
+              } else {
+                // Token genuinely doesn't exist — must logout
+                console.log('[AuthContext] Refresh token no existe, cerrando sesión');
+                await authService.logout();
+                setIsAuthenticated(false);
+                setUser(null);
+                setCarrier(null);
+                setRoles(null);
+              }
             }
           }
         } else {
@@ -178,6 +231,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(result.data.user);
       setCarrier(result.data.carrier || null);
       setRoles(result.data.roles || []);
+
+      // Guardar timestamp del login para re-login periódico
+      await AsyncStorage.setItem(SESSION_TIMESTAMP_KEY, String(Date.now()));
 
       // Conectar WebSocket inmediatamente después del login
       console.log('[AuthContext] Llamando socketService.connect() desde login()...');

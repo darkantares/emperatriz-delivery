@@ -5,6 +5,7 @@ import { storeRefreshToken, clearRefreshToken, getStoredRefreshToken } from './a
 import { authStore } from '@/stores/authStore';
 import { ApiEndpoints } from '../utils/api-endpoints';
 import { validateJwtHasEnterprise, logJwtValidation } from '../utils/jwt-utils';
+import { refreshAccessToken, RefreshResult } from './tokenManager';
 
 // Keys para almacenamiento de datos de usuario (no sensibles)
 const USER_DATA_KEY = 'user_data';
@@ -149,8 +150,8 @@ export const authService = {
     },
 
     /**
-     * Refresca la sesión usando el refresh token de SecureStore.
-     * Llama a /auth/refresh-token con el refresh token en el body.
+     * Refresca la sesión completa: tokens + datos del usuario.
+     * Usa tokenManager que intenta WebSocket primero, HTTP como fallback.
      */
     refreshSession: async (): Promise<{
         success: boolean;
@@ -162,59 +163,22 @@ export const authService = {
         error?: string;
     }> => {
         try {
-            const refreshToken = await getStoredRefreshToken();
-            if (!refreshToken) {
-                return { success: false, error: 'No hay refresh token disponible' };
+            const result: RefreshResult | null = await refreshAccessToken();
+
+            if (!result) {
+                return { success: false, error: 'No se pudo refrescar el token' };
             }
 
-            const response = await api.post<{ access_token: string; csrf_token: string; user: IUserEntity; refresh_token: string }>(
-                getApiUrl(ApiEndpoints.AuthRefreshToken),
-                { refresh_token: refreshToken }
-            );
-
-            if (response.error || !response.data) {
-                return {
-                    success: false,
-                    error: response.error || 'Error al refrescar la sesión',
-                };
-            }
-
-            const refreshData = (response.data as unknown as { value: any }).value ?? response.data;
-
-            if (!refreshData?.access_token) {
-                return {
-                    success: false,
-                    error: 'Respuesta inválida del endpoint refresh-token',
-                };
-            }
-
-            // Actualizar tokens en memoria
-            authStore.setAccessToken(refreshData.access_token);
-            if (refreshData.csrf_token) {
-                authStore.setCsrfToken(refreshData.csrf_token);
-            }
-
-            // Actualizar refresh token en SecureStore
-            if (refreshData.refresh_token) {
-                await storeRefreshToken(refreshData.refresh_token);
-            }
-
-            // Validar token
-            validateJwtHasEnterprise(refreshData.access_token);
-            logJwtValidation(refreshData.access_token, 'refresh');
-
-            // Obtener datos del usuario
-            const userData = refreshData.user;
-            if (userData) {
+            // Si el refresh vía WebSocket trajo datos del usuario, usarlos directamente
+            if (result.user) {
+                const userData = result.user;
                 const normalizedRoles = userData.userRoles ?? [];
-                const normalizedCarrier = refreshData.carrier ?? userData.carrier ?? null;
+                const normalizedCarrier = result.carrier ?? userData.carrier ?? null;
 
-                // Guardar en memoria
                 authStore.setUser(userData);
                 authStore.setCarrier(normalizedCarrier);
                 authStore.setRoles(normalizedRoles);
 
-                // Guardar en AsyncStorage (fallback)
                 await Promise.all([
                     AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(userData)),
                     AsyncStorage.setItem(USER_ROLES_KEY, JSON.stringify(normalizedRoles)),
@@ -231,7 +195,17 @@ export const authService = {
                 };
             }
 
-            return { success: false, error: 'No se pudo obtener la información del usuario' };
+            // HTTP fallback: no trajo datos del usuario, usar fetchWhoami
+            const whoami = await authService.fetchWhoami();
+            if (whoami.success && whoami.data) {
+                return {
+                    success: true,
+                    data: whoami.data,
+                };
+            }
+
+            // Tokens se actualizaron pero no se pudieron obtener datos del usuario
+            return { success: false, error: 'Token refrescado pero sin datos del usuario' };
         } catch (error: any) {
             console.log('Error refreshing session:', error);
             return {

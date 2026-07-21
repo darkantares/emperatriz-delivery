@@ -5,10 +5,9 @@ import { queueNotification, NotificationType } from './notificationService';
 import { IEnterpriseEntity, IUserEntity } from '@/interfaces/auth';
 import { IDeliveryAssignmentEntity } from '@/interfaces/delivery/delivery';
 import { adaptDeliveriesToAdapter } from '@/interfaces/delivery/deliveryAdapters';
-import { getStoredRefreshToken, storeRefreshToken } from './auth-fetch';
 import { authStore } from '@/stores/authStore';
 import { ApiEndpoints } from '../utils/api-endpoints';
-import { validateJwtHasEnterprise, logJwtValidation } from '../utils/jwt-utils';
+import { refreshAccessToken, isTokenExpired, ensureFreshAccessToken, isTokenExpiringSoon } from './tokenManager';
 
 const SOCKET_URL = getBaseUrl();
 
@@ -76,13 +75,11 @@ class SocketService {
 
   async connect() {
     try {
-      // Si ya está conectado, no hacer nada
       if (this._connected) {
         console.log('[SocketService] Ya conectado, ignorando connect()');
         return true;
       }
 
-      // Bloquear llamadas concurrentes durante el proceso de conexión
       if (this._connecting) {
         console.log('[SocketService] Conexión ya en progreso, ignorando connect()');
         return false;
@@ -91,24 +88,23 @@ class SocketService {
 
       console.log('[SocketService] Iniciando conexión Socket.IO...');
 
-      // Obtener token fresco
-      const { token: freshToken } = await this.ensureFreshToken();
+      // Obtener token fresco via tokenManager centralizado
+      const freshToken = await ensureFreshAccessToken();
       if (!freshToken) {
         console.log('[SocketService] Sin token disponible. No se puede conectar.');
         this._connecting = false;
         return false;
       }
 
-      // Destruir socket anterior si existe para evitar listeners duplicados y estado inconsistente
+      // Destruir socket anterior si existe
       if (this.socket) {
-        console.log('[SocketService] Destruyendo socket anterior para crear uno limpio...');
+        console.log('[SocketService] Destruyendo socket anterior...');
         this.socket.removeAllListeners();
         this.socket.disconnect();
         this.socket = null;
       }
 
-      // Use a callback for `auth` so that every reconnect attempt (including
-      // automatic ones) reads the latest token from memory.
+      // Callback auth lee token fresco de authStore en cada intento de conexión
       this.socket = io(SOCKET_URL, {
         ...this.options,
         auth: (cb: (data: { token: string; clientType: string }) => void) => {
@@ -132,21 +128,25 @@ class SocketService {
         this._connecting = false;
         this.notifyConnectionListeners();
         this.stopProactiveRefresh();
-        // Socket.IO v4 NO reconecta automáticamente tras 'io server disconnect'.
-        // Esto ocurre cuando el backend kickea el socket (checkUserConnection detecta
-        // un socket previo del mismo usuario y lo reemplaza). Reconectar manualmente
-        // con token fresco para que la nueva conexión sea la definitiva.
+
         if (reason === 'io server disconnect') {
-          console.log('[SocketService] Kicked por el servidor. Reconectando con token fresco en 1.5s...');
+          // Kicked por el servidor — reconectar con token fresco
+          console.log('[SocketService] Kicked por el servidor. Reconectando en 1.5s...');
           setTimeout(async () => {
             const token = authStore.getAccessToken();
             if (token) {
               await this.connect();
-            } else {
-              console.log('[SocketService] Sin token al reconectar, abortando.');
             }
           }, 1500);
+        } else if (reason === 'transport close' || reason === 'ping timeout') {
+          // Backend se cayó o red se perdió — refrescar token y reconectar
+          console.log(`[SocketService] Conexión perdida (${reason}). Refrescando token y reconectando en 2s...`);
+          setTimeout(async () => {
+            await refreshAccessToken();
+            await this.connect();
+          }, 2000);
         }
+        // Para otros motivos (ej: 'io client disconnect'), Socket.IO reconecta automáticamente
       });
 
       this.socket.on(SocketEventType.CONNECT_ERROR, async (error) => {
@@ -154,10 +154,15 @@ class SocketService {
         this._connected = false;
         this._connecting = false;
         this.notifyConnectionListeners();
+
         const msg: string = (error as any)?.message || '';
         if (msg.includes('Unauthorized') || msg.includes('jwt') || msg.includes('token') || msg.includes('auth')) {
-          console.log('[SocketService] Error de auth detectado, refrescando token...');
-          await this.ensureFreshToken();
+          console.log('[SocketService] Error de auth detectado, refrescando token y forzando reconexión...');
+          const refreshResult = await refreshAccessToken();
+          if (refreshResult) {
+            // Forzar reconexión inmediata con token nuevo
+            setTimeout(() => this.reconnectWithNewToken(), 500);
+          }
         }
       });
 
@@ -182,110 +187,6 @@ class SocketService {
       this._connecting = false;
       this.notifyConnectionListeners();
       return false;
-    }
-  }
-
-  /**
-   * Checks whether the stored JWT access token is expired.
-   * Uses manual base64 payload decode (no external dependencies).
-   */
-  private isTokenExpired(token: string): boolean {
-    try {
-      const payloadB64 = token.split('.')[1];
-      if (!payloadB64) return true;
-      const normalized = payloadB64.replace(/-/g, '+').replace(/_/g, '/');
-      // atob is available in Expo SDK 50+ (React Native 0.73+)
-      const payload = JSON.parse(atob(normalized));
-      if (!payload.exp) return false;
-      // Add a 30-second buffer so we refresh slightly before actual expiry
-      return payload.exp * 1000 < Date.now() + 30_000;
-    } catch {
-      return true;
-    }
-  }
-
-  /**
-   * Returns a valid access token. If the stored token is expired and a
-   * refresh token is available, it refreshes both tokens via the backend.
-   *
-   * @returns Object with the token and whether a refresh occurred, so the
-   *          caller can decide whether to reconnect the socket.
-   */
-  private async ensureFreshToken(): Promise<{ token: string | null; refreshed: boolean }> {
-    try {
-      const accessToken = authStore.getAccessToken();
-      const refreshToken = await getStoredRefreshToken();
-
-      if (!accessToken && !refreshToken) return { token: null, refreshed: false };
-
-      // Token is still valid — use it directly
-      if (accessToken && !this.isTokenExpired(accessToken)) {
-        return { token: accessToken, refreshed: false };
-      }
-
-      // Token expired or missing — try to refresh via the backend
-      if (refreshToken) {
-        console.log('[SocketService] Token expirado, intentando refresh...');
-        const expiredToken = accessToken || '';
-        const newToken = await this.refreshViaBackend(expiredToken, refreshToken);
-        if (newToken) {
-          console.log('[SocketService] Token refrescado exitosamente');
-          return { token: newToken, refreshed: true };
-        }
-        console.log('[SocketService] Refresh falló, no se puede conectar');
-      }
-
-      return { token: null, refreshed: false };
-    } catch (error: any) {
-      console.log('[SocketService] Error en ensureFreshToken:', error);
-      return { token: null, refreshed: false };
-    }
-  }
-
-  /**
-   * Calls the backend refresh-token endpoint with the refresh token in the body.
-   * Returns the new access token if successful.
-   */
-  private async refreshViaBackend(expiredToken: string, refreshToken: string): Promise<string | null> {
-    try {
-      const response = await fetch(getApiUrl(ApiEndpoints.AuthRefreshToken), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ refresh_token: refreshToken }),
-      });
-
-      if (!response.ok) {
-        return null;
-      }
-
-      const data = await response.json();
-      const refreshData = data?.value ?? data;
-
-      if (refreshData?.access_token) {
-        // Actualizar tokens en memoria
-        authStore.setAccessToken(refreshData.access_token);
-        if (refreshData.csrf_token) {
-          authStore.setCsrfToken(refreshData.csrf_token);
-        }
-
-        // Actualizar refresh token en SecureStore
-        if (refreshData.refresh_token) {
-          await storeRefreshToken(refreshData.refresh_token);
-        }
-
-        // Validar que el token refrescado tenga enterprise (defensa contra bugs del backend)
-        validateJwtHasEnterprise(refreshData.access_token);
-        logJwtValidation(refreshData.access_token, 'refresh');
-
-        return refreshData.access_token;
-      }
-
-      return null;
-    } catch (error: any) {
-      console.log('[SocketService] Error al refrescar token:', error);
-      return null;
     }
   }
 
@@ -433,21 +334,34 @@ class SocketService {
 
   /**
    * Inicia un intervalo de 60 s que comprueba si el token está por vencer
-   * y lo refresca proactivamente, sin necesitar una petición HTTP del usuario.
-   * El token refrescado se guarda en memoria y el callback de auth
-   * del socket lo leerá automáticamente en el siguiente intento de reconexión.
+   * (70-80% del TTL consumido) y lo refresca proactivamente, sin necesitar
+   * una petición HTTP del usuario.
+   * También escucha el evento token.expiring_soon del backend para refresh
+   * inmediato sin esperar al próximo ciclo de polling.
    */
   private startProactiveRefresh(): void {
     this.stopProactiveRefresh();
     this.proactiveRefreshAttempt = 0;
+
+    // Listen for backend proactive expiration warning
+    this.socket?.on('token.expiring_soon', async (data: { expiresIn: number; message: string }) => {
+      console.log(`[SocketService] token.expiring_soon recibido, expiresIn: ${data.expiresIn}s`);
+      this.proactiveRefreshAttempt++;
+      const result = await refreshAccessToken();
+      if (result && this._connected) {
+        console.log('[SocketService] Token refrescado por token.expiring_soon, reconectando socket...');
+        await this.reconnectWithNewToken();
+      }
+    });
+
+    // Polling fallback: check every 60s if token is at 70-80% of TTL
     this.proactiveRefreshTimer = setInterval(async () => {
       this.proactiveRefreshAttempt++;
       const accessToken = authStore.getAccessToken();
-      if (accessToken && this.isTokenExpired(accessToken)) {
-        console.log(`[SocketService] Token expirando, refrescando proactivamente... (intento #${this.proactiveRefreshAttempt})`);
-        const { refreshed } = await this.ensureFreshToken();
-        // Si el token se refrescó y el socket está conectado, reconectar con el nuevo token
-        if (refreshed && this._connected) {
+      if (accessToken && isTokenExpiringSoon(accessToken, 0.75)) {
+        console.log(`[SocketService] Token al 75% del TTL, refrescando proactivamente... (intento #${this.proactiveRefreshAttempt})`);
+        const result = await refreshAccessToken();
+        if (result && this._connected) {
           console.log('[SocketService] Token refrescado proactivamente, reconectando socket...');
           await this.reconnectWithNewToken();
         }
@@ -517,6 +431,35 @@ class SocketService {
     }
     console.warn(`No se pudo emitir ${event}: Socket no conectado`);
     return false;
+  }
+
+  /**
+   * Emite un evento y espera la respuesta del servidor con timeout.
+   * Usa la API de Socket.IO v4 timeout().emit().
+   */
+  emitWithAck(event: string, data: any, timeoutMs = 10000): Promise<any> {
+    return new Promise((resolve) => {
+      if (!this.socket?.connected) {
+        console.warn(`[SocketService] No se pudo emitir ${event}: Socket no conectado`);
+        resolve(null);
+        return;
+      }
+
+      const timer = setTimeout(() => {
+        console.warn(`[SocketService] Timeout esperando respuesta de ${event} (${timeoutMs}ms)`);
+        resolve(null);
+      }, timeoutMs);
+
+      this.socket.timeout(timeoutMs).emit(event, data, (err: any, response: any) => {
+        clearTimeout(timer);
+        if (err) {
+          console.error(`[SocketService] Error en emitWithAck(${event}):`, err.message || err);
+          resolve(null);
+          return;
+        }
+        resolve(response);
+      });
+    });
   }
 
   isConnected(): boolean {

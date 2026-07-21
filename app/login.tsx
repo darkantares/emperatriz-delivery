@@ -49,7 +49,6 @@ export default function LoginScreen() {
         const controller = new AbortController();
 
         const checkConnection = async () => {
-            await authService.logout();
             const result = await checkApiConnectivity();
             if (!controller.signal.aborted) {
                 setApiStatus({

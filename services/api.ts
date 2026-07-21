@@ -6,8 +6,10 @@ import { findSchema } from '@/src/api/schemaRegistry';
 import { getStoredRefreshToken } from './auth-fetch';
 import { authStore } from '@/stores/authStore';
 import { ApiEndpoints } from '../utils/api-endpoints';
+import { refreshAccessToken } from './tokenManager';
 
 let authFailureHandler: (() => void | Promise<void>) | null = null;
+let isRefreshing = false;
 
 export const setAuthFailureHandler = (
     handler: (() => void | Promise<void>) | null
@@ -155,10 +157,11 @@ const handleSuccessResponse = async <T>(response: Response): Promise<FetchRespon
 
 // Función genérica para hacer peticiones a la API
 const apiRequest = async <T>(endpoint: string, options: ApiOptions = {}): Promise<FetchResponse<T>> => {
+    // Pre-compute URL outside try so it's accessible in catch for retries
+    const formattedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    const url = `${API_URL}${formattedEndpoint}`;
+
     try {
-        // Asegurarse de que endpoint comienza con /
-        const formattedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-        const url = `${API_URL}${formattedEndpoint}`;
 
         // Añadir token de autenticación a todas las solicitudes
         const authOptions = await getAuthOptions(options);
@@ -183,6 +186,111 @@ const apiRequest = async <T>(endpoint: string, options: ApiOptions = {}): Promis
             };
 
         const response = await fetch(url, requestOptions);
+
+        // Interceptor 401: refrescar token y reintentar una vez
+        // Excluir endpoints de auth (login, refresh, whoami, etc.) donde 401 es esperado
+        const isAuthEndpoint = formattedEndpoint.startsWith('/auth/');
+        if (response.status === 401 && !isRefreshing && !isAuthEndpoint) {
+            console.log('[api] 401 detectado en', formattedEndpoint, ', intentando refresh token...');
+            isRefreshing = true;
+            try {
+                const refreshResult = await refreshAccessToken();
+                if (refreshResult) {
+                    console.log('[api] Token refrescado, reintentando request...');
+                    // Releer el token fresco y reintentar
+                    const freshAuthOptions = await getAuthOptions(options);
+                    const retryRequestOptions = isFormData
+                        ? { ...freshAuthOptions }
+                        : {
+                            ...defaultOptions,
+                            ...freshAuthOptions,
+                            headers: {
+                                ...defaultOptions.headers,
+                                ...(freshAuthOptions.headers || {})
+                            }
+                        };
+
+                    const retryResponse = await fetch(url, retryRequestOptions);
+
+                    if (!retryResponse.ok) {
+                        // Si el retry también falla (incluso con token nuevo), propagar error
+                        if (retryResponse.status === 401) {
+                            console.warn('[api] Retry con token nuevo aún falla con 401, sesión inválida');
+                            try { await authFailureHandler?.(); } catch {}
+                        }
+                        try {
+                            const errorData = await retryResponse.json();
+                            return {
+                                error: errorData.message || `Error ${retryResponse.status}: ${retryResponse.statusText}`,
+                                status: retryResponse.status,
+                                details: errorData,
+                                data: {
+                                    data: null as any,
+                                    message: errorData.message || `Error ${retryResponse.status}`,
+                                    statusCode: retryResponse.status,
+                                    success: false
+                                }
+                            };
+                        } catch {
+                            return {
+                                error: `Error ${retryResponse.status}: ${retryResponse.statusText}`,
+                                status: retryResponse.status,
+                                data: {
+                                    data: null as any,
+                                    message: `Error ${retryResponse.status}: ${retryResponse.statusText}`,
+                                    statusCode: retryResponse.status,
+                                    success: false
+                                }
+                            };
+                        }
+                    }
+
+                    // Retry exitoso
+                    const retryResult = await handleSuccessResponse<T>(retryResponse);
+                    const retrySchema = findSchema(formattedEndpoint);
+                    if (retrySchema && retryResult.data) {
+                        const schemaResult = retrySchema.safeParse(retryResult.data);
+                        if (!schemaResult.success) {
+                            console.error('[api] Invalid API response on retry for', formattedEndpoint, schemaResult.error);
+                            throw new Error('Invalid API response structure');
+                        }
+                    }
+                    return retryResult;
+                } else {
+                    // Refresh falló — pero puede ser un error de red, no necesariamente sesión inválida
+                    console.warn('[api] Refresh token falló');
+                    // Only trigger auth failure if we're sure it's not a network issue.
+                    // refreshAccessToken() returns null on network errors AND on definitive auth errors.
+                    // The tokenManager already handles clearing for definitive errors.
+                    // Here we only trigger the UI logout if the token was actually cleared.
+                    const { getStoredRefreshToken } = await import('./auth-fetch');
+                    const stillHasToken = await getStoredRefreshToken();
+                    if (!stillHasToken) {
+                        console.warn('[api] Refresh token ya no existe, sesión inválida');
+                        try { await authFailureHandler?.(); } catch {}
+                    } else {
+                        console.warn('[api] Refresh falló pero token aún existe, probablemente error de red');
+                    }
+                }
+            } catch (refreshError: any) {
+                console.error('[api] Error durante refresh/retry:', refreshError?.message || refreshError);
+                // Only trigger auth failure if the refresh token no longer exists
+                // (network errors during refresh should NOT trigger logout)
+                try {
+                    const { getStoredRefreshToken } = await import('./auth-fetch');
+                    const stillHasToken = await getStoredRefreshToken();
+                    if (!stillHasToken) {
+                        try { await authFailureHandler?.(); } catch {}
+                    } else {
+                        console.warn('[api] Error en refresh pero token existe, probablemente error de red — no forzando logout');
+                    }
+                } catch {
+                    // If we can't check, don't force logout
+                }
+            } finally {
+                isRefreshing = false;
+            }
+        }
 
         if (!response.ok) {
             try {
@@ -228,6 +336,47 @@ const apiRequest = async <T>(endpoint: string, options: ApiOptions = {}): Promis
 
         return fetchResult;
     } catch (error:any) {
+        // Retry on network errors with exponential backoff (max 3 attempts)
+        const isNetworkError = error instanceof TypeError &&
+            (error.message.includes('Network request failed') || error.message.includes('fetch'));
+
+        if (isNetworkError && !(error as any).__retryCount) {
+            const maxRetries = 3;
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                const delayMs = Math.pow(2, attempt) * 500; // 1s, 2s, 4s
+                console.log(`[api] Network error, retry ${attempt}/${maxRetries} en ${delayMs}ms...`);
+                await new Promise(resolve => setTimeout(resolve, delayMs));
+                try {
+                    // Retry the original request
+                    const retryAuthOptions = await getAuthOptions(options);
+                    const retryIsFormData = options.body instanceof FormData;
+                    const retryRequestOptions = retryIsFormData
+                        ? { ...retryAuthOptions }
+                        : {
+                            ...defaultOptions,
+                            ...retryAuthOptions,
+                            headers: {
+                                ...defaultOptions.headers,
+                                ...(retryAuthOptions.headers || {})
+                            }
+                        };
+                    const retryResponse = await fetch(url, retryRequestOptions);
+                    if (retryResponse.ok || retryResponse.status < 500) {
+                        // Got a response (even if 4xx) — don't retry further
+                        if (retryResponse.ok) {
+                            return await handleSuccessResponse<T>(retryResponse);
+                        }
+                        break;
+                    }
+                } catch (retryError: any) {
+                    if (attempt === maxRetries) {
+                        // All retries exhausted
+                        console.warn('[api] All network retries exhausted');
+                    }
+                }
+            }
+        }
+
         console.log('API Request Error:', error);
         return {
             error: `Error de conexión: ${error instanceof Error ? error.message : String(error)}`,
