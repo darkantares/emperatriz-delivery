@@ -59,9 +59,15 @@ class SocketService {
   private proactiveRefreshAttempt = 0;
   private lastRefreshTimestamp = 0;
 
+  // Loop de reconexión persistente: reintenta cada 3 segundos hasta conectar
+  private reconnectTimer: ReturnType<typeof setInterval> | null = null;
+  private connectingStartedAt: number = 0;
+
   private options = {
-    reconnection: true,
-    reconnectionAttempts: Infinity,
+    // Nosotros manejamos la reconexión con nuestro propio loop (cada 3s).
+    // Desactivar el auto-reconnect de Socket.IO para evitar conflictos.
+    reconnection: false,
+    reconnectionAttempts: 0,
     reconnectionDelay: 1000,
     reconnectionDelayMax: 5000,
     timeout: 20000,
@@ -81,19 +87,27 @@ class SocketService {
         return true;
       }
 
+      // Safety: si _connecting lleva >30s, forzar reset
       if (this._connecting) {
-        console.log('[SocketService] Conexión ya en progreso, ignorando connect()');
-        return false;
+        if (this.connectingStartedAt > 0 && Date.now() - this.connectingStartedAt > 30_000) {
+          console.warn('[SocketService] _connecting trabado >30s, forzando reset');
+          this._connecting = false;
+        } else {
+          console.log('[SocketService] Conexión ya en progreso, ignorando connect()');
+          return false;
+        }
       }
       this._connecting = true;
+      this.connectingStartedAt = Date.now();
 
       console.log('[SocketService] Iniciando conexión Socket.IO...');
 
       // Obtener token fresco via tokenManager centralizado
       const freshToken = await ensureFreshAccessToken();
       if (!freshToken) {
-        console.log('[SocketService] Sin token disponible. No se puede conectar.');
+        console.log('[SocketService] Sin token disponible. Reintentando en el próximo ciclo del loop.');
         this._connecting = false;
+        this.connectingStartedAt = 0;
         return false;
       }
 
@@ -119,6 +133,8 @@ class SocketService {
         console.log('[SocketService] Socket.IO conectado:', this.socket?.id);
         this._connected = true;
         this._connecting = false;
+        this.connectingStartedAt = 0;
+        this.stopReconnectLoop();
         this.notifyConnectionListeners();
         this.startProactiveRefresh();
       });
@@ -127,44 +143,35 @@ class SocketService {
         console.log('[SocketService] Socket.IO desconectado. Razón:', reason);
         this._connected = false;
         this._connecting = false;
+        this.connectingStartedAt = 0;
         this.notifyConnectionListeners();
         this.stopProactiveRefresh();
 
-        if (reason === 'io server disconnect') {
-          // Kicked por el servidor — reconectar con token fresco
-          console.log('[SocketService] Kicked por el servidor. Reconectando en 1.5s...');
-          setTimeout(async () => {
-            const token = authStore.getAccessToken();
-            if (token) {
-              await this.connect();
-            }
-          }, 1500);
-        } else if (reason === 'transport close' || reason === 'ping timeout') {
-          // Backend se cayó o red se perdió — refrescar token y reconectar
-          console.log(`[SocketService] Conexión perdida (${reason}). Refrescando token y reconectando en 2s...`);
-          setTimeout(async () => {
-            await refreshAccessToken();
-            await this.connect();
-          }, 2000);
+        // 'io client disconnect' = logout manual del cliente, NO reconectar
+        if (reason === 'io client disconnect') {
+          console.log('[SocketService] Desconexión manual, no reconectando.');
+          return;
         }
-        // Para otros motivos (ej: 'io client disconnect'), Socket.IO reconecta automáticamente
+
+        // Para todas las demás razones: loop de reconexión persistente
+        console.log(`[SocketService] Razón: ${reason}. Iniciando reconexión persistente...`);
+        this.startReconnectLoop();
       });
 
       this.socket.on(SocketEventType.CONNECT_ERROR, async (error) => {
         console.log('[SocketService] Error de conexión Socket.IO:', (error as any)?.message || error);
         this._connected = false;
         this._connecting = false;
+        this.connectingStartedAt = 0;
         this.notifyConnectionListeners();
 
+        // Para errores de auth, intentar refresh AHORA (no esperar 3s del loop)
         const msg: string = (error as any)?.message || '';
         if (msg.includes('Unauthorized') || msg.includes('jwt') || msg.includes('token') || msg.includes('auth')) {
-          console.log('[SocketService] Error de auth detectado, refrescando token y forzando reconexión...');
-          const refreshResult = await refreshAccessToken();
-          if (refreshResult) {
-            // Forzar reconexión inmediata con token nuevo
-            setTimeout(() => this.reconnectWithNewToken(), 500);
-          }
+          console.log('[SocketService] Error de auth, refrescando token...');
+          await refreshAccessToken();
         }
+        // El loop se encargará de reconectar en el próximo ciclo
       });
 
       this.socket.onAny((event) => {
@@ -181,11 +188,19 @@ class SocketService {
 
       this.setupEventListeners();
       this.socket.connect();
+
+      // Safety: si llegamos aquí sin loop activo, iniciar el loop
+      // para asegurar que haya un mecanismo de reconexión
+      if (!this.reconnectTimer && !this._connected) {
+        this.startReconnectLoop();
+      }
+
       return true;
     } catch (error:any) {
       console.log('[SocketService] Error al conectar Socket.IO:', error);
       this._connected = false;
       this._connecting = false;
+      this.connectingStartedAt = 0;
       this.notifyConnectionListeners();
       return false;
     }
@@ -281,14 +296,55 @@ class SocketService {
   }
 
   disconnect() {
+    this.stopReconnectLoop();
     this.stopProactiveRefresh();
     this._connecting = false;
     this._reconnecting = false;
+    this.connectingStartedAt = 0;
     if (this.socket) {
       console.log('[SocketService] Desconectando Socket.IO...');
       this.socket.disconnect();
       this._connected = false;
       this.notifyConnectionListeners();
+    }
+  }
+
+  // ---------- Loop de reconexión persistente ----------
+
+  /**
+   * Inicia un loop que intenta reconectar cada 3 segundos.
+   * Se detiene cuando la conexión se establece o cuando se llama a disconnect() (logout).
+   * No usa backoff — cada 3 segundos fijos. Esta app depende de esta conexión.
+   */
+  private startReconnectLoop(): void {
+    if (this.reconnectTimer) return;
+
+    console.log('[SocketService] 🔁 Iniciando loop de reconexión (cada 3s)...');
+    this.reconnectTimer = setInterval(async () => {
+      // Safety: si _connecting lleva >30s, forzar reset
+      if (this._connecting && this.connectingStartedAt > 0) {
+        if (Date.now() - this.connectingStartedAt > 30_000) {
+          console.warn('[SocketService] _connecting trabado >30s, forzando reset');
+          this._connecting = false;
+          this.connectingStartedAt = 0;
+        }
+      }
+
+      if (this._connected || this._connecting) return;
+
+      console.log('[SocketService] Reintentando conexión...');
+      await this.connect();
+    }, 3_000);
+  }
+
+  /**
+   * Detiene el loop de reconexión.
+   */
+  private stopReconnectLoop(): void {
+    if (this.reconnectTimer) {
+      clearInterval(this.reconnectTimer);
+      this.reconnectTimer = null;
+      console.log('[SocketService] Loop de reconexión detenido');
     }
   }
 
