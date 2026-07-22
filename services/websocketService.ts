@@ -57,6 +57,7 @@ class SocketService {
   private _reconnecting: boolean = false;
   private proactiveRefreshTimer: ReturnType<typeof setInterval> | null = null;
   private proactiveRefreshAttempt = 0;
+  private lastRefreshTimestamp = 0;
 
   private options = {
     reconnection: true,
@@ -346,9 +347,14 @@ class SocketService {
     // Listen for backend proactive expiration warning
     this.socket?.on('token.expiring_soon', async (data: { expiresIn: number; message: string }) => {
       console.log(`[SocketService] token.expiring_soon recibido, expiresIn: ${data.expiresIn}s`);
+      if (Date.now() - this.lastRefreshTimestamp < 30_000) {
+        console.log('[SocketService] token.expiring_soon ignorado — cooldown activo');
+        return;
+      }
       this.proactiveRefreshAttempt++;
       const result = await refreshAccessToken();
       if (result && this._connected) {
+        this.lastRefreshTimestamp = Date.now();
         console.log('[SocketService] Token refrescado por token.expiring_soon, reconectando socket...');
         await this.reconnectWithNewToken();
       }
