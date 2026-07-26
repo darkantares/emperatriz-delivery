@@ -81,6 +81,7 @@ export const getApiUrl = (endpoint: ApiEndpoints, params?: Record<string, string
 const defaultOptions = {
     headers: {
         'Content-Type': 'application/json',
+        'X-App': 'delivery',
     },
 };
 
