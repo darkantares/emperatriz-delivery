@@ -1,0 +1,16 @@
+# Maestro Workspace Configuration
+# See: https://docs.maestro.dev/configuration/
+
+flows:
+  - flows/**/*
+
+executionOrder:
+  continueOnFailure: false
+
+testOutputDir: ./test-output
+
+platform:
+  ios:
+    disableAnimations: true
+  android:
+    disableAnimations: true

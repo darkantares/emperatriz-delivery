@@ -1,0 +1,25 @@
+# Subflow: Login reutilizable
+# Uso: - runFlow: { file: ../subflows/login.yaml, env: { USERNAME: "...", PASSWORD: "..." } }
+appId: com.valentinrod.tiendasdominicanas.mensajeria
+---
+- launchApp:
+    clearState: true
+
+- tapOn:
+    id: email_input
+
+- inputText: ${USERNAME}
+
+- tapOn:
+    id: password_input
+
+- inputText: ${PASSWORD}
+
+- hideKeyboard
+
+- tapOn:
+    id: login_button
+
+- extendedWaitUntil:
+    visible: "Inicio"
+    timeout: 15000

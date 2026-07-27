@@ -1,0 +1,40 @@
+# Flow: Login
+# Verifica que el login funcione correctamente
+appId: com.valentinrod.tiendasdominicanas.mensajeria
+tags:
+  - smoke
+  - auth
+env:
+  TEST_EMAIL: "test@example.com"
+  TEST_PASSWORD: "password123"
+---
+- launchApp:
+    clearState: true
+
+# Verificar pantalla de login
+- assertVisible:
+    id: email_input
+
+- assertVisible:
+    id: password_input
+
+# Completar credenciales
+- tapOn:
+    id: email_input
+- inputText: ${TEST_EMAIL}
+
+- tapOn:
+    id: password_input
+- inputText: ${TEST_PASSWORD}
+
+# Ocultar teclado y hacer tap en login
+- hideKeyboard
+- tapOn:
+    id: login_button
+
+# Verificar que navegó a la pantalla principal
+- extendedWaitUntil:
+    visible: "Inicio"
+    timeout: 15000
+
+- takeScreenshot: Login_Exitoso

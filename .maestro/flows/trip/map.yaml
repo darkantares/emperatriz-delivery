@@ -1,0 +1,27 @@
+# Flow: Mapa de Viaje
+# Verifica que el mapa de viaje se cargue correctamente
+appId: com.valentinrod.tiendasdominicanas.mensajeria
+tags:
+  - regression
+  - trip
+env:
+  TEST_EMAIL: "test@example.com"
+  TEST_PASSWORD: "password123"
+---
+# Login primero
+- runFlow:
+    file: ../../subflows/login.yaml
+    env:
+      USERNAME: ${TEST_EMAIL}
+      PASSWORD: ${TEST_PASSWORD}
+
+# Navegar a la pestaña de mapa
+- tapOn:
+    text: "Mapa"
+
+# Verificar que el mapa se cargó
+- extendedWaitUntil:
+    visible: "Mi ubicación"
+    timeout: 10000
+
+- takeScreenshot: Mapa_Viaje

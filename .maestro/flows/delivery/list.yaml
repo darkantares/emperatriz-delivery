@@ -1,0 +1,23 @@
+# Flow: Lista de Entregas
+# Verifica que la lista de entregas se cargue correctamente
+appId: com.valentinrod.tiendasdominicanas.mensajeria
+tags:
+  - smoke
+  - delivery
+env:
+  TEST_EMAIL: "test@example.com"
+  TEST_PASSWORD: "password123"
+---
+# Login primero
+- runFlow:
+    file: ../../subflows/login.yaml
+    env:
+      USERNAME: ${TEST_EMAIL}
+      PASSWORD: ${TEST_PASSWORD}
+
+# Verificar que estamos en la pantalla principal
+- assertVisible:
+    text: "Inicio"
+
+# Tomar screenshot de la lista
+- takeScreenshot: Lista_Entregas
