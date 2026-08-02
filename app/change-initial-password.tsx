@@ -168,7 +168,7 @@ export default function ChangeInitialPasswordScreen() {
                             disabled={isLoading}
                         >
                             {isLoading ? (
-                                <ActivityIndicator color="#fff" size="small" />
+                                <ActivityIndicator color={CustomColors.white} size="small" />
                             ) : (
                                 <Text style={styles.buttonText}>Cambiar contraseña</Text>
                             )}
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 20,
         fontWeight: 'bold',
-        color: CustomColors.textLight,
+        color: CustomColors.white,
         marginBottom: 10,
         textAlign: 'center',
     },
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     label: {
         fontSize: 14,
         fontWeight: '600',
-        color: CustomColors.textLight,
+        color: CustomColors.white,
         marginBottom: 8,
     },
     inputRow: {
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderWidth: 1,
         borderColor: CustomColors.border,
-        borderRadius: 8,
+        borderRadius: 12,
         backgroundColor: CustomColors.inputBackground,
     },
     input: {
@@ -251,15 +251,15 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 10,
         fontSize: 15,
-        color: CustomColors.textLight,
+        color: CustomColors.white,
     },
     eyeBtn: {
         padding: 12,
     },
     button: {
         backgroundColor: CustomColors.primary,
-        borderRadius: 8,
-        paddingVertical: 12,
+        borderRadius: 12,
+        paddingVertical: 14,
         alignItems: 'center',
         marginTop: 8,
         marginBottom: 10,
@@ -268,17 +268,17 @@ const styles = StyleSheet.create({
         opacity: 0.5,
     },
     buttonText: {
-        color: '#fff',
+        color: CustomColors.white,
         fontSize: 16,
         fontWeight: '600',
     },
     infoBox: {
         flexDirection: 'row',
-        backgroundColor: CustomColors.backgroundMedium,
+        backgroundColor: CustomColors.backgroundDark,
         borderLeftWidth: 4,
         borderLeftColor: CustomColors.primary,
         padding: 12,
-        borderRadius: 6,
+        borderRadius: 8,
         marginBottom: 8,
     },
     infoIcon: {
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
     infoText: {
         flex: 1,
         fontSize: 12,
-        color: CustomColors.textLight,
+        color: CustomColors.neutralLight,
         lineHeight: 18,
     },
 });

@@ -1,4 +1,5 @@
-// Existing Leaflet map HTML — preserved as-is during refactor
+// Leaflet map HTML — palette-derived colors
+// Palette: #111827 #FFFFFF #E53935
 export const LEAFLET_MAP_HTML = `
 <!DOCTYPE html>
 <html>
@@ -30,30 +31,28 @@ export const LEAFLET_MAP_HTML = `
       var msg = typeof data === 'string' ? JSON.parse(data) : data;
       switch(msg.type) {
         case 'INIT_ROUTE':
-          // Clear existing
           routePolylines.forEach(function(l) { map.removeLayer(l); });
           routePolylines = [];
           if (traveledPolyline) { map.removeLayer(traveledPolyline); traveledPolyline = null; }
           waypointMarkers.forEach(function(m) { map.removeLayer(m); });
           waypointMarkers = [];
 
-          // Draw route segments
           msg.segmentCoordinates.forEach(function(seg, i) {
             var latlngs = seg.map(function(c) { return [c[0], c[1]]; });
-            var polyline = L.polyline(latlngs, { color: '#3B3BF6', weight: 4, opacity: 0.7 }).addTo(map);
+            var polyline = L.polyline(latlngs, { color: '#111827', weight: 4, opacity: 0.7 }).addTo(map);
             routePolylines.push(polyline);
           });
 
-          // Add waypoint markers
           var bounds = L.latLngBounds();
           msg.waypoints.forEach(function(wp, i) {
             if (!wp.latitude || !wp.longitude) return;
             var latlng = [wp.latitude, wp.longitude];
             bounds.extend(latlng);
-            var color = wp.isFirstInRoute ? '#3BF6F6' : wp.isLastInRoute ? '#F63B3B' : '#F6F63B';
+            var color = wp.isFirstInRoute ? '#E53935' : wp.isLastInRoute ? '#E53935' : '#FFFFFF';
+            var textColor = wp.isFirstInRoute ? '#FFFFFF' : wp.isLastInRoute ? '#FFFFFF' : '#111827';
             var icon = L.divIcon({
               className: 'custom-marker',
-              html: '<div style="width:32px;height:32px;border-radius:50%;background:'+color+';color:#fff;font-weight:bold;font-size:14px;border:2px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,0.3)">' + wp.count + '</div>',
+              html: '<div style="width:32px;height:32px;border-radius:50%;background:'+color+';color:'+textColor+';font-weight:bold;font-size:14px;border:2px solid #FFFFFF;box-shadow:0 2px 4px rgba(17,24,39,0.4)">' + wp.count + '</div>',
               iconSize: [32, 32],
               iconAnchor: [16, 16]
             });
@@ -72,7 +71,7 @@ export const LEAFLET_MAP_HTML = `
           } else {
             var icon = L.divIcon({
               className: 'custom-marker',
-              html: '<div style="width:24px;height:24px;border-radius:50%;background:#3B3BF6;border:3px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,0.5)"></div>',
+              html: '<div style="width:24px;height:24px;border-radius:50%;background:#111827;border:3px solid #FFFFFF;box-shadow:0 2px 4px rgba(17,24,39,0.5)"></div>',
               iconSize: [24, 24],
               iconAnchor: [12, 12]
             });
@@ -87,7 +86,7 @@ export const LEAFLET_MAP_HTML = `
         case 'UPDATE_TRAVELED':
           if (traveledPolyline) { map.removeLayer(traveledPolyline); }
           var latlngs = msg.traveledCoords.map(function(c) { return [c[0], c[1]]; });
-          traveledPolyline = L.polyline(latlngs, { color: '#3BF6F6', weight: 5, opacity: 0.9 }).addTo(map);
+          traveledPolyline = L.polyline(latlngs, { color: '#E53935', weight: 5, opacity: 0.9 }).addTo(map);
           break;
 
         case 'UPDATE_TARGET':
@@ -105,7 +104,6 @@ export const LEAFLET_MAP_HTML = `
       }
     }
 
-    // Notify React that map is ready
     window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'MAP_READY' }));
   </script>
 </body>

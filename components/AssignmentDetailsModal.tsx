@@ -63,8 +63,8 @@ export default function AssignmentDetailsModal({
           </View>
 
           <View style={styles.content}>
-            <View style={[styles.infoRow, { paddingVertical: 6, backgroundColor: CustomColors.backgroundMedium, borderRadius: 10 }] }>
-              <Text style={[styles.value, { color: CustomColors.secondary, fontWeight: '800' }]}>{siteType}</Text>
+            <View style={[styles.infoRow, { paddingVertical: 6, backgroundColor: CustomColors.backgroundDark, borderRadius: 10 }] }>
+              <Text style={[styles.value, { color: CustomColors.primary, fontWeight: '800' }]}>{siteType}</Text>
             </View>
             <View style={styles.infoRow}>
               <Text style={styles.label}>Contacto:</Text>
@@ -145,7 +145,7 @@ export default function AssignmentDetailsModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
+    backgroundColor: CustomColors.overlay,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   title: {
-    color: CustomColors.textLight,
+    color: CustomColors.white,
     fontSize: 18,
     fontWeight: "700",
   },
@@ -173,10 +173,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: CustomColors.error,
+    backgroundColor: CustomColors.primary,
   },
   closeText: {
-    color: CustomColors.textLight,
+    color: CustomColors.white,
     fontWeight: "700",
   },
   content: {
@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   value: {
-    color: CustomColors.textLight,
+    color: CustomColors.white,
     fontSize: 14,
     fontWeight: "700",
     textAlign: "right",
@@ -216,13 +216,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   whatsappButton: {
-    backgroundColor: '#25D366',  // WhatsApp brand color
+    backgroundColor: '#25D366',
   },
   callButton: {
-    backgroundColor: CustomColors.secondary,
+    backgroundColor: CustomColors.primary,
   },
   actionText: {
-    color: CustomColors.textLight,
+    color: CustomColors.white,
     fontWeight: "700",
   },
   productsSection: {
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
   },
   productTitle: {
-    color: CustomColors.textLight,
+    color: CustomColors.white,
     fontSize: 10,
     fontWeight: "500",
     textAlign: "center",

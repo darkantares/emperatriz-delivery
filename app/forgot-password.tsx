@@ -90,7 +90,7 @@ export default function ForgotPasswordScreen() {
                 <StatusBar style="light" />
                 <ScrollView contentContainerStyle={styles.scrollView} keyboardShouldPersistTaps="handled">
                     <View style={styles.header}>
-                        <FontAwesome name="envelope" size={50} color={CustomColors.secondary} style={styles.icon} />
+                        <FontAwesome name="envelope" size={50} color={CustomColors.primary} style={styles.icon} />
                         <Text style={styles.title}>Revisa tu correo</Text>
                         <Text style={[styles.subtitle, { textAlign: 'center' }]}>
                             Enviamos una contraseña temporal a:
@@ -131,9 +131,9 @@ export default function ForgotPasswordScreen() {
                     {/* Header */}
                     <View style={styles.header}>
                         <Pressable style={styles.backButton} onPress={() => router.back()}>
-                            <FontAwesome name="arrow-left" size={20} color={CustomColors.textLight} />
+                            <FontAwesome name="arrow-left" size={20} color={CustomColors.white} />
                         </Pressable>
-                        <FontAwesome name="lock" size={50} color={CustomColors.secondary} style={styles.icon} />
+                        <FontAwesome name="lock" size={50} color={CustomColors.primary} style={styles.icon} />
                         <Text style={styles.title}>Recuperar contraseña</Text>
                         <Text style={styles.subtitle}>Ingresa tu correo y te enviaremos una contraseña temporal</Text>
                     </View>
@@ -160,7 +160,7 @@ export default function ForgotPasswordScreen() {
                             disabled={isLoading}
                         >
                             {isLoading
-                                ? <ActivityIndicator color={CustomColors.textLight} />
+                                ? <ActivityIndicator color={CustomColors.white} />
                                 : <Text style={styles.primaryButtonText}>Enviar contraseña temporal</Text>
                             }
                         </Pressable>
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 26,
         fontWeight: 'bold',
-        color: CustomColors.secondary,
+        color: CustomColors.white,
         textAlign: 'center',
         marginBottom: 8,
     },
@@ -226,14 +226,14 @@ const styles = StyleSheet.create({
         marginBottom: 8,
         fontSize: 16,
         fontWeight: '600',
-        color: CustomColors.textLight,
+        color: CustomColors.white,
     },
     input: {
         backgroundColor: CustomColors.inputBackground,
-        borderRadius: 8,
-        height: 50,
-        paddingHorizontal: 15,
-        color: CustomColors.textLight,
+        borderRadius: 12,
+        height: 54,
+        paddingHorizontal: 16,
+        color: CustomColors.white,
         borderWidth: 1,
         borderColor: CustomColors.border,
     },
@@ -241,15 +241,15 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: CustomColors.inputBackground,
-        borderRadius: 8,
+        borderRadius: 12,
         borderWidth: 1,
         borderColor: CustomColors.border,
     },
     passwordInput: {
         flex: 1,
-        height: 50,
-        paddingHorizontal: 15,
-        color: CustomColors.textLight,
+        height: 54,
+        paddingHorizontal: 16,
+        color: CustomColors.white,
         backgroundColor: 'transparent',
     },
     eyeIcon: {
@@ -258,25 +258,25 @@ const styles = StyleSheet.create({
     },
     primaryButton: {
         backgroundColor: CustomColors.primary,
-        borderRadius: 8,
-        height: 50,
+        borderRadius: 12,
+        height: 54,
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 16,
     },
     primaryButtonText: {
-        color: CustomColors.textLight,
+        color: CustomColors.white,
         fontSize: 16,
         fontWeight: 'bold',
     },
     cancelButton: {
-        borderRadius: 8,
-        height: 50,
+        borderRadius: 12,
+        height: 54,
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 16,
         borderWidth: 1,
-        borderColor: CustomColors.neutralLight,
+        borderColor: CustomColors.border,
     },
     cancelButtonText: {
         color: CustomColors.neutralLight,
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
     emailHighlight: {
         fontSize: 15,
         fontWeight: 'bold',
-        color: CustomColors.secondary,
+        color: CustomColors.primary,
         textAlign: 'center',
         marginTop: 6,
     },

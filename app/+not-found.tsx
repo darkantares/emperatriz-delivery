@@ -29,6 +29,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: 'bold',
+    color: CustomColors.white,
   },
   link: {
     marginTop: 15,
@@ -36,6 +37,6 @@ const styles = StyleSheet.create({
   },
   linkText: {
     fontSize: 14,
-    color: CustomColors.quaternary,
+    color: CustomColors.primary,
   },
 });

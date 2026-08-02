@@ -65,7 +65,7 @@ const StatsCharts = ({ monthlyStats = EMPTY_MONTHLY, weeklyStats = EMPTY_WEEKLY,
                             <Text style={styles.title}>Ganancias mensuales</Text>
                             <Text style={styles.subtitle}>Últimos 6 meses</Text>
                         </View>
-                        <View style={[styles.iconCircle, { backgroundColor: 'rgba(255,255,255,0.06)' }]}>
+                        <View style={[styles.iconCircle, { backgroundColor: `${CustomColors.textLight}0F` }]}>
                             <Ionicons name="stats-chart-outline" size={20} color={CustomColors.primary} />
                         </View>
                     </View>
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
         justifyContent: 'flex-end',
         borderRadius: 4,
         overflow: 'hidden',
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: `${CustomColors.textLight}0D`,
         marginBottom: 6,
     },
     barFill: {

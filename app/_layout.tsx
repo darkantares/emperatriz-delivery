@@ -1,5 +1,5 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack, router, useSegments, useRootNavigationState } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -8,7 +8,8 @@ import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
-import { Provider as PaperProvider, MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
+import { Provider as PaperProvider, MD3DarkTheme } from 'react-native-paper';
+import type { MD3Theme } from 'react-native-paper';
 import { registerTranslation } from 'react-native-paper-dates';
 
 registerTranslation('es', {
@@ -46,6 +47,65 @@ import { useFCMPushNotifications } from '@/core/hooks/useFCMPushNotifications';
 import { useOTAUpdates } from '@/core/hooks/useOTAUpdates';
 import ForceUpdateScreen from '@/components/ForceUpdateScreen';
 import { getRecoveryState } from '@/utils/passwordRecovery';
+
+// ── Custom Paper theme using new palette ─────────────────────
+const paperCustomTheme: MD3Theme = {
+  ...MD3DarkTheme,
+  colors: {
+    ...MD3DarkTheme.colors,
+    primary: CustomColors.primary,
+    onPrimary: CustomColors.white,
+    primaryContainer: CustomColors.primaryDark,
+    onPrimaryContainer: CustomColors.white,
+    secondary: CustomColors.primary,
+    onSecondary: CustomColors.white,
+    secondaryContainer: CustomColors.primaryDark,
+    onSecondaryContainer: CustomColors.white,
+    tertiary: CustomColors.white,
+    onTertiary: CustomColors.black,
+    tertiaryContainer: CustomColors.backgroundMedium,
+    onTertiaryContainer: CustomColors.white,
+    error: CustomColors.error,
+    onError: CustomColors.white,
+    errorContainer: CustomColors.primaryDark,
+    onErrorContainer: CustomColors.white,
+    background: CustomColors.backgroundDarkest,
+    onBackground: CustomColors.white,
+    surface: CustomColors.backgroundDark,
+    onSurface: CustomColors.white,
+    surfaceVariant: CustomColors.cardBackground,
+    onSurfaceVariant: CustomColors.white,
+    outline: CustomColors.border,
+    outlineVariant: CustomColors.divider,
+    shadow: CustomColors.shadow,
+    scrim: CustomColors.shadow,
+    inverseSurface: CustomColors.white,
+    inverseOnSurface: CustomColors.black,
+    inversePrimary: CustomColors.primary,
+    elevation: {
+      level0: 'transparent',
+      level1: CustomColors.inputBackground,
+      level2: CustomColors.backgroundDark,
+      level3: CustomColors.backgroundMedium,
+      level4: CustomColors.cardBackground,
+      level5: CustomColors.backgroundDark,
+    },
+  },
+};
+
+// ── Custom Navigation theme ──────────────────────────────────
+const navCustomTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    primary: CustomColors.primary,
+    background: CustomColors.backgroundDarkest,
+    card: CustomColors.backgroundDark,
+    text: CustomColors.white,
+    border: CustomColors.border,
+    notification: CustomColors.primary,
+  },
+};
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -100,7 +160,7 @@ export default function RootLayout() {
   return showBootLoader ? (
     <View style={styles.splashContainer}>
       <Image source={require('../assets/images/screen.png')} style={styles.splashImage} contentFit="contain" />
-      <ActivityIndicator size="large" color={CustomColors.textLight} style={styles.splashSpinner} />
+      <ActivityIndicator size="large" color={CustomColors.white} style={styles.splashSpinner} />
     </View>
   ) : (
     <RootLayoutNav />
@@ -197,7 +257,7 @@ function RootLayoutNav() {
     return cleanup;
   }, []);
 
-  const paperTheme = colorScheme === 'dark' ? MD3DarkTheme : MD3LightTheme;
+  const paperTheme = paperCustomTheme;
 
   return (
     <SafeAreaProvider>
@@ -205,13 +265,13 @@ function RootLayoutNav() {
       <AuthProvider>
         <ActiveDeliveryProvider>
           <DeliveryProvider>
-            <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+              <ThemeProvider value={navCustomTheme}>
               <ProtectedRouteGuard>
                 <Stack screenOptions={{
                   headerStyle: {
-                    backgroundColor: CustomColors.backgroundDark
+                    backgroundColor: CustomColors.backgroundDarkest
                   },
-                  headerTintColor: CustomColors.textLight
+                  headerTintColor: CustomColors.white
                 }}>
                   <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                   <Stack.Screen name="modal" options={{ presentation: 'modal' }} />

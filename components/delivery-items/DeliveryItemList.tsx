@@ -151,7 +151,7 @@ https://maps.google.com/?q=${lat},${lon}`;
             onItemPress?.(item);
           }}
         >
-          <Ionicons name="arrow-forward-circle" size={22} color="#FFFFFF" style={styles.actionIcon} />
+          <Ionicons name="arrow-forward-circle" size={22} color={CustomColors.textLight} style={styles.actionIcon} />
           <Text style={styles.actionText}>Progreso</Text>
         </RectButton>
 
@@ -159,7 +159,7 @@ https://maps.google.com/?q=${lat},${lon}`;
           style={[styles.swipeActionButton, styles.secondaryAction]}
           onPress={() => handleSendCoordinatesWhatsApp(item)}
         >
-          <FontAwesome name="map-marker" size={20} color="#FFFFFF" style={styles.actionIcon} />
+          <FontAwesome name="map-marker" size={20} color={CustomColors.textLight} style={styles.actionIcon} />
           <Text style={styles.actionText}>Enviar coords</Text>
         </RectButton>
       </Animated.View>
@@ -180,7 +180,7 @@ https://maps.google.com/?q=${lat},${lon}`;
           style={[styles.swipeActionButton, styles.whatsappAction]}
           onPress={() => handleWhatsApp(item)}
         >
-          <FontAwesome name="whatsapp" size={20} color="#FFFFFF" style={styles.actionIcon} />
+          <FontAwesome name="whatsapp" size={20} color={CustomColors.textLight} style={styles.actionIcon} />
           <Text style={styles.actionText}>WhatsApp</Text>
         </RectButton>
 
@@ -188,7 +188,7 @@ https://maps.google.com/?q=${lat},${lon}`;
           style={[styles.swipeActionButton, styles.callAction]}
           onPress={() => handleCall(item)}
         >
-          <Ionicons name="call" size={20} color="#FFFFFF" style={styles.actionIcon} />
+          <Ionicons name="call" size={20} color={CustomColors.textLight} style={styles.actionIcon} />
           <Text style={styles.actionText}>Llamar</Text>
         </RectButton>
       </Animated.View>
@@ -327,7 +327,7 @@ const styles = StyleSheet.create({
     backgroundColor: CustomColors.error,
   },
   actionText: {
-    color: '#FFFFFF',
+    color: CustomColors.textLight,
     fontSize: 12,
     textAlign: 'center',
     fontWeight: '700',

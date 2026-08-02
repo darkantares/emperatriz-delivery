@@ -27,6 +27,6 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 16,
-    color: CustomColors.textLight,
+    color: CustomColors.white,
   },
 });

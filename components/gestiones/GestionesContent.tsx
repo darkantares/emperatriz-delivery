@@ -284,7 +284,7 @@ export function GestionesContent() {
             onPress={showPayAllDialog}
             disabled={isSaving}
           >
-            <Ionicons name="cash-outline" size={18} color="#fff" style={{ marginRight: 6 }} />
+            <Ionicons name="cash-outline" size={18} color={CustomColors.textLight} style={{ marginRight: 6 }} />
             <Text style={styles.payAllButtonText}>Pagar deudas</Text>
           </Pressable>
         </RNView>
@@ -372,7 +372,7 @@ function CreditNoteDialog({ visible, provider, amount, description, onAmountChan
               <Text style={styles.modalCancelText}>Cancelar</Text>
             </Pressable>
             <Pressable style={[styles.modalConfirmBtn, (!amount || Number(amount) <= 0) && { opacity: 0.5 }]} onPress={onSubmit} disabled={!amount || Number(amount) <= 0 || isSaving}>
-              {isSaving ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.modalConfirmText}>Crear Nota de Crédito</Text>}
+              {isSaving ? <ActivityIndicator size="small" color={CustomColors.textLight} /> : <Text style={styles.modalConfirmText}>Crear Nota de Crédito</Text>}
             </Pressable>
           </RNView>
         </RNView>
@@ -445,7 +445,7 @@ const styles = StyleSheet.create({
     boxShadow: '0px 2px 4px rgba(0,0,0,0.3)',
   },
   payAllButtonText: {
-    color: '#fff',
+    color: CustomColors.textLight,
     fontWeight: 'bold',
     fontSize: 15,
   },
@@ -472,7 +472,7 @@ const styles = StyleSheet.create({
     color: CustomColors.neutralLight,
   },
   filterPillTextActive: {
-    color: '#fff',
+    color: CustomColors.textLight,
   },
   sectionTitle: {
     fontSize: 16,
@@ -494,7 +494,7 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: CustomColors.overlay,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,

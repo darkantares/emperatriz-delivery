@@ -50,59 +50,37 @@ export const validStatusTransitions: Record<IDeliveryStatus, IDeliveryStatus[]> 
         IDeliveryStatus.ON_HOLD,
     ],
     [IDeliveryStatus.IN_PROGRESS]: [
-        // IDeliveryStatus.READY_FOR_PICKUP,
-        // IDeliveryStatus.COMPLETED,
         IDeliveryStatus.DELIVERED,
-        // IDeliveryStatus.FAILED,
         IDeliveryStatus.ON_HOLD,
         IDeliveryStatus.CANCELLED,
     ],
-    // [DeliveryStatus.READY_FOR_PICKUP]: [
-    //     DeliveryStatus.DELIVERED,
-    //     DeliveryStatus.FAILED,
-    //     DeliveryStatus.RETURNED,
-    //     DeliveryStatus.CANCELLED,
-    // ],
-    // [DeliveryStatus.COMPLETED]: [
-    //     DeliveryStatus.DELIVERED,
-    // ],
     [IDeliveryStatus.DELIVERED]: [],
     [IDeliveryStatus.RETURNED]: [],
-    // [IDeliveryStatus.FAILED]: [
-    //     IDeliveryStatus.RETURNED,
-    //     IDeliveryStatus.IN_PROGRESS,
-    //     IDeliveryStatus.CANCELLED,
-    // ],
     [IDeliveryStatus.ON_HOLD]: [
         IDeliveryStatus.IN_PROGRESS,
         IDeliveryStatus.CANCELLED,
         IDeliveryStatus.SCHEDULED,
     ],
     [IDeliveryStatus.CANCELLED]: [],
-    // [IDeliveryStatus.COMPLETED]: [],
 };
 
 // Helper functions
 export function getStatusColor(status: string): string {
     switch (status) {
         case IDeliveryStatus.PENDING:
-            return CustomColors.quaternary;
+            return CustomColors.warning;
         case IDeliveryStatus.ASSIGNED:
-            return CustomColors.quaternaryLight;
+            return CustomColors.info;
         case IDeliveryStatus.SCHEDULED:
-            return CustomColors.secondary;
+            return CustomColors.neutralLight;
         case IDeliveryStatus.IN_PROGRESS:
-            return CustomColors.tertiary;
-        // case IDeliveryStatus.COMPLETED:
-        //     return '#0011ffff'; // Naranja fuerte
+            return CustomColors.primary;
         case IDeliveryStatus.DELIVERED:
-            return CustomColors.tertiaryLight;
+            return CustomColors.success;
         case IDeliveryStatus.RETURNED:
-            return CustomColors.primaryLight;
-        // case IDeliveryStatus.FAILED:
-        //     return '#FF0000'; // Rojo puro
+            return CustomColors.warning;
         case IDeliveryStatus.ON_HOLD:
-            return CustomColors.neutral;
+            return CustomColors.neutralLight;
         case IDeliveryStatus.CANCELLED:
             return CustomColors.error;
         default:

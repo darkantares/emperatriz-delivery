@@ -272,7 +272,7 @@ export default function LoginScreen() {
                         >
                             <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
                                 {rememberMe && (
-                                    <FontAwesome name="check" size={12} color={CustomColors.textLight} />
+                                    <FontAwesome name="check" size={12} color={CustomColors.white} />
                                 )}
                             </View>
                             <Text style={styles.rememberMeText}>Recuérdame</Text>
@@ -284,7 +284,7 @@ export default function LoginScreen() {
                             disabled={isLoading}
                         >
                             {isLoading ? (
-                                <ActivityIndicator color={CustomColors.textLight} />
+                                <ActivityIndicator color={CustomColors.white} />
                             ) : (
                                 <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
                             )}
@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
         marginTop: 5,
         textAlign: 'center',
         padding: 5,
-        backgroundColor: 'rgba(236, 68, 1, 0.1)',
+        backgroundColor: 'rgba(229, 57, 53, 0.1)',
         borderRadius: 4,
     },
     logo: {
@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 28,
         fontWeight: 'bold',
-        color: CustomColors.secondary,
+        color: CustomColors.white,
         textAlign: 'center',
         textShadowColor: 'rgba(0,0,0,0.75)',
         textShadowOffset: { width: 1, height: 1 },
@@ -362,13 +362,13 @@ const styles = StyleSheet.create({
         marginBottom: 8,
         fontSize: 16,
         fontWeight: '600',
-        color: CustomColors.textLight,
+        color: CustomColors.white,
     }, input: {
         backgroundColor: CustomColors.inputBackground,
-        borderRadius: 8,
-        height: 50,
-        paddingHorizontal: 15,
-        color: CustomColors.textLight,
+        borderRadius: 12,
+        height: 54,
+        paddingHorizontal: 16,
+        color: CustomColors.white,
         borderWidth: 1,
         borderColor: CustomColors.border,
     },
@@ -377,15 +377,15 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: CustomColors.inputBackground,
-        borderRadius: 8,
+        borderRadius: 12,
         borderWidth: 1,
         borderColor: CustomColors.border,
     },
     passwordInput: {
         flex: 1,
-        height: 50,
-        paddingHorizontal: 15,
-        color: CustomColors.textLight,
+        height: 54,
+        paddingHorizontal: 16,
+        color: CustomColors.white,
         backgroundColor: 'transparent',
     },
     eyeIcon: {
@@ -398,14 +398,14 @@ const styles = StyleSheet.create({
     },
     loginButton: {
         backgroundColor: CustomColors.primary,
-        padding: 15,
-        borderRadius: 8,
+        padding: 16,
+        borderRadius: 12,
         alignItems: 'center',
         marginTop: 20,
         boxShadow: '0px 2px 3.84px rgba(0,0,0,0.25)',
     },
     loginButtonText: {
-        color: CustomColors.textLight,
+        color: CustomColors.white,
         fontSize: 16,
         fontWeight: 'bold',
     },
@@ -415,7 +415,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'transparent',
     },
     forgotPasswordText: {
-        color: CustomColors.secondary,
+        color: CustomColors.primary,
         fontSize: 14,
     },
     rememberMeContainer: {
@@ -425,9 +425,9 @@ const styles = StyleSheet.create({
         backgroundColor: 'transparent',
     },
     checkbox: {
-        width: 20,
-        height: 20,
-        borderRadius: 4,
+        width: 22,
+        height: 22,
+        borderRadius: 6,
         borderWidth: 2,
         borderColor: CustomColors.neutralLight,
         alignItems: 'center',
@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
         borderColor: CustomColors.primary,
     },
     rememberMeText: {
-        color: CustomColors.textLight,
+        color: CustomColors.white,
         fontSize: 14,
     },
     versionText: {

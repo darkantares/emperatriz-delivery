@@ -236,10 +236,6 @@ export default function TripMapScreen() {
   }
 
   // Determine current group status for the control button
-  // Clamp index: after a delivery completion, currentTargetGroupIndex can exceed
-  // groupedWaypoints bounds because groupedWaypoints is recomputed from the new
-  // tripDeliveries (which may be shorter) while the index was incremented from
-  // the old closure value. Clamping prevents the button from being disabled.
   const safeIndex = Math.min(progression.currentTargetGroupIndex, Math.max(0, groupedWaypoints.length - 1));
   const currentGroup = groupedWaypoints[safeIndex];
   if (!currentGroup) {
@@ -300,7 +296,7 @@ export default function TripMapScreen() {
 
         {tripLoading && tripData && (
           <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color={CustomColors.secondary} />
+            <ActivityIndicator size="large" color={CustomColors.primary} />
           </View>
         )}
 

@@ -573,7 +573,7 @@ function ModalFooter({ onCancel, onConfirm, isValid, loading }: ModalFooterProps
         onPress={onConfirm}
         disabled={!isValid || loading}
       >
-        {loading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.buttonText}>Guardar</Text>}
+        {loading ? <ActivityIndicator size="small" color={CustomColors.textLight} /> : <Text style={styles.buttonText}>Guardar</Text>}
       </Pressable>
     </View>
   );
@@ -585,7 +585,7 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    backgroundColor: CustomColors.overlay,
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
@@ -819,7 +819,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 5,
     right: 5,
-    backgroundColor: "rgba(255, 0, 0, 0.8)",
+    backgroundColor: CustomColors.error,
     borderRadius: 15,
     width: 30,
     height: 30,
@@ -827,7 +827,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   removePhotoText: {
-    color: "white",
+    color: CustomColors.textLight,
     fontSize: 16,
     fontWeight: "bold",
   },

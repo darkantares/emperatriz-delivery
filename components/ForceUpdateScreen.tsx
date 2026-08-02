@@ -19,7 +19,7 @@ export default function ForceUpdateScreen({ status, onRetry }: ForceUpdateScreen
         Hay una nueva versión disponible. Por favor espera mientras se instala automáticamente.
       </Text>
 
-      {isLoading && <ActivityIndicator size="large" color={CustomColors.textLight} style={styles.spinner} />}
+      {isLoading && <ActivityIndicator size="large" color={CustomColors.white} style={styles.spinner} />}
 
       {status === 'error' && (
         <>
@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: CustomColors.textLight,
+    color: CustomColors.white,
     marginBottom: 12,
     textAlign: 'center',
   },
@@ -67,13 +67,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   retryButton: {
-    backgroundColor: CustomColors.quaternary,
+    backgroundColor: CustomColors.primary,
     paddingHorizontal: 32,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
   },
   retryText: {
-    color: CustomColors.textLight,
+    color: CustomColors.white,
     fontSize: 16,
     fontWeight: '600',
   },

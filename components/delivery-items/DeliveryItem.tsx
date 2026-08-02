@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
   pickupContainer: {
     backgroundColor: CustomColors.cardBackground,
     borderLeftWidth: 4,
-    borderLeftColor: CustomColors.quaternary,
+    borderLeftColor: CustomColors.textLight,
   },
   deliveryContainer: {
     backgroundColor: CustomColors.backgroundDark,
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   pickupIndicator: {
-    backgroundColor: CustomColors.quaternary,
+    backgroundColor: CustomColors.textLight,
   },
   deliveryIndicator: {
     backgroundColor: CustomColors.secondary,

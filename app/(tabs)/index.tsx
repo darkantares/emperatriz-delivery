@@ -80,7 +80,7 @@ const tabStyles = StyleSheet.create({
     overflow: "hidden",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: CustomColors.divider,
+    borderColor: CustomColors.border,
   },
   indicator: {
     position: "absolute",
@@ -104,12 +104,12 @@ const tabStyles = StyleSheet.create({
   tabText: {
     fontSize: 11,
     fontWeight: "600",
-    color: CustomColors.textLight,
+    color: CustomColors.white,
     opacity: 0.5,
     textAlign: "center",
   },
   activeTabText: {
-    color: CustomColors.textLight,
+    color: CustomColors.white,
     opacity: 1,
   },
 });
@@ -269,7 +269,7 @@ function TabOneScreenContent() {
               </RNView>
             </RNView>
             <Pressable style={styles.refreshButton} onPress={() => { fetchDeliveries(); refreshGanancias(); }}>
-              <Ionicons name="refresh-outline" size={20} color={CustomColors.textLight} />
+              <Ionicons name="refresh-outline" size={20} color={CustomColors.white} />
             </Pressable>
           </RNView>
 
@@ -335,7 +335,7 @@ function TabOneScreenContent() {
                 <Ionicons
                   name="map-outline"
                   size={18}
-                  color={CustomColors.textLight}
+                  color={CustomColors.white}
                   style={{ marginRight: 8 }}
                 />
                 <Text style={styles.startRoutesButtonText}>
@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: "800",
-    color: CustomColors.textLight,
+    color: CustomColors.white,
     letterSpacing: -0.5,
   },
   liveRow: {
@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
   },
   liveText: {
     fontSize: 11,
-    color: CustomColors.textLight,
+    color: CustomColors.white,
     opacity: 0.5,
     letterSpacing: 0.3,
   },
@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: CustomColors.backgroundDark,
     borderWidth: 1,
-    borderColor: CustomColors.divider,
+    borderColor: CustomColors.border,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -424,9 +424,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 12,
     paddingTop: 12,
-    // backgroundColor: CustomColors.backgroundDarkest,
-    // borderTopWidth: 1,
-    // borderTopColor: CustomColors.divider,
   },
   headerTitleRow: {
     flexDirection: 'row',
@@ -439,7 +436,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     marginLeft: 8,
     borderWidth: 1,
-    borderColor: `${CustomColors.textLight}33`,
+    borderColor: `${CustomColors.white}33`,
   },
   startRoutesButton: {
     backgroundColor: CustomColors.primary,
@@ -455,13 +452,13 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   startRoutesButtonText: {
-    color: CustomColors.textLight,
+    color: CustomColors.white,
     fontWeight: "bold",
     fontSize: 16,
   },
   loadingOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    backgroundColor: CustomColors.overlay,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -472,10 +469,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 16,
     borderWidth: 1,
-    borderColor: CustomColors.divider,
+    borderColor: CustomColors.border,
   },
   loadingText: {
-    color: CustomColors.textLight,
+    color: CustomColors.white,
     fontSize: 16,
     fontWeight: "600",
   },
