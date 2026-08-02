@@ -1,15 +1,15 @@
 export const CustomColors = {
-  primary: '#EC4401',      // Naranja
-  secondary: '#CC9B25',    // Dorado
-  tertiary: '#13CD4A',     // Verde
-  quaternary: '#7B6ED6',   // Morado
+  primary: '#F63B3B',      // Rojo
+  secondary: '#F6F63B',    // Amarillo
+  tertiary: '#3BF6F6',     // Cyan
+  quaternary: '#3B3BF6',   // Azul
   neutral: '#5E525C',      // Gris
   
   // Colores complementarios
-  primaryLight: '#FF7144', 
-  secondaryLight: '#E2B54A',
-  tertiaryLight: '#4DF079',
-  quaternaryLight: '#A59BF2',
+  primaryLight: '#FF6B6B', 
+  secondaryLight: '#F9F96B',
+  tertiaryLight: '#6BF9F9',
+  quaternaryLight: '#6B6BF9',
   neutralLight: '#8A7D89',
   
   // Colores para texto
@@ -17,10 +17,10 @@ export const CustomColors = {
   textLight: '#FFFFFF',
   
   // Colores de estado
-  success: '#13CD4A',
-  error: '#EC4401',
-  warning: '#CC9B25',
-  info: '#7B6ED6',
+  success: '#3BF6F6',
+  error: '#F63B3B',
+  warning: '#F6F63B',
+  info: '#3B3BF6',
   
   // Colores de fondo
   backgroundLight: '#F8F8F8',

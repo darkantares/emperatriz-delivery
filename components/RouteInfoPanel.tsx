@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   statusActive: {
-    color: '#4CAF50',
+    color: CustomColors.success,
   },
 });
 

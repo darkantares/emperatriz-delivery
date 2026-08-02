@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
     trendText: {
         fontSize: 12,
         fontWeight: '600',
-        color: '#059669',
+        color: CustomColors.success,
     },
     statsRow: {
         flexDirection: 'row',

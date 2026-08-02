@@ -1,4 +1,5 @@
 import { IDeliveryStatusEntity } from './delivery';
+import { CustomColors } from '@/constants/CustomColors';
 
 export enum IDeliveryStatus {
     PENDING = 'pendiente',
@@ -85,27 +86,27 @@ export const validStatusTransitions: Record<IDeliveryStatus, IDeliveryStatus[]> 
 export function getStatusColor(status: string): string {
     switch (status) {
         case IDeliveryStatus.PENDING:
-            return '#FF00FF'; // Magenta
+            return CustomColors.quaternary;
         case IDeliveryStatus.ASSIGNED:
-            return '#00BFFF'; // Azul intenso
+            return CustomColors.quaternaryLight;
         case IDeliveryStatus.SCHEDULED:
-            return '#FFD700'; // Amarillo
+            return CustomColors.secondary;
         case IDeliveryStatus.IN_PROGRESS:
-            return '#00FF00'; // Verde puro
+            return CustomColors.tertiary;
         // case IDeliveryStatus.COMPLETED:
         //     return '#0011ffff'; // Naranja fuerte
         case IDeliveryStatus.DELIVERED:
-            return '#8A2BE2'; // Violeta
+            return CustomColors.tertiaryLight;
         case IDeliveryStatus.RETURNED:
-            return '#00CED1'; // Turquesa
+            return CustomColors.primaryLight;
         // case IDeliveryStatus.FAILED:
         //     return '#FF0000'; // Rojo puro
         case IDeliveryStatus.ON_HOLD:
-            return '#A52A2A'; // Marrón
+            return CustomColors.neutral;
         case IDeliveryStatus.CANCELLED:
-            return '#FF4500'; // Negro
+            return CustomColors.error;
         default:
-            return '#7F8C8D'; // Gris
+            return CustomColors.neutralLight;
     }
 }
 

@@ -100,7 +100,7 @@ export default function RootLayout() {
   return showBootLoader ? (
     <View style={styles.splashContainer}>
       <Image source={require('../assets/images/screen.png')} style={styles.splashImage} contentFit="contain" />
-      <ActivityIndicator size="large" color="#ffffff" style={styles.splashSpinner} />
+      <ActivityIndicator size="large" color={CustomColors.textLight} style={styles.splashSpinner} />
     </View>
   ) : (
     <RootLayoutNav />
@@ -233,7 +233,7 @@ function RootLayoutNav() {
 const styles = StyleSheet.create({
   splashContainer: {
     flex: 1,
-    backgroundColor: '#1A1125',
+    backgroundColor: CustomColors.backgroundDarkest,
     alignItems: 'center',
     justifyContent: 'center'
   },

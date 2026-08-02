@@ -63,8 +63,8 @@ export default function AssignmentDetailsModal({
           </View>
 
           <View style={styles.content}>
-            <View style={[styles.infoRow, { paddingVertical: 6, backgroundColor: '#2C2C2C', borderRadius: 10 }] }>
-              <Text style={[styles.value, { color: '#FFD700', fontWeight: '800' }]}>{siteType}</Text>
+            <View style={[styles.infoRow, { paddingVertical: 6, backgroundColor: CustomColors.backgroundMedium, borderRadius: 10 }] }>
+              <Text style={[styles.value, { color: CustomColors.secondary, fontWeight: '800' }]}>{siteType}</Text>
             </View>
             <View style={styles.infoRow}>
               <Text style={styles.label}>Contacto:</Text>
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   whatsappButton: {
-    backgroundColor: "#25D366",
+    backgroundColor: '#25D366',  // WhatsApp brand color
   },
   callButton: {
     backgroundColor: CustomColors.secondary,

@@ -38,7 +38,7 @@ const PayoutCard = ({ item, index }: { item: PaidInvoice; index: number }) => {
                 </View>
                 <View style={styles.cardRight}>
                     <View style={styles.statusBadge}>
-                        <Ionicons name="checkmark-circle" size={14} color="#059669" />
+                        <Ionicons name="checkmark-circle" size={14} color={CustomColors.success} />
                         <Text style={styles.statusText}>{item.status}</Text>
                     </View>
                 </View>
@@ -78,7 +78,7 @@ const PayoutHistory = ({ items = EMPTY_ITEMS, isLoading = false }: PayoutHistory
                         {isLoading ? '—' : formatDOP(totalPaid)}
                     </Text>
                     <View style={styles.summaryRow}>
-                        <Ionicons name="trending-up" size={14} color="#059669" />
+                        <Ionicons name="trending-up" size={14} color={CustomColors.success} />
                         <Text style={styles.summarySubtext}>
                             {items.length} pago{items.length !== 1 ? 's' : ''} procesado{items.length !== 1 ? 's' : ''}
                             {items.length > 0 ? ` · Promedio ${formatDOP(avgPaid)}` : ''}
@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: CustomColors.divider,
         borderLeftWidth: 4,
-        borderLeftColor: '#059669',
+        borderLeftColor: CustomColors.success,
     },
     summaryLabel: {
         fontSize: 10,
@@ -217,17 +217,17 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 5,
-        backgroundColor: 'rgba(5,150,105,0.12)',
+        backgroundColor: `${CustomColors.success}1F`,
         paddingHorizontal: 10,
         paddingVertical: 6,
         borderRadius: 20,
         borderWidth: 1,
-        borderColor: 'rgba(5,150,105,0.25)',
+        borderColor: `${CustomColors.success}40`,
     },
     statusText: {
         fontSize: 12,
         fontWeight: '600',
-        color: '#059669',
+        color: CustomColors.success,
     },
     emptyText: {
         fontSize: 13,

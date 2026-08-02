@@ -77,7 +77,7 @@ const RecentDeliveries = ({ items = EMPTY_ITEMS, isLoading = false }: RecentDeli
                         <Text style={styles.subtitle}>Ultimas completadas</Text>
                     </View>
                     <View style={styles.iconCircle}>
-                        <Ionicons name="flash-outline" size={20} color="#059669" />
+                        <Ionicons name="flash-outline" size={20} color={CustomColors.success} />
                     </View>
                 </View>
 
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
     earningText: {
         fontSize: 14,
         fontWeight: '700',
-        color: '#059669',
+        color: CustomColors.success,
     },
     divider: {
         height: 1,

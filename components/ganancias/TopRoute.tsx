@@ -19,10 +19,10 @@ const TopRoute = ({ route, isLoading = false }: TopRouteProps) => {
             <View style={styles.card}>
                 <View style={styles.content}>
                     <View style={styles.trophyBadge}>
-                        <Ionicons name="trophy" size={28} color="#F59E0B" />
+                        <Ionicons name="trophy" size={28} color={CustomColors.warning} />
                     </View>
                     {isLoading ? (
-                        <ActivityIndicator color="#F59E0B" style={{ flex: 1 }} />
+                        <ActivityIndicator color={CustomColors.warning} style={{ flex: 1 }} />
                     ) : route ? (
                         <View style={styles.info}>
                             <Text style={styles.label}>RUTA ESTRELLA</Text>
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
     },
     label: {
         fontSize: 10,
-        color: '#F59E0B',
+        color: CustomColors.warning,
         letterSpacing: 1.2,
         marginBottom: 4,
         opacity: 0.85,
@@ -103,15 +103,15 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 12,
-        backgroundColor: 'rgba(245,158,11,0.15)',
+        backgroundColor: `${CustomColors.warning}26`,
         borderWidth: 1,
-        borderColor: 'rgba(245,158,11,0.35)',
+        borderColor: `${CustomColors.warning}59`,
         alignItems: 'center',
         justifyContent: 'center',
     },
     badgeText: {
         fontSize: 14,
         fontWeight: '800',
-        color: '#F59E0B',
+        color: CustomColors.warning,
     },
 });

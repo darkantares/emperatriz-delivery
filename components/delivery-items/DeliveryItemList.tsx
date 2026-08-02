@@ -315,16 +315,16 @@ const styles = StyleSheet.create({
     boxShadow: '0px 2px 3px rgba(0,0,0,0.18)',
   },
   progressAction: {
-    backgroundColor: '#2ecc71',
+    backgroundColor: CustomColors.success,
   },
   secondaryAction: {
     backgroundColor: CustomColors.primary,
   },
   whatsappAction: {
-    backgroundColor: '#25D366',
+    backgroundColor: '#25D366',  // WhatsApp brand color
   },
   callAction: {
-    backgroundColor: '#EA5455',
+    backgroundColor: CustomColors.error,
   },
   actionText: {
     color: '#FFFFFF',

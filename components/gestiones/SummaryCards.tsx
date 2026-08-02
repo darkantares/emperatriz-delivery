@@ -23,15 +23,15 @@ export function SummaryCards({ totalPendiente, totalVencidas, totalPorVencer, to
       </RNView>
       <RNView style={[styles.card, styles.cardOverdue]}>
         <Text style={styles.cardLabel}>Vencidas</Text>
-        <Text style={[styles.cardValue, { color: '#ef4444' }]}>{formatCurrency(totalVencidas)}</Text>
+        <Text style={[styles.cardValue, { color: CustomColors.error }]}>{formatCurrency(totalVencidas)}</Text>
       </RNView>
       <RNView style={[styles.card, styles.cardDueSoon]}>
         <Text style={styles.cardLabel}>Por vencer</Text>
-        <Text style={[styles.cardValue, { color: '#f59e0b' }]}>{formatCurrency(totalPorVencer)}</Text>
+        <Text style={[styles.cardValue, { color: CustomColors.warning }]}>{formatCurrency(totalPorVencer)}</Text>
       </RNView>
       <RNView style={[styles.card, styles.cardCurrent]}>
         <Text style={styles.cardLabel}>Vigentes</Text>
-        <Text style={[styles.cardValue, { color: '#10b981' }]}>{formatCurrency(totalVigentes)}</Text>
+        <Text style={[styles.cardValue, { color: CustomColors.success }]}>{formatCurrency(totalVigentes)}</Text>
       </RNView>
     </RNView>
   );
@@ -53,15 +53,15 @@ const styles = StyleSheet.create({
   },
   cardOverdue: {
     borderLeftWidth: 3,
-    borderLeftColor: '#ef4444',
+    borderLeftColor: CustomColors.error,
   },
   cardDueSoon: {
     borderLeftWidth: 3,
-    borderLeftColor: '#f59e0b',
+    borderLeftColor: CustomColors.warning,
   },
   cardCurrent: {
     borderLeftWidth: 3,
-    borderLeftColor: '#10b981',
+    borderLeftColor: CustomColors.success,
   },
   cardLabel: {
     fontSize: 12,

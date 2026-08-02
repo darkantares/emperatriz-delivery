@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, ActivityIndicator, Pressable, StyleSheet } from 'react-native';
+import { CustomColors } from '@/constants/CustomColors';
 
 type UpdateStatus = 'idle' | 'checking' | 'downloading' | 'updated' | 'error';
 
@@ -18,7 +19,7 @@ export default function ForceUpdateScreen({ status, onRetry }: ForceUpdateScreen
         Hay una nueva versión disponible. Por favor espera mientras se instala automáticamente.
       </Text>
 
-      {isLoading && <ActivityIndicator size="large" color="#ffffff" style={styles.spinner} />}
+      {isLoading && <ActivityIndicator size="large" color={CustomColors.textLight} style={styles.spinner} />}
 
       {status === 'error' && (
         <>
@@ -37,7 +38,7 @@ export default function ForceUpdateScreen({ status, onRetry }: ForceUpdateScreen
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1A1125',
+    backgroundColor: CustomColors.backgroundDarkest,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
@@ -45,13 +46,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#ffffff',
+    color: CustomColors.textLight,
     marginBottom: 12,
     textAlign: 'center',
   },
   message: {
     fontSize: 15,
-    color: '#cccccc',
+    color: CustomColors.neutralLight,
     textAlign: 'center',
     marginBottom: 32,
     lineHeight: 22,
@@ -61,18 +62,18 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 14,
-    color: '#ff6b6b',
+    color: CustomColors.error,
     textAlign: 'center',
     marginBottom: 20,
   },
   retryButton: {
-    backgroundColor: '#7B2FBE',
+    backgroundColor: CustomColors.quaternary,
     paddingHorizontal: 32,
     paddingVertical: 12,
     borderRadius: 8,
   },
   retryText: {
-    color: '#ffffff',
+    color: CustomColors.textLight,
     fontSize: 16,
     fontWeight: '600',
   },

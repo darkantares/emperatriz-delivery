@@ -40,7 +40,7 @@ export const LEAFLET_MAP_HTML = `
           // Draw route segments
           msg.segmentCoordinates.forEach(function(seg, i) {
             var latlngs = seg.map(function(c) { return [c[0], c[1]]; });
-            var polyline = L.polyline(latlngs, { color: '#2196F3', weight: 4, opacity: 0.7 }).addTo(map);
+            var polyline = L.polyline(latlngs, { color: '#3B3BF6', weight: 4, opacity: 0.7 }).addTo(map);
             routePolylines.push(polyline);
           });
 
@@ -50,7 +50,7 @@ export const LEAFLET_MAP_HTML = `
             if (!wp.latitude || !wp.longitude) return;
             var latlng = [wp.latitude, wp.longitude];
             bounds.extend(latlng);
-            var color = wp.isFirstInRoute ? '#4CAF50' : wp.isLastInRoute ? '#F44336' : '#FF9800';
+            var color = wp.isFirstInRoute ? '#3BF6F6' : wp.isLastInRoute ? '#F63B3B' : '#F6F63B';
             var icon = L.divIcon({
               className: 'custom-marker',
               html: '<div style="width:32px;height:32px;border-radius:50%;background:'+color+';color:#fff;font-weight:bold;font-size:14px;border:2px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,0.3)">' + wp.count + '</div>',
@@ -72,7 +72,7 @@ export const LEAFLET_MAP_HTML = `
           } else {
             var icon = L.divIcon({
               className: 'custom-marker',
-              html: '<div style="width:24px;height:24px;border-radius:50%;background:#2196F3;border:3px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,0.5)"></div>',
+              html: '<div style="width:24px;height:24px;border-radius:50%;background:#3B3BF6;border:3px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,0.5)"></div>',
               iconSize: [24, 24],
               iconAnchor: [12, 12]
             });
@@ -87,7 +87,7 @@ export const LEAFLET_MAP_HTML = `
         case 'UPDATE_TRAVELED':
           if (traveledPolyline) { map.removeLayer(traveledPolyline); }
           var latlngs = msg.traveledCoords.map(function(c) { return [c[0], c[1]]; });
-          traveledPolyline = L.polyline(latlngs, { color: '#4CAF50', weight: 5, opacity: 0.9 }).addTo(map);
+          traveledPolyline = L.polyline(latlngs, { color: '#3BF6F6', weight: 5, opacity: 0.9 }).addTo(map);
           break;
 
         case 'UPDATE_TARGET':

@@ -396,7 +396,7 @@ function PayAllConfirmDialog({ visible, pendingCount, totalPendiente, onConfirm,
       <RNView style={styles.modalOverlay}>
         <RNView style={styles.modalContent}>
           <RNView style={styles.warningIconContainer}>
-            <Ionicons name="warning-outline" size={40} color="#f59e0b" />
+            <Ionicons name="warning-outline" size={40} color={CustomColors.warning} />
           </RNView>
           <Text style={styles.modalTitle}>¿Está seguro de que desea pagar todas las deudas?</Text>
           <Text style={styles.modalDescription}>
@@ -413,7 +413,7 @@ function PayAllConfirmDialog({ visible, pendingCount, totalPendiente, onConfirm,
               <Text style={styles.modalCancelText}>Cancelar</Text>
             </Pressable>
             <Pressable style={styles.modalConfirmBtnDanger} onPress={onConfirm} disabled={isSaving}>
-              {isSaving ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.modalConfirmText}>Sí, pagar todas las deudas</Text>}
+              {isSaving ? <ActivityIndicator size="small" color={CustomColors.textLight} /> : <Text style={styles.modalConfirmText}>Sí, pagar todas las deudas</Text>}
             </Pressable>
           </RNView>
         </RNView>
@@ -590,23 +590,23 @@ const styles = StyleSheet.create({
   modalConfirmText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#fff',
+    color: CustomColors.textLight,
   },
   warningIconContainer: {
     alignItems: 'center',
     marginBottom: 8,
   },
   summaryBox: {
-    backgroundColor: '#f59e0b15',
+    backgroundColor: `${CustomColors.warning}15`,
     borderWidth: 1,
-    borderColor: '#f59e0b40',
+    borderColor: `${CustomColors.warning}40`,
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
   },
   summaryText: {
     fontSize: 13,
-    color: '#f59e0b',
+    color: CustomColors.warning,
     lineHeight: 20,
   },
 });

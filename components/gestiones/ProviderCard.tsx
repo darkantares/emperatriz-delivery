@@ -83,10 +83,10 @@ export function ProviderCard({ row, isExpanded, invoices, onToggle, onPay, onCre
                 <RNView style={styles.invoiceRowHeader}>
                   <Text style={styles.invoiceNumber}>#{inv.invoice_number}</Text>
                   <RNView style={[styles.statusBadge, {
-                    backgroundColor: inv.invoice_status === 'paid' ? '#10b98120' : inv.invoice_status === 'overdue' ? '#ef444420' : '#f59e0b20',
+                    backgroundColor: inv.invoice_status === 'paid' ? `${CustomColors.success}20` : inv.invoice_status === 'overdue' ? `${CustomColors.error}20` : `${CustomColors.warning}20`,
                   }]}>
                     <Text style={[styles.statusText, {
-                      color: inv.invoice_status === 'paid' ? '#10b981' : inv.invoice_status === 'overdue' ? '#ef4444' : '#f59e0b',
+                      color: inv.invoice_status === 'paid' ? CustomColors.success : inv.invoice_status === 'overdue' ? CustomColors.error : CustomColors.warning,
                     }]}>
                       {inv.invoice_status === 'pending' ? 'Pendiente' : inv.invoice_status === 'paid' ? 'Pagada' : inv.invoice_status === 'overdue' ? 'Vencida' : 'Cancelada'}
                     </Text>

@@ -104,13 +104,13 @@ const StatsCharts = ({ monthlyStats = EMPTY_MONTHLY, weeklyStats = EMPTY_WEEKLY,
                             <Text style={styles.title}>Entregas por día</Text>
                             <Text style={styles.subtitle}>Esta semana</Text>
                         </View>
-                        <View style={[styles.iconCircle, { backgroundColor: 'rgba(5,150,105,0.1)' }]}>
-                            <Ionicons name="calendar-outline" size={20} color="#059669" />
+                        <View style={[styles.iconCircle, { backgroundColor: `${CustomColors.success}1A` }]}>
+                            <Ionicons name="calendar-outline" size={20} color={CustomColors.success} />
                         </View>
                     </View>
 
                     {isLoading ? (
-                        <ActivityIndicator color="#059669" style={{ marginVertical: 16 }} />
+                        <ActivityIndicator color={CustomColors.success} style={{ marginVertical: 16 }} />
                     ) : weeklyStats.length === 0 ? (
                         <Text style={styles.emptyText}>Sin datos esta semana</Text>
                     ) : (
@@ -119,7 +119,7 @@ const StatsCharts = ({ monthlyStats = EMPTY_MONTHLY, weeklyStats = EMPTY_WEEKLY,
                                 {weeklyStats.map((item, index) => (
                                     <View key={item.day} style={styles.barGroup}>
                                         <View style={styles.barContainer}>
-                                            <AnimatedBar ratio={item.value / maxWeekly} delay={80 * index} color="#059669" />
+                                            <AnimatedBar ratio={item.value / maxWeekly} delay={80 * index} color={CustomColors.success} />
                                         </View>
                                         <Text style={styles.barLabel}>{item.day}</Text>
                                     </View>

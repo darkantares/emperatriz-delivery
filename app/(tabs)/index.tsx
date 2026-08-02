@@ -109,7 +109,7 @@ const tabStyles = StyleSheet.create({
     textAlign: "center",
   },
   activeTabText: {
-    color: "#FFFFFF",
+    color: CustomColors.textLight,
     opacity: 1,
   },
 });
@@ -263,7 +263,7 @@ function TabOneScreenContent() {
                 <RNView
                   style={[
                     styles.headerStatusDot,
-                    { backgroundColor: isSocketConnected ? '#22c55e' : '#ef4444' },
+                    { backgroundColor: isSocketConnected ? CustomColors.success : CustomColors.error },
                   ]}
                 />
               </RNView>
@@ -335,7 +335,7 @@ function TabOneScreenContent() {
                 <Ionicons
                   name="map-outline"
                   size={18}
-                  color="#FFFFFF"
+                  color={CustomColors.textLight}
                   style={{ marginRight: 8 }}
                 />
                 <Text style={styles.startRoutesButtonText}>
@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: "#059669",
+    backgroundColor: CustomColors.success,
   },
   liveText: {
     fontSize: 11,
@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     marginLeft: 8,
     borderWidth: 1,
-    borderColor: '#ffffff33',
+    borderColor: `${CustomColors.textLight}33`,
   },
   startRoutesButton: {
     backgroundColor: CustomColors.primary,
@@ -455,7 +455,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   startRoutesButtonText: {
-    color: "#FFFFFF",
+    color: CustomColors.textLight,
     fontWeight: "bold",
     fontSize: 16,
   },
